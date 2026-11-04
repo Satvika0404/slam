@@ -69,7 +69,12 @@ def _plan(bundle: EvidenceBundle, text: str = "Please delete my account."):  # t
 
 
 def test_complete_case_has_only_evidence_backed_verification() -> None:
-    answer = _plan(_bundle(_obs("a", "account_1", "account_service", "USER_PROFILE", "NOT_FOUND")))
+    answer = _plan(
+        _bundle(
+            _obs("scope", "account_1", "account_service", "SNAPSHOT_SCOPE", "SCOPED", False),
+            _obs("a", "account_1", "account_service", "USER_PROFILE", "NOT_FOUND"),
+        )
+    )
     assert answer.deletion_status is DeletionStatus.COMPLETE
     assert [s.operation for s in answer.steps] == [Operation.VERIFY_RECORD_ABSENT]
     assert answer.steps[0].evidence_id == "evidence_1"
@@ -103,7 +108,10 @@ def test_non_deletion_is_not_applicable_without_steps() -> None:
 def test_conflict_never_certifies_complete() -> None:
     bundle = _bundle(_obs("a", "account_1", "account_service", "USER_PROFILE", "NOT_FOUND"),
                      _obs("b", "account_1", "account_service", "USER_PROFILE", "PRESENT"))
-    assert _plan(bundle).deletion_status is DeletionStatus.INCOMPLETE
+    answer = _plan(bundle)
+    assert answer.deletion_status is None
+    assert answer.ready_for_export is False
+    assert answer.blocking_issues
 
 
 def test_unclear_request_gets_no_status_and_export_refuses_it(tmp_path: Path) -> None:
@@ -114,7 +122,10 @@ def test_unclear_request_gets_no_status_and_export_refuses_it(tmp_path: Path) ->
 
 
 def test_export_is_sorted_exact_and_rejects_missing_cases(tmp_path: Path) -> None:
-    bundle = _bundle(_obs("a", "account_1", "account_service", "USER_PROFILE", "NOT_FOUND"))
+    bundle = _bundle(
+        _obs("scope", "account_1", "account_service", "SNAPSHOT_SCOPE", "SCOPED", False),
+        _obs("a", "account_1", "account_service", "USER_PROFILE", "NOT_FOUND"),
+    )
     answer = _plan(bundle)
     target = tmp_path / "o.csv"
     export_output_csv([answer], ["c1"], target)

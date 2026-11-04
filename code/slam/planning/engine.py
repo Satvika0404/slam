@@ -234,6 +234,13 @@ def blocking_reasons(context: CaseContext) -> tuple[str, ...]:
         for state in context.resource_states
         if state.conflicting_evidence_ids
     ]
+    reasons += [
+        f"uncertain-resource:{state.system_id}:{state.resource_id}"
+        for state in context.resource_states
+        if state.uncertain
+    ]
+    if not context.resource_states:
+        reasons.append("no relevant resource states were established")
     return tuple(sorted(set(reasons)))
 
 
@@ -252,6 +259,19 @@ def plan_case(context: CaseContext, bundle: EvidenceBundle | None = None) -> Cas
         return CaseAnswer(
             case_id=case_id,
             blocking_issues=("request intent is unclear; deletion is not authorized",),
+        )
+
+    reasons = blocking_reasons(context)
+    if reasons:
+        return CaseAnswer(
+            case_id=case_id,
+            blocking_issues=reasons,
+            trace={
+                "subject_id": context.subject_id,
+                "violations": 0,
+                "relevant_resources": len(context.resource_states),
+                "not_certified_because": list(reasons),
+            },
         )
 
     rules = context.policy_rules or (bundle.policy_rules if bundle else ())
@@ -275,7 +295,6 @@ def plan_case(context: CaseContext, bundle: EvidenceBundle | None = None) -> Cas
     items.sort(key=lambda item: item.rank)
 
     violations = [item for item in items if item.remediation is not None]
-    reasons = blocking_reasons(context)
     steps: list[Step] = []
     if not violations and not reasons and items:
         for item in items:
