@@ -1,8 +1,8 @@
 """SLAM command-line entry point.
 
-    python code/main.py --dataset dataset                # write output.csv at the repo root
-    python code/main.py --dataset dataset --evaluate     # also score the 32 public samples
-                                                         # and write evaluation/*.md
+python code/main.py --dataset dataset                # write output.csv at the repo root
+python code/main.py --dataset dataset --evaluate     # also score the 32 public samples
+                                                     # and write evaluation/*.md
 """
 
 from __future__ import annotations
@@ -101,6 +101,15 @@ def main() -> int:
                 "failures": summary.failures,
                 "seconds": round(summary.seconds, 1),
                 "output": str(summary.output_path) if summary.output_path else None,
+                "diagnostic_findings": len(summary.evidence_quality.findings)
+                if summary.evidence_quality
+                else 0,
+                "diagnostic_json": str(summary.diagnostic_json_path)
+                if summary.diagnostic_json_path
+                else None,
+                "diagnostic_markdown": str(summary.diagnostic_markdown_path)
+                if summary.diagnostic_markdown_path
+                else None,
             },
             indent=2,
         )

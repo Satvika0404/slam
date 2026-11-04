@@ -15,7 +15,12 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from slam.contracts import AuditRequest, CaseAnswer, DeletionStatus, EvidenceBundle
+from slam.contracts import AuditRequest, CaseAnswer, CaseContext, DeletionStatus, EvidenceBundle
+from slam.evaluation.data_quality import (
+    EvidenceQualityReport,
+    analyze_evidence_quality,
+    write_quality_reports,
+)
 from slam.evaluation.scorer import EvaluationMetrics, score_outputs
 from slam.evaluation.validator import validate_output_csv
 from slam.ingestion.api import ingest, load_requests
@@ -34,6 +39,9 @@ class RunSummary:
     uncertain_cases: int = 0
     seconds: float = 0.0
     output_path: Path | None = None
+    evidence_quality: EvidenceQualityReport | None = None
+    diagnostic_json_path: Path | None = None
+    diagnostic_markdown_path: Path | None = None
 
     @property
     def ok(self) -> bool:
@@ -76,12 +84,15 @@ def answer_cases(
     bundle: EvidenceBundle,
     *,
     provider: ModelProvider | None = None,
+    contexts: list[CaseContext] | None = None,
 ) -> tuple[list[CaseAnswer], dict[str, str]]:
     answers: list[CaseAnswer] = []
     failures: dict[str, str] = {}
     for request in requests:
         try:
             context = reconstruct(request, bundle, provider=provider)
+            if contexts is not None:
+                contexts.append(context)
             answer = plan_case(context, bundle)
             if answer.deletion_status is not None:
                 answer = validate_answer(
@@ -102,12 +113,21 @@ def run(
     cache_dir: Path | None = None,
 ) -> RunSummary:
     started = time.monotonic()
-    requests = (
-        load_request_file(requests_file) if requests_file else load_requests(dataset_dir)
-    )
+    requests = load_request_file(requests_file) if requests_file else load_requests(dataset_dir)
     bundle = ingest(dataset_dir, cache_dir=cache_dir, provider=provider)
-    answers, failures = answer_cases(requests, bundle, provider=provider)
+    contexts: list[CaseContext] = []
+    answers, failures = answer_cases(requests, bundle, provider=provider, contexts=contexts)
     summary = RunSummary(cases=len(requests), failures=failures)
+    summary.evidence_quality = analyze_evidence_quality(
+        bundle,
+        expected_source_ids=tuple(source.source_id for source in bundle.sources),
+        contexts=tuple(contexts),
+    )
+    summary.diagnostic_json_path = output_path.parent / "evaluation" / "data_quality_report.json"
+    summary.diagnostic_markdown_path = output_path.parent / "evaluation" / "data_quality_report.md"
+    write_quality_reports(
+        summary.evidence_quality, summary.diagnostic_json_path, summary.diagnostic_markdown_path
+    )
     for answer in answers:
         if answer.deletion_status is None:
             summary.failures[answer.case_id] = "; ".join(answer.blocking_issues)
