@@ -56,9 +56,9 @@ Lalith: correct anything that is wrong and keep this current in every PR from br
   and returns blocked (non-exportable) answers for failures instead of terminating the full batch.
 - Output validation now supports per-case capture-time maps and audit cutoffs, rejecting citations that
   are missing or later than that case's `audit_at`.
-- Still open: publish the Lalith changes, integrator review of the `pipeline.py` wiring, integration
-  of the two latest Satvika commits, and reproducible full-dataset evaluation. The participant
-  `dataset/` directory is absent from this checkout.
+- Still open: integrator review of the `pipeline.py` wiring, integration of the two latest Satvika
+  commits, and reproducible full-dataset evaluation. The participant `dataset/` directory is absent
+  from this checkout.
 
 ## Cross-owner edits
 
@@ -133,8 +133,8 @@ deadline. No real dataset was available to evaluate this increment.
 
 ## Integration notes
 
-- Lalith's diagnostics and handoff changes are committed locally but not yet pushed to
-  `origin/lalith` because GitHub authentication is unavailable in this checkout.
+- Lalith changes, including the bounded improvement loop, are committed and pushed to
+  `origin/lalith` at `742de8b`; integration review remains pending.
 - Integrate the Manya branch only after they merge this shared contract and update their delivery hash.
 - `main` has no `contracts/`; decide when `dev` is promoted to `main`.
 - Hotspot files you own that others will edit: `tests/contracts/test_owned_boundaries.py`,
