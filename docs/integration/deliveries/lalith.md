@@ -49,7 +49,11 @@ Lalith: correct anything that is wrong and keep this current in every PR from br
 
 ## Cross-owner edits
 
-None.
+- `code/slam/planning/__init__.py`, `code/slam/planning/api.py`, `code/slam/planning/export.py`,
+  `code/slam/planning/validation.py`, `tests/planning/test_export.py`, and
+  `tests/planning/test_policy_plan.py` are Satvika-owned. Lalith implemented the deterministic policy
+  planner, validation and CSV export at the user's request because those pieces were still blocking the
+  assembled product. Satvika should review/adopt this work before integration.
 
 ## Requires from others
 
