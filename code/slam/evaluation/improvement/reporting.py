@@ -7,7 +7,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from slam.evaluation.improvement.candidates import CandidateResult
+from slam.evaluation.improvement.candidates import CandidateResult, CandidateSuiteResult
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,6 +20,7 @@ class ImprovementReport:
     candidate: CandidateResult
     assumptions: tuple[str, ...] = ()
     unknowns: tuple[str, ...] = ()
+    development_result: CandidateResult | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -76,7 +77,62 @@ def render_markdown(report: ImprovementReport) -> str:
         *(f"- Assumption: {item}" for item in report.assumptions),
         *(f"- Unknown: {item}" for item in report.unknowns),
     ]
+    if report.development_result is not None:
+        dev_base = report.development_result.baseline
+        dev_candidate = report.development_result.candidate
+        lines.extend(
+            [
+                "",
+                "## Development baseline and candidate",
+                "",
+                "| Metric | Baseline | Candidate |",
+                "|---|---:|---:|",
+                "| Fixture set ID | "
+                f"`{dev_base.fixture_set_id}` | `{dev_candidate.fixture_set_id}` |",
+                "| False COMPLETE | "
+                f"{dev_base.false_complete_count}/{dev_base.cases} "
+                f"({rate(dev_base.false_complete_rate)}) | "
+                f"{dev_candidate.false_complete_count}/{dev_candidate.cases} "
+                f"({rate(dev_candidate.false_complete_rate)}) |",
+                f"| Status accuracy | {dev_base.status_accuracy:.4f} | "
+                f"{dev_candidate.status_accuracy:.4f} |",
+                f"| Step accuracy | {dev_base.step_accuracy:.4f} | "
+                f"{dev_candidate.step_accuracy:.4f} |",
+                f"| Defect precision | {dev_base.defect_detection_precision:.4f} | "
+                f"{dev_candidate.defect_detection_precision:.4f} |",
+                f"| Defect detection recall | {dev_base.defect_detection_recall:.4f} | "
+                f"{dev_candidate.defect_detection_recall:.4f} |",
+                f"| Latency (ms) | {dev_base.latency_ms} | {dev_candidate.latency_ms} |",
+                f"| API calls | {dev_base.api_calls} | {dev_candidate.api_calls} |",
+                f"| Cost (USD) | {dev_base.cost_usd} | {dev_candidate.cost_usd} |",
+                f"| Observed regressions | {dev_base.regression_count} | "
+                f"{dev_candidate.regression_count} |",
+            ]
+        )
     return "\n".join(lines).rstrip() + "\n"
+
+
+def report_for_suite(
+    suite: CandidateSuiteResult,
+    *,
+    failure_fingerprint: str,
+    seed: int,
+    attempt: int,
+    assumptions: tuple[str, ...] = (),
+    unknowns: tuple[str, ...] = (),
+) -> ImprovementReport:
+    """Build one report containing independent development and held-out comparisons."""
+    return ImprovementReport(
+        scenario_label="synthetic",
+        failure_fingerprint=failure_fingerprint,
+        seed=seed,
+        attempt=attempt,
+        decision=suite.decision,
+        candidate=suite.held_out,
+        assumptions=assumptions,
+        unknowns=unknowns,
+        development_result=suite.development,
+    )
 
 
 def write_improvement_report(

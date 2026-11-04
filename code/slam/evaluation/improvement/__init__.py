@@ -21,7 +21,7 @@ from slam.evaluation.improvement.recovery import (
     RecoveryResult,
     run_recovery,
 )
-from slam.evaluation.improvement.reporting import write_improvement_report
+from slam.evaluation.improvement.reporting import report_for_suite, write_improvement_report
 from slam.evaluation.improvement.scenarios import (
     EventKind,
     ScenarioEvent,
@@ -46,6 +46,7 @@ __all__ = [
     "evaluate_candidate",
     "evaluate_candidate_sets",
     "generate_scenario",
+    "report_for_suite",
     "run_recovery",
     "score_scenarios",
     "write_improvement_report",

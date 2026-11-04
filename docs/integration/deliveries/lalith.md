@@ -134,7 +134,7 @@ deadline. No real dataset was available to evaluate this increment.
 ## Integration notes
 
 - Lalith changes, including the bounded improvement loop, are committed and pushed to
-  `origin/lalith` at `742de8b`; integration review remains pending.
+  `origin/lalith`; integration review remains pending.
 - Integrate the Manya branch only after they merge this shared contract and update their delivery hash.
 - `main` has no `contracts/`; decide when `dev` is promoted to `main`.
 - Hotspot files you own that others will edit: `tests/contracts/test_owned_boundaries.py`,

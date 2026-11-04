@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 
-from slam.evaluation.improvement.candidates import CandidateResult
+from slam.evaluation.improvement.candidates import CandidateResult, CandidateSuiteResult
 from slam.evaluation.improvement.reporting import ImprovementReport, write_improvement_report
 
 
@@ -58,6 +58,12 @@ class ImprovementLoop:
         """Record only the decision, never merge, deploy, or alter an audit result."""
         if self.stage is not LoopStage.EVALUATE:
             raise ValueError("candidate can be recorded only after evaluation")
+        self.advance(LoopStage.ACCEPT if result.accepted else LoopStage.REJECT)
+
+    def record_suite(self, result: CandidateSuiteResult) -> None:
+        """Record the combined decision after both development and held-out comparisons."""
+        if self.stage is not LoopStage.EVALUATE:
+            raise ValueError("candidate suite can be recorded only after evaluation")
         self.advance(LoopStage.ACCEPT if result.accepted else LoopStage.REJECT)
 
     def write_report(self, report: ImprovementReport, json_path: Path, markdown_path: Path) -> None:

@@ -28,6 +28,7 @@ from slam.evaluation.improvement.recovery import RecoveryAction, RecoveryPolicy,
 from slam.evaluation.improvement.reporting import (
     ImprovementReport,
     render_markdown,
+    report_for_suite,
     write_improvement_report,
 )
 from slam.evaluation.improvement.scenarios import EventKind, generate_scenario
@@ -309,7 +310,9 @@ def test_scorer_keeps_synthetic_oracle_separate_from_participant_evidence() -> N
     assert not hasattr(scenarios[0], "expected_status")
 
 
-def test_dev_and_held_out_evaluation_sets_are_disjoint_and_both_gate_acceptance() -> None:
+def test_dev_and_held_out_evaluation_sets_are_disjoint_and_both_gate_acceptance(
+    tmp_path: Path,
+) -> None:
     def metrics(fixture_id: str, case_id: str, false_complete: int) -> CandidateMetrics:
         return CandidateMetrics(
             cases=1,
@@ -335,6 +338,27 @@ def test_dev_and_held_out_evaluation_sets_are_disjoint_and_both_gate_acceptance(
         attempt=1,
     )
     assert not suite.accepted
+    loop = ImprovementLoop()
+    for stage in (
+        LoopStage.REPRODUCE,
+        LoopStage.GENERATE_SCENARIOS,
+        LoopStage.PROPOSE_REPAIR,
+        LoopStage.EVALUATE,
+    ):
+        loop.advance(stage)
+    loop.record_suite(suite)
+    report = report_for_suite(
+        suite,
+        failure_fingerprint="b" * 64,
+        seed=7,
+        attempt=1,
+    )
+    report_text = render_markdown(report)
+    assert "Development baseline and candidate" in report_text
+    assert "Baseline and candidate" in report_text
+    loop.write_report(report, tmp_path / "suite.json", tmp_path / "suite.md")
+    saved_suite = json.loads((tmp_path / "suite.json").read_text(encoding="utf-8"))
+    assert saved_suite["development_result"]["baseline"]["fixture_set_id"] == "dev-v1"
     with pytest.raises(ValueError, match="disjoint"):
         evaluate_candidate_sets(
             development_baseline=metrics("dev-v1", "same-case", 0),

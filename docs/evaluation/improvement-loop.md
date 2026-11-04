@@ -49,8 +49,10 @@ The module APIs compose the intended flow:
 `uv sync --frozen --offline && python -m pytest -p no:cacheprovider -q tests/evaluation` in Docker. Candidate-provided
    commands are never run. Only `code/slam/evaluation/improvement/**` and `tests/evaluation/**`
    may be changed by this repair loop.
-6. Write reviewable JSON and Markdown with `write_improvement_report`. An accepted result means
-   eligible for human review only; it does not merge, deploy, or certify a production result.
+6. Record the combined development/held-out decision with `ImprovementLoop.record_suite`, build one
+   report containing both comparisons with `report_for_suite`, and write reviewable JSON and
+   Markdown with `write_improvement_report`. An accepted result means eligible for human review
+   only; it does not merge, deploy, or certify a production result.
 
 Candidate scoring requires identical fixture IDs, case IDs, and denominators for each baseline /
 candidate pair. The development and held-out fixture sets must have distinct IDs and disjoint
