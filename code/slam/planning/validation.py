@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Collection
+from datetime import datetime
 
 from pydantic import ValidationError
 
@@ -17,6 +18,8 @@ def validate_answer(
     answer: CaseAnswer,
     *,
     eligible_evidence_ids: Collection[str] | None = None,
+    evidence_captured_at: dict[str, datetime] | None = None,
+    audit_at: datetime | None = None,
 ) -> CaseAnswer:
     """Validate contract invariants plus planning evidence and status rules.
 
@@ -38,6 +41,8 @@ def validate_answer(
         return validated
 
     evidence_ids = set(eligible_evidence_ids or ())
+    if (evidence_captured_at is None) != (audit_at is None):
+        raise PlanningValidationError("evidence_captured_at and audit_at must be supplied together")
     for step in validated.steps:
         if step.phase is Phase.FINDING:
             if not step.evidence_id:
@@ -46,6 +51,7 @@ def validate_answer(
                 raise PlanningValidationError(
                     f"finding cites ineligible evidence_id: {step.evidence_id}"
                 )
+            _validate_cutoff(step.evidence_id, evidence_captured_at, audit_at)
         elif validated.deletion_status is DeletionStatus.COMPLETE:
             if step.phase is not Phase.VERIFICATION:
                 raise PlanningValidationError(
@@ -57,8 +63,20 @@ def validate_answer(
                 raise PlanningValidationError(
                     f"verification cites ineligible evidence_id: {step.evidence_id}"
                 )
+            _validate_cutoff(step.evidence_id, evidence_captured_at, audit_at)
         elif step.phase in (Phase.REMEDIATION, Phase.VERIFICATION) and step.evidence_id:
             raise PlanningValidationError(
                 "future remediation and verification steps must have an empty evidence_id"
             )
     return validated
+
+
+def _validate_cutoff(
+    evidence_id: str, captured_at: dict[str, datetime] | None, audit_at: datetime | None
+) -> None:
+    if captured_at is None or audit_at is None:
+        return
+    if evidence_id not in captured_at:
+        raise PlanningValidationError(f"citation has no capture time: {evidence_id}")
+    if captured_at[evidence_id] > audit_at:
+        raise PlanningValidationError(f"citation is after audit_at: {evidence_id}")

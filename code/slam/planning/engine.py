@@ -23,61 +23,28 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
+import networkx as nx  # type: ignore[import-untyped]
+
 from slam.contracts import (
     CaseAnswer,
     CaseContext,
     DeletionStatus,
     EvidenceBundle,
+    GraphEdge,
     Observation,
     Operation,
     Phase,
+    PolicyRule,
     RequestIntent,
     ResourceState,
     Step,
     StepState,
 )
 
-_DIRECT_IDENTIFIERS = frozenset({"email", "phone", "email_hash", "name"})
+_DIRECT_IDENTIFIERS = frozenset({"email", "email_normalized", "phone", "email_hash", "name"})
 _ABSENT = frozenset({"NOT_FOUND", "ABSENT", "DELETED", "REMOVED", "PURGED"})
 _LIVE = frozenset({"PRESENT", "ACTIVE", "IDENTIFIABLE", "RESTORABLE"})
 # Downstream copies are processed before the profile they derive from.
-_ORDER = (
-    "SEARCH_INDEX_ENTRY",
-    "CACHE_ENTRY",
-    "USER_EXPORT",
-    "SUPPORT_ATTACHMENT",
-    "SUPPORT_MESSAGE",
-    "ANALYTICS_PROFILE",
-    "PRODUCT_TELEMETRY",
-    "MARKETING_PROFILE",
-    "EMAIL_DELIVERY_LOG",
-    "SECONDARY_IDENTIFIER",
-    "ACCOUNT_TOMBSTONE",
-    "USER_PROFILE",
-)
-# The official operation order (problem statement, "Allowed Operations"), used to order steps.
-_OP_ORDER = {
-    op: index
-    for index, op in enumerate(
-        (
-            Operation.REPORT_REMAINING_RECORD,
-            Operation.REPORT_EXPOSED_PII,
-            Operation.REPORT_ACTIVE_DATA_FLOW,
-            Operation.REPORT_RESTORE_RISK,
-            Operation.DISABLE_DATA_FLOW,
-            Operation.BLOCK_RESTORE,
-            Operation.DELETE_RECORD,
-            Operation.REDACT_RECORD,
-            Operation.ANONYMIZE_RECORD,
-            Operation.VERIFY_RECORD_ABSENT,
-            Operation.VERIFY_RECORD_PRESENT,
-            Operation.VERIFY_RECORD_REDACTED,
-            Operation.VERIFY_RECORD_ANONYMIZED,
-            Operation.VERIFY_DATA_FLOW_DISABLED,
-            Operation.VERIFY_RESTORE_BLOCKED,
-        )
-    )
-}
 _STATE_OF = {
     Operation.VERIFY_RECORD_ABSENT: StepState.ABSENT,
     Operation.VERIFY_RECORD_PRESENT: StepState.PRESENT,
@@ -128,10 +95,8 @@ class _Item:
     verification: Operation
 
     @property
-    def rank(self) -> tuple[int, str, str]:
-        category = self.state.category
-        position = _ORDER.index(category) if category in _ORDER else len(_ORDER)
-        return position, self.state.system_id, self.state.resource_id
+    def rank(self) -> tuple[str, str]:
+        return self.state.system_id, self.state.resource_id
 
 
 def _exposed(
@@ -153,7 +118,10 @@ def _exposed(
         return False
     latest = max(item.effective_time for item in mine)
     return any(
-        any(key in _DIRECT_IDENTIFIERS and value.strip() for key, value in item.identifiers.items())
+        any(
+            key.casefold() in _DIRECT_IDENTIFIERS and value.strip()
+            for key, value in item.identifiers.items()
+        )
         for item in mine
         if item.effective_time == latest
     )
@@ -196,7 +164,7 @@ def _assess(action: str | None, state: ResourceState, exposed: bool) -> _Item | 
     if action == "ANONYMIZE":
         if absent:
             return _Item(state, None, None, Operation.VERIFY_RECORD_ABSENT)
-        if value == "ANONYMIZED" or not exposed:
+        if not exposed:
             return _Item(state, None, None, Operation.VERIFY_RECORD_ANONYMIZED)
         return _Item(
             state,
@@ -207,7 +175,7 @@ def _assess(action: str | None, state: ResourceState, exposed: bool) -> _Item | 
     if action == "REDACT":
         if absent:
             return _Item(state, None, None, Operation.VERIFY_RECORD_ABSENT)
-        if value == "REDACTED" or not exposed:
+        if not exposed:
             return _Item(state, None, None, Operation.VERIFY_RECORD_REDACTED)
         return _Item(
             state,
@@ -220,13 +188,13 @@ def _assess(action: str | None, state: ResourceState, exposed: bool) -> _Item | 
     return None
 
 
-def _cite(state: ResourceState, captured: dict[str, datetime]) -> str:
-    """The most recently captured supporting source, or an empty string."""
+def _cite(state: ResourceState, captured: dict[str, datetime], audit_at: datetime) -> str:
+    """The most recent supporting citation captured by the audit cutoff."""
 
     ids = sorted(state.supporting_evidence_ids)
-    known = [item for item in ids if item in captured]
+    known = [item for item in ids if item in captured and captured[item] <= audit_at]
     if not known:
-        return ids[-1] if ids else ""
+        return ""
     return max(known, key=lambda item: (captured[item], item))
 
 
@@ -246,18 +214,112 @@ def blocking_reasons(context: CaseContext) -> tuple[str, ...]:
     """Why this case cannot be certified COMPLETE, in a stable order."""
 
     reasons = [f"conflict:{item}" for item in context.unresolved_conflicts]
+    if _has_active_dependency_cycle(context):
+        reasons.append("active recreation dependency cycle has no safe remediation order")
     reasons += [f"coverage:{item}" for item in context.coverage_issues]
     reasons += [
         f"conflicting-evidence:{state.system_id}:{state.resource_id}"
         for state in context.resource_states
         if state.conflicting_evidence_ids
     ]
+    reasons += [
+        f"uncertain-resource:{state.system_id}:{state.resource_id}"
+        for state in context.resource_states
+        if state.uncertain
+    ]
+    if not context.resource_states:
+        reasons.append("no relevant resource states were established")
+    captured = context.evidence_captured_at
+    for state in context.resource_states:
+        if not any(
+            evidence_id in captured and captured[evidence_id] <= context.request.audit_at
+            for evidence_id in state.supporting_evidence_ids
+        ):
+            reasons.append(f"no eligible supporting evidence:{state.system_id}:{state.resource_id}")
     return tuple(sorted(set(reasons)))
+
+
+def _edge_resource(node: str) -> tuple[str, str] | None:
+    parts = node.split(":", 2)
+    if len(parts) != 3 or parts[0] != "resource" or parts[1].casefold() == "unknown":
+        return None
+    return parts[1], parts[2]
+
+
+def _dependency_edges(context: CaseContext) -> tuple[GraphEdge, ...]:
+    return tuple(edge for edge in (*context.active_flows, *context.restore_risks) if edge.active)
+
+
+def _has_active_dependency_cycle(context: CaseContext) -> bool:
+    graph = nx.DiGraph()
+    for edge in _dependency_edges(context):
+        graph.add_edge(edge.source, edge.target)
+    return any(len(component) > 1 for component in nx.strongly_connected_components(graph))
+
+
+def _ordered_items(context: CaseContext, items: list[_Item]) -> list[_Item]:
+    """Order downstream record work before its upstream source, stably otherwise."""
+    by_key = {(item.state.system_id, item.state.resource_id): item for item in items}
+    graph = nx.DiGraph()
+    graph.add_nodes_from(by_key)
+    # A flow edge points upstream -> downstream. Remediation must process the
+    # downstream copy first, so reverse that dependency in the remediation DAG.
+    for edge in _dependency_edges(context):
+        source = _edge_resource(edge.source)
+        target = _edge_resource(edge.target)
+        if source in by_key and target in by_key and source != target:
+            graph.add_edge(target, source)
+    ordered_keys = nx.lexicographical_topological_sort(
+        graph, key=lambda key: (by_key[key].rank, key)
+    )
+    return [by_key[key] for key in ordered_keys]
+
+
+def _actions_for_states(context: CaseContext) -> tuple[dict[tuple[str, str], str], tuple[str, ...]]:
+    """Resolve one exact policy rule per resource; ambiguous rules block evaluation."""
+    by_id = {rule.rule_id: rule for rule in context.policy_rules}
+    by_category: dict[str, list[PolicyRule]] = {}
+    for rule in context.policy_rules:
+        by_category.setdefault(rule.category, []).append(rule)
+    actions: dict[tuple[str, str], str] = {}
+    issues: list[str] = []
+    for state in context.resource_states:
+        key = (state.system_id, state.resource_id)
+        if state.category in {"DATA_FLOW", "BACKUP_ARCHIVE"}:
+            continue
+        if state.applicable_rule_id:
+            selected_rule = by_id.get(state.applicable_rule_id)
+            if selected_rule is None or selected_rule.category != state.category:
+                issues.append(
+                    f"unknown applicable policy rule:{state.system_id}:{state.resource_id}"
+                )
+                continue
+        else:
+            candidates = by_category.get(state.category, [])
+            if len(candidates) != 1:
+                issues.append(
+                    f"ambiguous or missing policy rule:{state.system_id}:{state.resource_id}"
+                )
+                continue
+            selected_rule = candidates[0]
+        action = selected_rule.required_action.upper()
+        if action not in {"DELETE", "REDACT", "ANONYMIZE", "RETAIN"}:
+            issues.append(f"unsupported policy action:{selected_rule.rule_id}")
+            continue
+        if action == "RETAIN" and state.state.upper() in _ABSENT:
+            issues.append(
+                f"required retained record is absent:{state.system_id}:{state.resource_id}"
+            )
+            continue
+        actions[key] = action
+    return actions, tuple(sorted(issues))
 
 
 def plan_case(context: CaseContext, bundle: EvidenceBundle | None = None) -> CaseAnswer:
     """Apply policy to one reconstructed case and return its ordered answer."""
 
+    if not context.policy_rules and bundle is not None:
+        context = context.model_copy(update={"policy_rules": bundle.policy_rules})
     case_id = context.request.case_id
     if context.request_intent is RequestIntent.NON_DELETION:
         return CaseAnswer(
@@ -272,8 +334,20 @@ def plan_case(context: CaseContext, bundle: EvidenceBundle | None = None) -> Cas
             blocking_issues=("request intent is unclear; deletion is not authorized",),
         )
 
-    rules = context.policy_rules or (bundle.policy_rules if bundle else ())
-    actions = {rule.category: rule.required_action.upper() for rule in rules}
+    actions, rule_issues = _actions_for_states(context)
+    reasons = tuple(sorted((*blocking_reasons(context), *rule_issues)))
+    if reasons:
+        return CaseAnswer(
+            case_id=case_id,
+            blocking_issues=reasons,
+            trace={
+                "subject_id": context.subject_id,
+                "violations": 0,
+                "relevant_resources": len(context.resource_states),
+                "not_certified_because": list(reasons),
+            },
+        )
+
     # With a bundle we can see which identifiers a record still carries. Without one
     # (the frozen plan(context)) exposure is unknown, so a live record is assumed exposed.
     observations = {item.observation_id: item for item in bundle.observations} if bundle else None
@@ -284,52 +358,49 @@ def plan_case(context: CaseContext, bundle: EvidenceBundle | None = None) -> Cas
     items: list[_Item] = []
     for state in context.resource_states:
         item = _assess(
-            actions.get(state.category),
+            actions.get((state.system_id, state.resource_id)),
             state,
             _exposed(context, observations, state),
         )
         if item is not None:
             items.append(item)
-    # A state with no citable evidence (a retained record known only from a later-exported file)
-    # may only become a future presence check: it can never be a finding or a violation.
-    items = [
-        item
-        for item in items
-        if item.state.supporting_evidence_ids
-        or (item.remediation is None and item.verification is Operation.VERIFY_RECORD_PRESENT)
-    ]
-    cited = [item for item in items if item.state.supporting_evidence_ids]
+    items = _ordered_items(context, items)
+
     violations = [item for item in items if item.remediation is not None]
-    reasons = blocking_reasons(context)
-
-    def ordered(
-        entries: list[tuple[Operation, ResourceState, str]],
-    ) -> list[Step]:
-        """Spec order: operation order of the table, then system_id, then resource_id."""
-
-        entries = sorted(entries, key=lambda e: (_OP_ORDER[e[0]], e[1].system_id, e[1].resource_id))
-        return [
-            _step(number, op, state, evidence)
-            for number, (op, state, evidence) in enumerate(entries, 1)
-        ]
-
-    steps: list[Step]
-    if not violations and not reasons and cited:
-        steps = ordered(
-            [(item.verification, item.state, _cite(item.state, captured)) for item in cited]
-        )
+    steps: list[Step] = []
+    if not violations and not reasons and items:
+        for item in items:
+            steps.append(
+                _step(
+                    len(steps) + 1,
+                    item.verification,
+                    item.state,
+                    _cite(item.state, captured, context.request.audit_at),
+                )
+            )
         status = DeletionStatus.COMPLETE
     else:
         status = DeletionStatus.INCOMPLETE
-        findings = [(i.finding, i.state, _cite(i.state, captured)) for i in violations if i.finding]
-        remediation = [(i.remediation, i.state, "") for i in violations if i.remediation]
-        verification = [(i.verification, i.state, "") for i in items]
-        steps = []
-        for group in (findings, remediation, verification):
-            steps += [
-                step.model_copy(update={"step_no": len(steps) + k})
-                for k, step in enumerate(ordered(group), 1)
-            ]
+        for item in violations:
+            assert item.finding is not None
+            steps.append(
+                _step(
+                    len(steps) + 1,
+                    item.finding,
+                    item.state,
+                    _cite(item.state, captured, context.request.audit_at),
+                )
+            )
+        for first in (Operation.DISABLE_DATA_FLOW, Operation.BLOCK_RESTORE):
+            for item in violations:
+                if item.remediation is first:
+                    steps.append(_step(len(steps) + 1, first, item.state, ""))
+        for item in violations:
+            if item.remediation not in {Operation.DISABLE_DATA_FLOW, Operation.BLOCK_RESTORE}:
+                assert item.remediation is not None
+                steps.append(_step(len(steps) + 1, item.remediation, item.state, ""))
+        for item in items:
+            steps.append(_step(len(steps) + 1, item.verification, item.state, ""))
 
     return CaseAnswer(
         case_id=case_id,
