@@ -37,8 +37,15 @@ Lalith: correct anything that is wrong and keep this current in every PR from br
   and returns blocked (non-exportable) answers for failures instead of terminating the full batch.
 - Output validation now supports per-case capture-time maps and audit cutoffs, rejecting citations that
   are missing or later than that case's `audit_at`.
+- The deterministic planning subsystem and strict CSV exporter are now implemented under
+  `code/slam/planning/`: rule selection, conservative uncertainty handling, findings, ordered
+  remediation, verification, answer validation, and required-case-set export.
+- Planning tests cover non-deletion, delete/redact/retain decisions, eligible evidence, ambiguous rules,
+  active-flow and restore ordering, downstream-copy ordering, and exporter row-set/format safeguards.
 - Still open: full `main.py --dataset` wiring, run-level usage/evaluation reports, packaging checks,
-  integration of Manya and Satvika code, and final end-to-end evaluation against participant data.
+  Manya's population of the 1.1.0 context fields, integration review, and final end-to-end evaluation
+  against participant data. Conditional policy rules without an upstream `applicable_rule_id` block
+  certification because `ResourceState` does not carry the source attributes needed to evaluate them.
 
 ## Cross-owner edits
 
@@ -50,7 +57,7 @@ None.
 |---|---|---|---|
 | Ashish, Manya, Satvika | Rebase to contract 1.1.0 and pass owned checks | Integration protocol in `SHARED_BUILD_CONTRACT.md` | Ashish implementation available on `origin/ashish`; Manya implementation on `origin/manya` (`152b0a2`) pending 1.1.0 update/integration; Satvika implementation not present on `origin/satvika` (`346e811`) |
 | Manya, Satvika | Fixtures under `tests/fixtures/<area>/` | The evaluation harness needs independent expected results | OPEN |
-| Satvika | `plan(context)` and `export_output_csv(answers, required_case_ids, path)` | The orchestrator and `main.py` must call them | OPEN; implementation not present on remote branch |
+| Satvika / Lalith | Review and adopt planner/export implementation now present on `lalith` | `code/slam/planning/` | OPEN; original Satvika branch still contains only its validator slice |
 | Manya, Satvika | Contract 1.1.0 adoption and updated delivery notes | The shared hash changed for planning/reconstruction inputs | OPEN; notify and integrate after their branches update |
 
 ## Provides to others
