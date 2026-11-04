@@ -53,10 +53,19 @@ installed in the Docker image (a plain Windows/macOS Python run cannot OCR them)
    the deletion rules, orders the steps and validates the answer. A failing case is isolated and
    reported, never guessed; the command exits non-zero until all 518 cases have a supported answer.
 3. Add `--evaluate` to also score the 32 public samples against `dataset/sample_output.csv` and
-   write `evaluation/evaluation_report.md` and `evaluation/usage_report.md`:
+   write `code/evaluation/evaluation_report.md` and `code/evaluation/usage_report.md` (the
+   locations the submission rules require; mirrored to `evaluation/`):
 
    ```bash
    docker compose run --rm slam-dev python code/main.py --dataset dataset --evaluate
+   ```
+
+   The reports alone, without writing `output.csv`: `python code/evaluation/main.py --dataset dataset`.
+4. Build the submission archive (`code.zip`; never contains `dataset/`, `.env`, `output.csv` or
+   `log.txt`) and self-check it against the packaging rules:
+
+   ```bash
+   docker compose run --rm slam-dev python scripts/build_submission.py
    ```
 
 Without Docker: `uv sync --frozen`, install Tesseract, then `python code/main.py --dataset dataset`.

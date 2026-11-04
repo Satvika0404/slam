@@ -53,6 +53,8 @@ SKIP_NAMES = {".env", "output.csv", "log.txt"}
 REQUIRED = (
     "README.md",
     "code/main.py",
+    "code/evaluation/evaluation_report.md",
+    "code/evaluation/usage_report.md",
     "evaluation/evaluation_report.md",
     "evaluation/usage_report.md",
     "pyproject.toml",

@@ -108,6 +108,6 @@ def test_validate_collect_and_output_validator_exist() -> None:
 
 
 def test_evaluation_and_usage_reports_and_submission_package_are_produced() -> None:
-    main = (ROOT / "code" / "main.py").read_text(encoding="utf-8")
+    main = (ROOT / "code" / "evaluation" / "main.py").read_text(encoding="utf-8")
     assert "evaluation_report.md" in main and "usage_report.md" in main
     assert (ROOT / "scripts" / "build_submission.py").exists()  # code.zip
