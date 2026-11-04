@@ -35,6 +35,16 @@ Lalith: correct anything that is wrong and keep this current in every PR from br
 - Directly affected cases/resources, explicit-graph reachability, and evidence-coverage gaps are
   reported separately with assumptions and unknowns. Diagnostics remain advisory and do not mutate
   evidence, identity, policy, or deletion status; no certification gate was added.
+- Bounded development-only reliability loop added under `code/slam/evaluation/improvement/`:
+  deterministic fictional request/evidence scenarios with no oracle labels; sanitized failure
+  fingerprints and JSONL storage; deadline/token-aware allowlisted recovery with at most three
+  attempts; same-fixture development/held-out scoring and acceptance guards; JSON/Markdown reports;
+  and disposable, network-isolated Docker candidate checks. This package is not imported by the
+  production audit pipeline and cannot merge or deploy patches.
+- Improvement-loop tests cover scenario generation/consumption, audit cutoff boundaries, input
+  reordering, unrelated-subject evidence, duplicate actions, surviving prohibited copies, unresolved
+  contradictions, missing-source variants, provider failures, patch-path restrictions, and held-out
+  false-COMPLETE regression. Report examples are illustrative, not measured performance.
 - Each run writes deterministic `evaluation/data_quality_report.json` and
   `evaluation/data_quality_report.md` next to the output directory and includes the report paths
   and finding count in the CLI summary. Synthetic examples live in
@@ -46,9 +56,9 @@ Lalith: correct anything that is wrong and keep this current in every PR from br
   and returns blocked (non-exportable) answers for failures instead of terminating the full batch.
 - Output validation now supports per-case capture-time maps and audit cutoffs, rejecting citations that
   are missing or later than that case's `audit_at`.
-- Still open: publish the Lalith commit after GitHub authentication, integrator review of the
-  `pipeline.py` wiring, integration of the two latest Satvika commits, and reproducible full-dataset
-  evaluation. The participant `dataset/` directory is absent from this checkout.
+- Still open: publish the Lalith changes, integrator review of the `pipeline.py` wiring, integration
+  of the two latest Satvika commits, and reproducible full-dataset evaluation. The participant
+  `dataset/` directory is absent from this checkout.
 
 ## Cross-owner edits
 
@@ -93,6 +103,14 @@ None open from this workstream. Open requests from others are tracked in `CONTRA
 - Local `code.zip` package check — passed (109 files, 238,364 bytes); required runtime/config/evaluation
   artifacts are present, with dataset, `.env`, Git metadata, logs, caches, and nested archives excluded.
 
+### Bounded improvement-loop verification (2026-11-05)
+
+- `docker compose run --rm slam-dev sh -c "ruff check code tests scripts && mypy code/slam code/main.py && pytest -q"` — passed; Ruff clean, mypy clean for 58 files, 537 passed and 34 skipped.
+- Focused improvement and audit-invariant suite — 22 passed, including Hypothesis seed/time/source/parser/provider/cycle variations and the six cross-run audit invariants.
+- Disposable candidate evaluator probe — passed; a harmless generated file was applied only to a temporary checkout, then Docker ran the evaluation suite offline with 43 passed. The probe was not a repair candidate and does not establish repair quality.
+- `python scripts/delivery_check.py ci --base origin/dev --branch lalith` — passed with 0 errors and 0 warnings.
+- No participant dataset was present; no real-data candidate comparison or performance claim was made. See `docs/evaluation/improvement-loop.md` and the explicitly illustrative report examples.
+
 ## Known limits
 
 The scorer requires a reference CSV and does not imply hidden-answer access. Conflict detection uses
@@ -104,6 +122,14 @@ are diagnostic, not probabilities. Synthetic metrics are small-fixture results; 
 performance claim is made for this diagnostics increment. The checked-in evaluation and usage
 reports describe a previously recorded run but could not be independently reproduced here because
 `dataset/` is missing. Real-API behaviour has never been measured.
+
+The improvement loop supplies development-only scenario, storage, recovery, candidate scoring,
+isolated Docker-check, and reporting primitives. Diagnostic-to-scenario mutation and an autonomous
+repair proposer are not connected; any ModelProvider adapter needs separate reviewed development
+integration. The candidate runner requires a built `slam-dev:py311` image and populated
+`slam_uv-cache` volume. Recovery handlers receive a monotonic deadline and token allowance; the
+framework checks budgets between handlers but cannot forcibly cancel a handler that ignores its
+deadline. No real dataset was available to evaluate this increment.
 
 ## Integration notes
 
