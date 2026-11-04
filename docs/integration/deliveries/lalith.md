@@ -107,9 +107,8 @@ reports describe a previously recorded run but could not be independently reprod
 
 ## Integration notes
 
-- This working tree is one commit ahead of `origin/dev` and 14 commits ahead of `origin/lalith`;
-  the diagnostics commit is not yet pushed because GitHub authentication is unavailable in this
-  checkout.
+- Lalith's diagnostics and handoff changes are committed locally but not yet pushed to
+  `origin/lalith` because GitHub authentication is unavailable in this checkout.
 - Integrate the Manya branch only after they merge this shared contract and update their delivery hash.
 - `main` has no `contracts/`; decide when `dev` is promoted to `main`.
 - Hotspot files you own that others will edit: `tests/contracts/test_owned_boundaries.py`,
