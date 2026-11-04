@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 from pydantic import ValidationError
 from slam.contracts import CaseAnswer, DeletionStatus, Operation, Phase, Step, StepState
@@ -133,6 +135,24 @@ def test_ineligible_citation_is_rejected_when_eligibility_set_is_supplied() -> N
                 ),
             ),
             eligible_evidence_ids={"eligible-file"},
+        )
+
+
+def test_citation_after_audit_cutoff_is_rejected() -> None:
+    with pytest.raises(PlanningValidationError, match="after audit_at"):
+        validate_answer(
+            answer(
+                DeletionStatus.COMPLETE,
+                step(
+                    1,
+                    Phase.VERIFICATION,
+                    Operation.VERIFY_RECORD_ABSENT,
+                    StepState.ABSENT,
+                    "file-1",
+                ),
+            ),
+            evidence_captured_at={"file-1": datetime(2026, 3, 1, tzinfo=UTC)},
+            audit_at=datetime(2026, 2, 1, tzinfo=UTC),
         )
 
 

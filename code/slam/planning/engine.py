@@ -31,6 +31,7 @@ from slam.contracts import (
     Observation,
     Operation,
     Phase,
+    PolicyRule,
     RequestIntent,
     ResourceState,
     Step,
@@ -130,10 +131,7 @@ def _exposed(
         return False
     latest = max(item.effective_time for item in mine)
     return any(
-        any(
-            key in _DIRECT_IDENTIFIERS and value.strip()
-            for key, value in item.identifiers.items()
-        )
+        any(key in _DIRECT_IDENTIFIERS and value.strip() for key, value in item.identifiers.items())
         for item in mine
         if item.effective_time == latest
     )
@@ -200,19 +198,17 @@ def _assess(action: str | None, state: ResourceState, exposed: bool) -> _Item | 
     return None
 
 
-def _cite(state: ResourceState, captured: dict[str, datetime]) -> str:
-    """The most recently captured supporting source, or an empty string."""
+def _cite(state: ResourceState, captured: dict[str, datetime], audit_at: datetime) -> str:
+    """The most recent supporting citation captured by the audit cutoff."""
 
     ids = sorted(state.supporting_evidence_ids)
-    known = [item for item in ids if item in captured]
+    known = [item for item in ids if item in captured and captured[item] <= audit_at]
     if not known:
-        return ids[-1] if ids else ""
+        return ""
     return max(known, key=lambda item: (captured[item], item))
 
 
-def _step(
-    number: int, operation: Operation, state: ResourceState, evidence_id: str
-) -> Step:
+def _step(number: int, operation: Operation, state: ResourceState, evidence_id: str) -> Step:
     return Step(
         step_no=number,
         phase=_PHASE_OF.get(operation, Phase.VERIFICATION),
@@ -241,12 +237,61 @@ def blocking_reasons(context: CaseContext) -> tuple[str, ...]:
     ]
     if not context.resource_states:
         reasons.append("no relevant resource states were established")
+    captured = context.evidence_captured_at
+    for state in context.resource_states:
+        if not any(
+            evidence_id in captured and captured[evidence_id] <= context.request.audit_at
+            for evidence_id in state.supporting_evidence_ids
+        ):
+            reasons.append(f"no eligible supporting evidence:{state.system_id}:{state.resource_id}")
     return tuple(sorted(set(reasons)))
+
+
+def _actions_for_states(context: CaseContext) -> tuple[dict[tuple[str, str], str], tuple[str, ...]]:
+    """Resolve one exact policy rule per resource; ambiguous rules block evaluation."""
+    by_id = {rule.rule_id: rule for rule in context.policy_rules}
+    by_category: dict[str, list[PolicyRule]] = {}
+    for rule in context.policy_rules:
+        by_category.setdefault(rule.category, []).append(rule)
+    actions: dict[tuple[str, str], str] = {}
+    issues: list[str] = []
+    for state in context.resource_states:
+        key = (state.system_id, state.resource_id)
+        if state.category in {"DATA_FLOW", "BACKUP_ARCHIVE"}:
+            continue
+        if state.applicable_rule_id:
+            selected_rule = by_id.get(state.applicable_rule_id)
+            if selected_rule is None or selected_rule.category != state.category:
+                issues.append(
+                    f"unknown applicable policy rule:{state.system_id}:{state.resource_id}"
+                )
+                continue
+        else:
+            candidates = by_category.get(state.category, [])
+            if len(candidates) != 1:
+                issues.append(
+                    f"ambiguous or missing policy rule:{state.system_id}:{state.resource_id}"
+                )
+                continue
+            selected_rule = candidates[0]
+        action = selected_rule.required_action.upper()
+        if action not in {"DELETE", "REDACT", "ANONYMIZE", "RETAIN"}:
+            issues.append(f"unsupported policy action:{selected_rule.rule_id}")
+            continue
+        if action == "RETAIN" and state.state.upper() in _ABSENT:
+            issues.append(
+                f"required retained record is absent:{state.system_id}:{state.resource_id}"
+            )
+            continue
+        actions[key] = action
+    return actions, tuple(sorted(issues))
 
 
 def plan_case(context: CaseContext, bundle: EvidenceBundle | None = None) -> CaseAnswer:
     """Apply policy to one reconstructed case and return its ordered answer."""
 
+    if not context.policy_rules and bundle is not None:
+        context = context.model_copy(update={"policy_rules": bundle.policy_rules})
     case_id = context.request.case_id
     if context.request_intent is RequestIntent.NON_DELETION:
         return CaseAnswer(
@@ -261,7 +306,8 @@ def plan_case(context: CaseContext, bundle: EvidenceBundle | None = None) -> Cas
             blocking_issues=("request intent is unclear; deletion is not authorized",),
         )
 
-    reasons = blocking_reasons(context)
+    actions, rule_issues = _actions_for_states(context)
+    reasons = tuple(sorted((*blocking_reasons(context), *rule_issues)))
     if reasons:
         return CaseAnswer(
             case_id=case_id,
@@ -274,8 +320,6 @@ def plan_case(context: CaseContext, bundle: EvidenceBundle | None = None) -> Cas
             },
         )
 
-    rules = context.policy_rules or (bundle.policy_rules if bundle else ())
-    actions = {rule.category: rule.required_action.upper() for rule in rules}
     # With a bundle we can see which identifiers a record still carries. Without one
     # (the frozen plan(context)) exposure is unknown, so a live record is assumed exposed.
     observations = {item.observation_id: item for item in bundle.observations} if bundle else None
@@ -286,7 +330,7 @@ def plan_case(context: CaseContext, bundle: EvidenceBundle | None = None) -> Cas
     items: list[_Item] = []
     for state in context.resource_states:
         item = _assess(
-            actions.get(state.category),
+            actions.get((state.system_id, state.resource_id)),
             state,
             _exposed(context, observations, state),
         )
@@ -299,7 +343,12 @@ def plan_case(context: CaseContext, bundle: EvidenceBundle | None = None) -> Cas
     if not violations and not reasons and items:
         for item in items:
             steps.append(
-                _step(len(steps) + 1, item.verification, item.state, _cite(item.state, captured))
+                _step(
+                    len(steps) + 1,
+                    item.verification,
+                    item.state,
+                    _cite(item.state, captured, context.request.audit_at),
+                )
             )
         status = DeletionStatus.COMPLETE
     else:
@@ -307,7 +356,12 @@ def plan_case(context: CaseContext, bundle: EvidenceBundle | None = None) -> Cas
         for item in violations:
             assert item.finding is not None
             steps.append(
-                _step(len(steps) + 1, item.finding, item.state, _cite(item.state, captured))
+                _step(
+                    len(steps) + 1,
+                    item.finding,
+                    item.state,
+                    _cite(item.state, captured, context.request.audit_at),
+                )
             )
         for first in (Operation.DISABLE_DATA_FLOW, Operation.BLOCK_RESTORE):
             for item in violations:
