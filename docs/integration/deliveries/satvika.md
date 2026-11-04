@@ -1,12 +1,12 @@
 ---
 owner: satvika
 workstream: Policy, decision, ordered steps, CSV export
-status: IN_PROGRESS
+status: READY_FOR_INTEGRATION
 contract_version: 1.1.0
 contract_sha256: 95cfa189ae07490fe5b42527dc08990b50779d83fa7a82965caefeeb28275a23
 built_on: 0d02a57be96b70f055e69e7c0d16adb652b7b882
 merge_after: ashish, manya
-last_updated: 2026-11-04
+last_updated: 2026-11-05
 ---
 
 # Satvika - policy, decision, steps, export
@@ -19,6 +19,8 @@ last_updated: 2026-11-04
 - Unknown, conflicting, uncertain, or uncovered resource state now blocks certification instead of returning an export-ready answer. Empty resource state also blocks certification.
 - Rule selection uses `applicable_rule_id` where supplied and blocks duplicate-category or unsupported rule assignments rather than silently selecting a rule by input order.
 - Citation selection and validation reject evidence captured after `audit_at`.
+- When raw bundle observations are available, a `REDACTED`/`ANONYMIZED` state claim does not override direct identifiers still present in the latest eligible observation; normalized email keys and email hashes are checked.
+- Remediation ordering uses explicit active flow/restore dependencies, placing downstream copies before their sources. Independent resources sort by `(system_id, resource_id)`. An active dependency cycle blocks certification with a deterministic reason.
 - Synthetic cases cover tombstone hash exposure, compliant tombstones, legally required retention, shared-message redaction, analytics anonymization, active-flow and restore mitigation ordering, future-only citations, ambiguous policy rules, and deterministic ordering under shuffled input.
 
 ## Cross-owner edits
@@ -49,13 +51,11 @@ None for this slice. Q1 may require a contract change; no contract was edited.
 
 Run in Docker on 2026-11-05:
 
-- `docker compose run --rm slam-dev pytest -q` — 515 passed, 34 skipped.
-- `docker compose run --rm slam-dev pytest -q tests/planning` — 26 passed with the latest additions.
-- `docker compose run --rm slam-dev ruff check code/slam/planning tests/planning` — passed.
-- `docker compose run --rm slam-dev mypy code/slam/planning` — passed.
+- `docker compose run --rm slam-dev pytest -q tests/contracts tests/planning` — 61 passed.
+- `docker compose run --rm slam-dev pytest -q` — 521 passed, 34 skipped.
 - `docker compose run --rm slam-dev ruff check code tests scripts` — passed.
 - `docker compose run --rm slam-dev mypy code/slam code/main.py` — passed (51 source files).
-- `python scripts/delivery_check.py ci --base origin/dev --head HEAD --branch satvika` — passed on the host (0 errors, 0 warnings); Docker image lacks Git.
+- `python scripts/delivery_check.py ci --base origin/dev --head HEAD --branch satvika` — passed on host (0 errors, 0 warnings); the Docker image has no `git` executable.
 
 ## Known limits
 
@@ -65,4 +65,4 @@ Run in Docker on 2026-11-05:
 
 ## Integration notes
 
-- Work is on `satvika`, based on current `origin/dev` at `bf40c39`; merge order remains Ashish, Manya, then Satvika.
+- Work is on `satvika`, based on current `origin/dev` at `bf40c39`; Ashish and Manya are ancestors of `origin/dev`, so the declared merge prerequisites are satisfied. Integration remains with the integrator.

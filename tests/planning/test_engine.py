@@ -13,6 +13,7 @@ from slam.contracts import (
     CurrentIdentity,
     DeletionStatus,
     EvidenceBundle,
+    GraphEdge,
     Observation,
     Operation,
     PolicyRule,
@@ -54,7 +55,13 @@ def _request(text: str = "Please delete my account.") -> AuditRequest:
 
 
 def _obs(
-    label: str, resource: str, system: str, category: str, state: str, with_email: bool = True
+    label: str,
+    resource: str,
+    system: str,
+    category: str,
+    state: str,
+    with_email: bool = True,
+    source_fields: dict[str, str] | None = None,
 ) -> Observation:
     return Observation(
         observation_id=hashlib.sha256(label.encode()).hexdigest(),
@@ -66,7 +73,7 @@ def _obs(
         effective_time=datetime(2026, 1, 20, tzinfo=UTC),
         source_kind=SourceKind.JSON,
         identifiers={"email": EMAIL} if with_email else {},
-        fields={"evidence_nature": "observation", "source": {}},
+        fields={"evidence_nature": "observation", "source": source_fields or {}},
         spans=(SourceSpan(source_id="evidence_1", json_path=f"$.{label}"),),
     )
 
@@ -121,7 +128,19 @@ def test_incomplete_case_orders_mitigation_before_records_and_copies_before_prof
         _bundle(
             _obs("p", "account_1", "account_service", "USER_PROFILE", "PRESENT"),
             _obs("s", "search_1", "search_service", "SEARCH_INDEX_ENTRY", "PRESENT"),
-            _obs("f", "data_flow_1", "integration_service", "DATA_FLOW", "ACTIVE"),
+            _obs(
+                "f",
+                "data_flow_1",
+                "integration_service",
+                "DATA_FLOW",
+                "ACTIVE",
+                source_fields={
+                    "source_system": "account_service",
+                    "source_resource_id": "account_1",
+                    "target_system": "search_service",
+                    "target_resource_id": "search_1",
+                },
+            ),
             _obs("b", "backup_1", "backup_service", "BACKUP_ARCHIVE", "RESTORABLE"),
         )
     )
@@ -144,7 +163,19 @@ def test_order_is_stable_when_input_observations_are_shuffled() -> None:
     observations = (
         _obs("profile", "account_1", "account_service", "USER_PROFILE", "PRESENT"),
         _obs("search", "search_1", "search_service", "SEARCH_INDEX_ENTRY", "PRESENT"),
-        _obs("flow", "flow_1", "integration", "DATA_FLOW", "ACTIVE"),
+        _obs(
+            "flow",
+            "flow_1",
+            "integration",
+            "DATA_FLOW",
+            "ACTIVE",
+            source_fields={
+                "source_system": "account_service",
+                "source_resource_id": "account_1",
+                "target_system": "search_service",
+                "target_resource_id": "search_1",
+            },
+        ),
         _obs("backup", "backup_1", "backup", "BACKUP_ARCHIVE", "RESTORABLE"),
     )
     forward = _plan(_bundle(*observations))
@@ -286,6 +317,28 @@ def test_attributable_analytics_is_anonymized() -> None:
     ]
 
 
+@pytest.mark.parametrize(
+    ("category", "action", "state", "identifier"),
+    [
+        ("SUPPORT_MESSAGE", "REDACT", "REDACTED", "email_normalized"),
+        ("ANALYTICS_PROFILE", "ANONYMIZE", "ANONYMIZED", "email_hash"),
+        ("ACCOUNT_TOMBSTONE", "REDACT", "REDACTED", "email_hash"),
+    ],
+)
+def test_treatment_state_claim_does_not_override_exposed_identifiers(
+    category: str, action: str, state: str, identifier: str
+) -> None:
+    observation = _obs("still-exposed", "record-1", "service", category, state).model_copy(
+        update={"identifiers": {identifier: EMAIL if identifier != "email_hash" else "a" * 64}}
+    )
+    rules = (PolicyRule(rule_id="rule", category=category, required_action=action),)
+    bundle = _bundle(observation, rules=rules)
+    answer = plan_case(reconstruct(_request(), bundle), bundle)
+    expected = Operation.REDACT_RECORD if action == "REDACT" else Operation.ANONYMIZE_RECORD
+    assert answer.deletion_status is DeletionStatus.INCOMPLETE
+    assert expected in [step.operation for step in answer.steps]
+
+
 def test_future_only_citation_blocks_certification() -> None:
     future = datetime(2026, 3, 1, tzinfo=UTC)
     context = CaseContext(
@@ -331,3 +384,115 @@ def test_duplicate_category_rules_require_an_explicit_applicable_rule() -> None:
     answer = plan(context)
     assert answer.deletion_status is None
     assert any("ambiguous or missing policy rule" in item for item in answer.blocking_issues)
+
+
+def test_dependent_copy_is_remediated_before_its_source():
+    evidence = "evidence_1"
+    context = CaseContext(
+        request=_request(),
+        request_intent=RequestIntent.DELETION,
+        subject_id="user_1",
+        policy_rules=(
+            PolicyRule(rule_id="profile", category="USER_PROFILE", required_action="DELETE"),
+            PolicyRule(rule_id="copy", category="SEARCH_INDEX_ENTRY", required_action="DELETE"),
+        ),
+        evidence_captured_at={evidence: datetime(2026, 1, 20, tzinfo=UTC)},
+        resource_states=(
+            ResourceState(
+                system_id="accounts",
+                resource_id="profile",
+                category="USER_PROFILE",
+                state="PRESENT",
+                at=_request().audit_at,
+                supporting_evidence_ids=(evidence,),
+            ),
+            ResourceState(
+                system_id="search",
+                resource_id="copy",
+                category="SEARCH_INDEX_ENTRY",
+                state="PRESENT",
+                at=_request().audit_at,
+                supporting_evidence_ids=(evidence,),
+            ),
+        ),
+        active_flows=(
+            GraphEdge(
+                source="resource:accounts:profile",
+                target="resource:search:copy",
+                relationship="data_flow",
+                evidence_ids=(evidence,),
+                active=True,
+            ),
+        ),
+    )
+    answer = plan_case(context)
+    remediation = [step.resource_id for step in answer.steps if step.phase.value == "REMEDIATION"]
+    assert remediation == ["copy", "profile"]
+
+
+def test_independent_remediations_use_system_resource_order():
+    evidence = "evidence_1"
+    context = CaseContext(
+        request=_request(),
+        request_intent=RequestIntent.DELETION,
+        policy_rules=(
+            PolicyRule(rule_id="delete", category="USER_PROFILE", required_action="DELETE"),
+        ),
+        evidence_captured_at={evidence: datetime(2026, 1, 20, tzinfo=UTC)},
+        resource_states=tuple(
+            ResourceState(
+                system_id=system,
+                resource_id=resource,
+                category="USER_PROFILE",
+                state="PRESENT",
+                at=_request().audit_at,
+                supporting_evidence_ids=(evidence,),
+            )
+            for system, resource in (("z-system", "z-record"), ("a-system", "a-record"))
+        ),
+    )
+    answer = plan_case(context)
+    findings = [step.system_id for step in answer.steps if step.phase.value == "FINDING"]
+    assert findings == ["a-system", "z-system"]
+
+
+def test_active_dependency_cycle_blocks_certification():
+    evidence = "evidence_1"
+    context = CaseContext(
+        request=_request(),
+        request_intent=RequestIntent.DELETION,
+        policy_rules=(
+            PolicyRule(rule_id="delete", category="USER_PROFILE", required_action="DELETE"),
+        ),
+        evidence_captured_at={evidence: datetime(2026, 1, 20, tzinfo=UTC)},
+        resource_states=(
+            ResourceState(
+                system_id="accounts",
+                resource_id="profile",
+                category="USER_PROFILE",
+                state="PRESENT",
+                at=_request().audit_at,
+                supporting_evidence_ids=(evidence,),
+            ),
+        ),
+        active_flows=(
+            GraphEdge(
+                source="resource:accounts:profile",
+                target="resource:search:copy",
+                relationship="data_flow",
+                evidence_ids=(evidence,),
+                active=True,
+            ),
+            GraphEdge(
+                source="resource:search:copy",
+                target="resource:accounts:profile",
+                relationship="data_flow",
+                evidence_ids=(evidence,),
+                active=True,
+            ),
+        ),
+    )
+    answer = plan_case(context)
+    assert answer.deletion_status is None
+    assert not answer.ready_for_export
+    assert any("dependency cycle" in reason for reason in answer.blocking_issues)

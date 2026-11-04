@@ -23,11 +23,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
+import networkx as nx  # type: ignore[import-untyped]
+
 from slam.contracts import (
     CaseAnswer,
     CaseContext,
     DeletionStatus,
     EvidenceBundle,
+    GraphEdge,
     Observation,
     Operation,
     Phase,
@@ -38,24 +41,10 @@ from slam.contracts import (
     StepState,
 )
 
-_DIRECT_IDENTIFIERS = frozenset({"email", "phone", "email_hash", "name"})
+_DIRECT_IDENTIFIERS = frozenset({"email", "email_normalized", "phone", "email_hash", "name"})
 _ABSENT = frozenset({"NOT_FOUND", "ABSENT", "DELETED", "REMOVED", "PURGED"})
 _LIVE = frozenset({"PRESENT", "ACTIVE", "IDENTIFIABLE", "RESTORABLE"})
 # Downstream copies are processed before the profile they derive from.
-_ORDER = (
-    "SEARCH_INDEX_ENTRY",
-    "CACHE_ENTRY",
-    "USER_EXPORT",
-    "SUPPORT_ATTACHMENT",
-    "SUPPORT_MESSAGE",
-    "ANALYTICS_PROFILE",
-    "PRODUCT_TELEMETRY",
-    "MARKETING_PROFILE",
-    "EMAIL_DELIVERY_LOG",
-    "SECONDARY_IDENTIFIER",
-    "ACCOUNT_TOMBSTONE",
-    "USER_PROFILE",
-)
 _STATE_OF = {
     Operation.VERIFY_RECORD_ABSENT: StepState.ABSENT,
     Operation.VERIFY_RECORD_PRESENT: StepState.PRESENT,
@@ -106,10 +95,8 @@ class _Item:
     verification: Operation
 
     @property
-    def rank(self) -> tuple[int, str, str]:
-        category = self.state.category
-        position = _ORDER.index(category) if category in _ORDER else len(_ORDER)
-        return position, self.state.system_id, self.state.resource_id
+    def rank(self) -> tuple[str, str]:
+        return self.state.system_id, self.state.resource_id
 
 
 def _exposed(
@@ -131,7 +118,10 @@ def _exposed(
         return False
     latest = max(item.effective_time for item in mine)
     return any(
-        any(key in _DIRECT_IDENTIFIERS and value.strip() for key, value in item.identifiers.items())
+        any(
+            key.casefold() in _DIRECT_IDENTIFIERS and value.strip()
+            for key, value in item.identifiers.items()
+        )
         for item in mine
         if item.effective_time == latest
     )
@@ -174,7 +164,7 @@ def _assess(action: str | None, state: ResourceState, exposed: bool) -> _Item | 
     if action == "ANONYMIZE":
         if absent:
             return _Item(state, None, None, Operation.VERIFY_RECORD_ABSENT)
-        if value == "ANONYMIZED" or not exposed:
+        if not exposed:
             return _Item(state, None, None, Operation.VERIFY_RECORD_ANONYMIZED)
         return _Item(
             state,
@@ -185,7 +175,7 @@ def _assess(action: str | None, state: ResourceState, exposed: bool) -> _Item | 
     if action == "REDACT":
         if absent:
             return _Item(state, None, None, Operation.VERIFY_RECORD_ABSENT)
-        if value == "REDACTED" or not exposed:
+        if not exposed:
             return _Item(state, None, None, Operation.VERIFY_RECORD_REDACTED)
         return _Item(
             state,
@@ -224,6 +214,8 @@ def blocking_reasons(context: CaseContext) -> tuple[str, ...]:
     """Why this case cannot be certified COMPLETE, in a stable order."""
 
     reasons = [f"conflict:{item}" for item in context.unresolved_conflicts]
+    if _has_active_dependency_cycle(context):
+        reasons.append("active recreation dependency cycle has no safe remediation order")
     reasons += [f"coverage:{item}" for item in context.coverage_issues]
     reasons += [
         f"conflicting-evidence:{state.system_id}:{state.resource_id}"
@@ -245,6 +237,42 @@ def blocking_reasons(context: CaseContext) -> tuple[str, ...]:
         ):
             reasons.append(f"no eligible supporting evidence:{state.system_id}:{state.resource_id}")
     return tuple(sorted(set(reasons)))
+
+
+def _edge_resource(node: str) -> tuple[str, str] | None:
+    parts = node.split(":", 2)
+    if len(parts) != 3 or parts[0] != "resource" or parts[1].casefold() == "unknown":
+        return None
+    return parts[1], parts[2]
+
+
+def _dependency_edges(context: CaseContext) -> tuple[GraphEdge, ...]:
+    return tuple(edge for edge in (*context.active_flows, *context.restore_risks) if edge.active)
+
+
+def _has_active_dependency_cycle(context: CaseContext) -> bool:
+    graph = nx.DiGraph()
+    for edge in _dependency_edges(context):
+        graph.add_edge(edge.source, edge.target)
+    return any(len(component) > 1 for component in nx.strongly_connected_components(graph))
+
+
+def _ordered_items(context: CaseContext, items: list[_Item]) -> list[_Item]:
+    """Order downstream record work before its upstream source, stably otherwise."""
+    by_key = {(item.state.system_id, item.state.resource_id): item for item in items}
+    graph = nx.DiGraph()
+    graph.add_nodes_from(by_key)
+    # A flow edge points upstream -> downstream. Remediation must process the
+    # downstream copy first, so reverse that dependency in the remediation DAG.
+    for edge in _dependency_edges(context):
+        source = _edge_resource(edge.source)
+        target = _edge_resource(edge.target)
+        if source in by_key and target in by_key and source != target:
+            graph.add_edge(target, source)
+    ordered_keys = nx.lexicographical_topological_sort(
+        graph, key=lambda key: (by_key[key].rank, key)
+    )
+    return [by_key[key] for key in ordered_keys]
 
 
 def _actions_for_states(context: CaseContext) -> tuple[dict[tuple[str, str], str], tuple[str, ...]]:
@@ -336,7 +364,7 @@ def plan_case(context: CaseContext, bundle: EvidenceBundle | None = None) -> Cas
         )
         if item is not None:
             items.append(item)
-    items.sort(key=lambda item: item.rank)
+    items = _ordered_items(context, items)
 
     violations = [item for item in items if item.remediation is not None]
     steps: list[Step] = []
