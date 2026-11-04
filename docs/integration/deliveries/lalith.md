@@ -1,7 +1,7 @@
 ---
 owner: lalith
 workstream: Contracts, runtime, evaluation, Docker
-status: READY_FOR_INTEGRATION
+status: IN_PROGRESS
 contract_version: 1.1.0
 contract_sha256: 95cfa189ae07490fe5b42527dc08990b50779d83fa7a82965caefeeb28275a23
 built_on: 0bbee13
@@ -46,8 +46,9 @@ Lalith: correct anything that is wrong and keep this current in every PR from br
   and returns blocked (non-exportable) answers for failures instead of terminating the full batch.
 - Output validation now supports per-case capture-time maps and audit cutoffs, rejecting citations that
   are missing or later than that case's `audit_at`.
-- Still open: full-dataset output/package checks, integration of the two latest Satvika commits,
-  and final end-to-end evaluation against participant-facing data.
+- Still open: publish the Lalith commit after GitHub authentication, integrator review of the
+  `pipeline.py` wiring, integration of the two latest Satvika commits, and reproducible full-dataset
+  evaluation. The participant `dataset/` directory is absent from this checkout.
 
 ## Cross-owner edits
 
@@ -89,6 +90,8 @@ None open from this workstream. Open requests from others are tracked in `CONTRA
   fixture run measured 2.017 ms runtime and 52,149 peak traced bytes; this is a unit-fixture
   measurement, not a throughput or real-dataset claim.
 - `python scripts/delivery_check.py ci --base origin/dev --branch lalith` — passed with 0 errors and 0 warnings.
+- Local `code.zip` package check — passed (109 files, 238,364 bytes); required runtime/config/evaluation
+  artifacts are present, with dataset, `.env`, Git metadata, logs, caches, and nested archives excluded.
 
 ## Known limits
 
@@ -98,7 +101,9 @@ semantics can be missed. Historical identity intervals are inferred from change 
 current snapshot's `updated_at`; ambiguous bounds remain a limitation. Reachability includes only
 explicit active graph edges, and case attribution requires supplied contexts. Findings and coverage
 are diagnostic, not probabilities. Synthetic metrics are small-fixture results; no real-dataset
-performance claim is made. Real-API behaviour has never been measured.
+performance claim is made for this diagnostics increment. The checked-in evaluation and usage
+reports describe a previously recorded run but could not be independently reproduced here because
+`dataset/` is missing. Real-API behaviour has never been measured.
 
 ## Integration notes
 
