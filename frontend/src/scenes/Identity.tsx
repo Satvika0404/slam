@@ -52,6 +52,7 @@ export default function Identity(props: SceneProps) {
     [hops, setHops] = useState(1),
     [limit, setLimit] = useState(40),
     [pathFocus, setPathFocus] = useState(false),
+    [resourceExpanded, setResourceExpanded] = useState(false),
     [query, setQuery] = useState(""),
     [message, setMessage] = useState("");
   const viewport = useRef<HTMLDivElement>(null),
@@ -95,7 +96,11 @@ export default function Identity(props: SceneProps) {
       ? -1
       : b.kind === "subject"
         ? 1
-        : a.id.localeCompare(b.id),
+        : a.kind === "resource" && b.kind !== "resource"
+          ? 1
+          : b.kind === "resource" && a.kind !== "resource"
+            ? -1
+            : a.id.localeCompare(b.id),
   );
   const layout = useMemo(() => layoutIdentity(allNodes), [data.identity_nodes]);
   const loc = (id: string) => positions[id] ?? layout[id] ?? [490, 248];
@@ -105,7 +110,7 @@ export default function Identity(props: SceneProps) {
   let edges = eligibleEdges.filter((e) => {
     const status = statuses.get(e.id)!;
     return (
-      (view === "historical" || !isEnded(status)) &&
+      (view === "historical" || !isEnded(status) || justEnded.includes(e.id)) &&
       (filter === "all" ||
         (filter === "historical" ? isEnded(status) : status === filter)) &&
       (system === "all" || e.system_ids?.includes(system)) &&
@@ -120,6 +125,10 @@ export default function Identity(props: SceneProps) {
   const progressive = allNodes.length > 40;
   let visibleNodes = allNodes.filter(
     (n) =>
+      (n.kind !== "resource" ||
+        resourceExpanded ||
+        type === "resource" ||
+        n.id === selected) &&
       (type === "all" ||
         n.kind === type ||
         edges.some((e) => e.source === n.id || e.target === n.id)) &&
@@ -153,10 +162,10 @@ export default function Identity(props: SceneProps) {
     ? new Set([active.source, active.target])
     : new Set(selected ? [selected] : []);
   const nearby = neighborhood(edges, [...endpoints], 1);
-  const worldHeight =
-    allNodes.length > 8
-      ? Math.max(520, Math.ceil(allNodes.length / 5) * 140 + 70)
-      : 520;
+  const worldHeight = Math.max(
+    520,
+    ...Object.values(layout).map((p) => p[1] + 90),
+  );
   function clear() {
     setSelected("");
     setEdgeId(null);
@@ -165,11 +174,46 @@ export default function Identity(props: SceneProps) {
     setMessage("");
   }
   function chooseEdge(id: string) {
+    const connection = validEdges.find((e) => e.id === id);
+    if (connection) {
+      if (
+        allNodes.some(
+          (n) =>
+            n.kind === "resource" &&
+            (n.id === connection.source || n.id === connection.target),
+        )
+      )
+        setResourceExpanded(true);
+      const bounds = viewport.current?.getBoundingClientRect();
+      if (bounds) {
+        const a = loc(connection.source),
+          b = loc(connection.target),
+          height = worldHeight > 520 ? worldHeight : bounds.height;
+        const s = Math.min(
+          1,
+          (bounds.width - 60) /
+            ((Math.abs(a[0] - b[0]) * bounds.width) / 1000 + 150),
+          (bounds.height - 50) /
+            ((Math.abs(a[1] - b[1]) * height) / worldHeight + 150),
+        );
+        setZoom(s);
+        setPan({
+          x:
+            bounds.width / 2 -
+            ((((a[0] + b[0]) / 2) * bounds.width) / 1000) * s,
+          y:
+            bounds.height / 2 -
+            ((((a[1] + b[1]) / 2) * height) / worldHeight) * s,
+        });
+      }
+    }
     setEdgeId((old) => (old === id ? null : id));
     setSelected("");
     setPathFocus(false);
   }
   function chooseNode(id: string) {
+    if (allNodes.some((n) => n.id === id && n.kind === "resource"))
+      setResourceExpanded(true);
     setSelected(id);
     setEdgeId(null);
     setPathFocus(false);
@@ -530,7 +574,18 @@ export default function Identity(props: SceneProps) {
                 {edges.map((e) => {
                   const a = loc(e.source),
                     b = loc(e.target),
-                    bend = e.relationship.includes("change") ? -45 : 24,
+                    peers = validEdges
+                      .filter(
+                        (p) =>
+                          (p.source === e.source && p.target === e.target) ||
+                          (p.source === e.target && p.target === e.source),
+                      )
+                      .sort((x, y) => x.id.localeCompare(y.id)),
+                    bend =
+                      (e.relationship.includes("change") ? -45 : 24) +
+                      (peers.findIndex((p) => p.id === e.id) -
+                        (peers.length - 1) / 2) *
+                        48,
                     route = `M ${a[0]} ${a[1]} Q ${(a[0] + b[0]) / 2} ${(a[1] + b[1]) / 2 + bend} ${b[0]} ${b[1]}`,
                     status = statuses.get(e.id)!;
                   const dim = pathFocus
@@ -780,6 +835,15 @@ export default function Identity(props: SceneProps) {
             </div>
           </div>
           <div className="identity-explore-tools">
+            {allNodes.some((n) => n.kind === "resource") && (
+              <button
+                aria-pressed={resourceExpanded}
+                onClick={() => setResourceExpanded((v) => !v)}
+              >
+                {resourceExpanded ? "Collapse" : "Show"} resource associations (
+                {allNodes.filter((n) => n.kind === "resource").length})
+              </button>
+            )}
             <button
               disabled={!root}
               onClick={() => {

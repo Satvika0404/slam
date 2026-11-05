@@ -106,6 +106,7 @@ export default function App() {
       { case_id: string; name: string; label: string }[]
     >([]),
     [evidence, setEvidence] = useState<string | null>(null),
+    [evidenceData, setEvidenceData] = useState<AuditCase | null>(null),
     [palette, setPalette] = useState(false),
     [search, setSearch] = useState(""),
     [story, setStory] = useState(false),
@@ -240,12 +241,19 @@ export default function App() {
     }, 10000);
     return () => clearInterval(timer);
   }, [story, playing]);
-  const closeEvidence = useCallback(() => setEvidence(null), []);
+  const closeEvidence = useCallback(() => {
+    setEvidence(null);
+    setEvidenceData(null);
+  }, []);
+  const openEvidence = useCallback((id: string) => {
+    setEvidenceData(null);
+    setEvidence(id);
+  }, []);
   const props: SceneProps | null = data
     ? {
         data,
         loading,
-        onEvidence: setEvidence,
+        onEvidence: openEvidence,
         onScene: navigate,
         onCutoff: setCutoff,
       }
@@ -430,7 +438,10 @@ export default function App() {
                       mode={mode}
                       caseId={caseId}
                       cutoff={cutoff}
-                      onEvidence={setEvidence}
+                      onEvidence={(id, view) => {
+                        setEvidenceData(view ?? null);
+                        setEvidence(id);
+                      }}
                       onScene={navigate}
                       onResult={(view) => {
                         runResults.current.set(resultKey(view), view);
@@ -457,7 +468,7 @@ export default function App() {
                     <Console
                       data={data}
                       loading={loading}
-                      onEvidence={setEvidence}
+                      onEvidence={openEvidence}
                     />
                   </div>
                 </Suspense>
@@ -523,8 +534,12 @@ export default function App() {
           </span>
         </footer>
       </div>
-      {evidence && data && (
-        <EvidenceDrawer id={evidence} data={data} onClose={closeEvidence} />
+      {evidence && (evidenceData || data) && (
+        <EvidenceDrawer
+          id={evidence}
+          data={(evidenceData ?? data)!}
+          onClose={closeEvidence}
+        />
       )}{" "}
       {palette && (
         <div className="palette-backdrop" onClick={() => setPalette(false)}>

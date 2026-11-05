@@ -1,5 +1,10 @@
 # AFTERTRACE — investigation workspace
 
+For the current merged architecture, live execution, graph semantics and contributor boundaries,
+start with [AFTERTRACE_CONTRIBUTOR_REFERENCE.md](AFTERTRACE_CONTRIBUTOR_REFERENCE.md). The dated visual
+refinement records below describe earlier passes. The current backend may export an `INCOMPLETE`
+answer with explicit `not_certified_because` reasons; that is not certification of `COMPLETE`.
+
 AFTERTRACE is the local React/TypeScript interface for SLAM. It presents supplied evidence,
 historical identity relationships, audit-time reconstruction and deterministic planning.
 
@@ -81,11 +86,10 @@ the corresponding UI types and `api.ts` handles requests, cancellation and expli
 | POST /api/runs?mode=... | Re-ingest configured local sources and return actual counts/timing |
 | GET /api/cases/{id}/export?mode=...&cutoff=... | Strict single-case CSV; blocked cases return 409 |
 
-Reconstruction uses Manya's implementation from `origin/manya` at `152b0a2`, adapted to the current
-1.1.0 contract to pass rules and timestamped evidence references. A regression prevents later identity
-snapshots/changes from establishing earlier identity. Planning remains Python-owned. The UI integration
-also fixes mixed compliant/noncompliant verification citations and validates manifest citation IDs
-against the actual catalogue, not a naming prefix.
+The current integration merges `origin/dev` at `b4382c9`, including newer ownership/attribution,
+reconstruction, full-bundle planning, CLI and provider work. Read models distinguish proof eligibility
+from validity intervals. Planning remains Python-owned; live execution uses the full-bundle pipeline
+functions and does not animate a separate frontend decision process.
 
 ## Checks
 

@@ -94,6 +94,7 @@ export interface Stage {
   description: string;
 }
 export interface AuditCase {
+  execution_export_csv?: string | null;
   mode: Mode;
   case_id: string;
   name: string;
@@ -144,6 +145,7 @@ export interface AuditCase {
     ready_for_export: boolean;
     steps: Step[];
     blocking_issues: string[];
+    trace?: { not_certified_because?: string[]; [key: string]: unknown };
   };
   stages: Stage[];
   quality: {

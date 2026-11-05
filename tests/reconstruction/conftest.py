@@ -80,7 +80,9 @@ def change(
     )
 
 
-def source(source_id: str = "evidence_1", *, captured_at: datetime | None = None) -> SourceRecord:
+def source(
+    source_id: str = "evidence_1", *, captured_at: datetime | None = None
+) -> SourceRecord:
     return SourceRecord(
         source_id=source_id,
         kind=SourceKind.JSON,

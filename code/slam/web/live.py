@@ -21,9 +21,13 @@ from pydantic import BaseModel, Field
 from slam.config import ProviderName, Settings
 from slam.contracts import AuditRequest, CaseAnswer, CaseContext, EvidenceBundle, RequestIntent
 from slam.ingestion import ingest, load_requests
-from slam.planning import export_output_csv, plan
-from slam.reconstruction import reconstruct
+from slam.pipeline import eligible_evidence_ids
+from slam.planning import export_output_csv
+from slam.planning.engine import plan_case
+from slam.planning.validation import validate_answer
+from slam.reconstruction import linking, reconstruct_with_links
 from slam.runtime.events import emit, observe
+from slam.runtime.factory import build_provider
 from slam.runtime.metering import UsageLedger
 from slam.runtime.provider import (
     ModelBudgetError,
@@ -52,10 +56,10 @@ class LiveRunRequest(BaseModel):
 def runtime_info() -> dict[str, Any]:
     try:
         settings = Settings()
-        configured = settings.model_provider is ProviderName.OPENAI
+        configured = settings.model_provider is not ProviderName.FAKE and settings.api_max_calls > 0
         return {
             "model_available": configured,
-            "provider": "openai" if configured else "none",
+            "provider": settings.model_provider.value if configured else "none",
             "model": settings.model if configured else None,
             "model_role": (
                 "Optional image extraction and ambiguous-request proposals; "
@@ -116,7 +120,8 @@ class ObservedProvider:
                 "model.failed", error_type=type(exc).__name__, provider=self.name, model=self.model
             )
             raise
-        self.ledger.record(result.metadata)
+        if not self.ledger.calls or self.ledger.calls[-1] is not result.metadata:
+            self.ledger.record(result.metadata)
         emit("model.completed", **asdict(result.metadata))
         return result
 
@@ -133,11 +138,14 @@ def stream_run(body: LiveRunRequest, root: Path) -> StreamingResponse:
             settings = Settings()
         except ValueError as exc:
             raise HTTPException(422, "Server model configuration is incomplete") from exc
-        if settings.model_provider is not ProviderName.OPENAI:
+        if settings.model_provider is ProviderName.FAKE or settings.api_max_calls <= 0:
             raise HTTPException(422, "No API model is configured on this server")
-        from slam.runtime.openai_provider import OpenAIModelProvider
-
-        provider = ObservedProvider(OpenAIModelProvider(settings), ledger, body.max_model_calls)
+        settings = settings.model_copy(
+            update={"api_max_calls": min(settings.api_max_calls, body.max_model_calls)}
+        )
+        configured_provider = build_provider(settings, ledger)
+        assert configured_provider is not None
+        provider = ObservedProvider(configured_provider, ledger, body.max_model_calls)
 
     async def events() -> AsyncIterator[bytes]:
         if not _lock.acquire(blocking=False):
@@ -197,6 +205,14 @@ def stream_run(body: LiveRunRequest, root: Path) -> StreamingResponse:
                         *preview.unresolved_conflicts,
                         *payload["conflicts"],
                     )
+                    if stage == "graph":
+                        extra["identity_links"] = (
+                            *preview.identity_links,
+                            *payload.get("ownership_links", []),
+                        )
+                        extra["evidence_captured_at"] = payload.get(
+                            "evidence_times", preview.evidence_captured_at
+                        )
                     preview = CaseContext.model_validate({**preview.model_dump(), **extra})
                 if preview is not None and stage in {"identity", "timeline", "graph"}:
                     waiting = CaseAnswer(
@@ -226,11 +242,15 @@ def stream_run(body: LiveRunRequest, root: Path) -> StreamingResponse:
                 "payload": payload,
             }
             future = asyncio.run_coroutine_threadsafe(queue.put(item), loop)
-            while not future.done():
-                if stopped.wait(0.05):
+            while True:
+                if stopped.is_set():
                     future.cancel()
                     raise InterruptedError("Live run disconnected")
-            future.result()
+                try:
+                    future.result(timeout=0.05)
+                    break
+                except TimeoutError:
+                    continue
 
         def worker() -> None:
             nonlocal current_request, bundle, preview
@@ -249,7 +269,8 @@ def stream_run(body: LiveRunRequest, root: Path) -> StreamingResponse:
                     if body.mode == "dataset":
                         if not (root / "deletion_requests.csv").is_file():
                             raise FileNotFoundError("Participant dataset is not installed")
-                        requests = load_requests(root)
+                        cohort = load_requests(root)
+                        requests = cohort
                         if body.scope == "case":
                             requests = tuple(r for r in requests if r.case_id == body.case_id)
                         if not requests:
@@ -267,6 +288,7 @@ def stream_run(body: LiveRunRequest, root: Path) -> StreamingResponse:
                         )
                         requests = tuple(corpus(key)[0] for key in keys)
                         _, bundle, _ = corpus(requests[0].case_id)
+                        cohort = requests
                     emit(
                         "stage.completed",
                         stage="ingestion",
@@ -279,6 +301,15 @@ def stream_run(body: LiveRunRequest, root: Path) -> StreamingResponse:
                         if body.mode == "demo"
                         else "participant files",
                     )
+                    emit("stage.started", stage="linking")
+                    link_model = linking.fit(bundle, cohort)
+                    emit(
+                        "stage.completed",
+                        stage="linking",
+                        groups=len(link_model.groups),
+                        cohort_cases=len(cohort),
+                        method="ownership closure and learned timing signatures",
+                    )
                     answers: list[CaseAnswer] = []
                     for index, request in enumerate(sorted(requests, key=lambda r: r.case_id), 1):
                         current_request = (
@@ -289,6 +320,12 @@ def stream_run(body: LiveRunRequest, root: Path) -> StreamingResponse:
                         preview = None
                         if body.mode == "demo":
                             _, bundle, _ = corpus(request.case_id)
+                            emit(
+                                "case.inputs",
+                                source_records=[s.model_dump(mode="json") for s in bundle.sources],
+                                observations=len(bundle.observations),
+                                input_kind="fictional demo corpus",
+                            )
                         emit(
                             "case.started",
                             position=index,
@@ -296,7 +333,11 @@ def stream_run(body: LiveRunRequest, root: Path) -> StreamingResponse:
                             audit_at=current_request.audit_at.isoformat(),
                         )
                         try:
-                            context = reconstruct(current_request, bundle, provider=provider)
+                            if body.mode == "demo":
+                                link_model = linking.fit(bundle, (current_request,))
+                            context = reconstruct_with_links(
+                                current_request, bundle, link_model, provider=provider
+                            )
                             if current_request.audit_at < current_request.requested_at:
                                 context = context.model_copy(
                                     update={
@@ -309,6 +350,11 @@ def stream_run(body: LiveRunRequest, root: Path) -> StreamingResponse:
                             if context.request_intent is RequestIntent.NON_DELETION:
                                 emit(
                                     "stage.skipped",
+                                    stage="ownership",
+                                    reason="Request does not authorize deletion",
+                                )
+                                emit(
+                                    "stage.skipped",
                                     stage="timeline",
                                     reason="Request does not authorize deletion",
                                 )
@@ -318,7 +364,7 @@ def stream_run(body: LiveRunRequest, root: Path) -> StreamingResponse:
                                     reason="Request does not authorize deletion",
                                 )
                             emit("stage.started", stage="planning")
-                            answer = plan(context)
+                            answer = plan_case(context, bundle)
                             emit(
                                 "stage.completed",
                                 stage="planning",
@@ -326,6 +372,13 @@ def stream_run(body: LiveRunRequest, root: Path) -> StreamingResponse:
                             )
                             emit("stage.started", stage="validation")
                             answer = CaseAnswer.model_validate(answer.model_dump())
+                            if answer.deletion_status is not None:
+                                answer = validate_answer(
+                                    answer,
+                                    eligible_evidence_ids=eligible_evidence_ids(
+                                        bundle, current_request.audit_at
+                                    ),
+                                )
                             view = CaseView.model_validate(
                                 service.case_view(
                                     request.case_id,
@@ -334,12 +387,19 @@ def stream_run(body: LiveRunRequest, root: Path) -> StreamingResponse:
                                     prepared=(current_request, bundle, context, answer),
                                 )
                             )
+                            case_csv = None
+                            if answer.ready_for_export:
+                                with tempfile.TemporaryDirectory() as case_directory:
+                                    case_path = Path(case_directory) / "case.csv"
+                                    export_output_csv((answer,), (request.case_id,), case_path)
+                                    case_csv = case_path.read_text(encoding="utf-8")
                             emit(
                                 "stage.completed",
                                 stage="validation",
                                 ready_for_export=answer.ready_for_export,
                                 blocking_issues=list(answer.blocking_issues),
                                 snapshot=view.model_dump(mode="json"),
+                                case_csv=case_csv,
                             )
                             answers.append(answer)
                             emit(

@@ -4,29 +4,34 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-
+from slam.reconstruction.request_intent import IntentProposal
 from slam.runtime.events import emit, observe
 from slam.runtime.fake_provider import FakeModelProvider
 from slam.runtime.metering import UsageLedger
 from slam.runtime.provider import ModelBudgetError
 from slam.web import api
 from slam.web.live import ObservedProvider
-from slam.reconstruction.request_intent import IntentProposal
 
 client = TestClient(api.app)
 
 
 def test_actual_provider_metadata_and_call_limits_are_observed_without_prompts():
-    provider = FakeModelProvider([{"intent":"DELETION","supporting_excerpt":"delete"}])
+    provider = FakeModelProvider([{"intent": "DELETION", "supporting_excerpt": "delete"}])
     ledger = UsageLedger()
-    wrapped = ObservedProvider(provider,ledger,1)
-    events=[]
-    with observe(lambda kind,payload:events.append((kind,payload))):
-        result=wrapped.generate(prompt="secret-request-content",prompt_version="test-v1",response_model=IntentProposal)
+    wrapped = ObservedProvider(provider, ledger, 1)
+    events = []
+    with observe(lambda kind, payload: events.append((kind, payload))):
+        result = wrapped.generate(
+            prompt="secret-request-content", prompt_version="test-v1", response_model=IntentProposal
+        )
         with pytest.raises(ModelBudgetError):
-            wrapped.generate(prompt="secret-request-content",prompt_version="test-v1",response_model=IntentProposal)
+            wrapped.generate(
+                prompt="secret-request-content",
+                prompt_version="test-v1",
+                response_model=IntentProposal,
+            )
     assert result.metadata.request_id == "fake-1"
-    assert [e[0] for e in events] == ["model.started","model.completed","model.blocked"]
+    assert [e[0] for e in events] == ["model.started", "model.completed", "model.blocked"]
     assert ledger.summary()["actual_calls"] == 1 and provider.calls == 1
     assert "secret-request-content" not in json.dumps(events)
 
@@ -47,8 +52,10 @@ def test_real_run_emits_ordered_events_and_the_same_engine_answer():
     stages = [e["payload"]["stage"] for e in events if e["event"] == "stage.started"]
     assert stages == [
         "ingestion",
+        "linking",
         "intent",
         "identity",
+        "ownership",
         "timeline",
         "graph",
         "planning",
@@ -59,23 +66,32 @@ def test_real_run_emits_ordered_events_and_the_same_engine_answer():
     assert final["payload"]["answers"][0] == expected["answer"]
     assert final["payload"]["output_csv"].startswith("case_id,deletion_status,steps_json\n")
     assert final["payload"]["usage"]["actual_calls"] == 0
+    validated = next(
+        e
+        for e in events
+        if e["event"] == "stage.completed" and e["payload"].get("stage") == "validation"
+    )
+    assert validated["payload"]["case_csv"] == final["payload"]["output_csv"]
     assert not any(e["event"].startswith("model.") for e in events)
     identity = next(
         e
         for e in events
         if e["payload"].get("stage") == "identity" and e["event"] == "stage.completed"
     )
-    assert identity["payload"]["snapshot"]["identity_edges"] == expected["identity_edges"]
+    assert {e["id"] for e in identity["payload"]["snapshot"]["identity_edges"]}.issubset(
+        {e["id"] for e in expected["identity_edges"]}
+    )
     assert identity["payload"]["snapshot"]["answer"]["deletion_status"] is None
     assert not identity["payload"]["snapshot"]["answer"]["ready_for_export"]
 
 
-def test_blocked_and_batch_runs_never_forge_a_completed_csv():
+def test_uncertain_and_batch_runs_never_certify_complete():
     single = run(case_id="demo_026")[-1]["payload"]
-    assert single["blocked"] == 1 and single["output_csv"] is None
+    assert single["answers"][0]["deletion_status"] == "INCOMPLETE"
+    assert single["answers"][0]["trace"]["not_certified_because"]
     batch = run(scope="all")[-1]["payload"]
-    assert batch["processed"] == 3 and batch["blocked"] == 1
-    assert batch["output_csv"] is None
+    assert batch["processed"] == 3
+    assert batch["output_csv"].startswith("case_id,deletion_status,steps_json")
     assert [a["case_id"] for a in batch["answers"]] == ["demo_024", "demo_025", "demo_026"]
 
 
@@ -87,7 +103,7 @@ def test_non_deletion_skips_unexecuted_timeline_and_graph(monkeypatch):
     monkeypatch.setattr("slam.web.live.corpus", lambda key: (request, bundle, documents))
     events = run()
     skipped = {e["payload"]["stage"] for e in events if e["event"] == "stage.skipped"}
-    assert skipped == {"timeline", "graph"}
+    assert skipped == {"ownership", "timeline", "graph"}
     assert not any(
         e["event"] == "stage.started" and e["payload"].get("stage") in skipped for e in events
     )

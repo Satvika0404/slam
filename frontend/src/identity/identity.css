@@ -57,6 +57,32 @@
   background: #fff;
   color: #19324a;
 }
+.identity-workspace .evidence-drawer {
+  background: #ffffff !important;
+  color: #19324a;
+  border-color: #dce4ea;
+}
+.identity-workspace .evidence-drawer h2,
+.identity-workspace .evidence-drawer button {
+  color: #19324a;
+}
+.identity-workspace .source-metadata,
+.identity-workspace .drawer-heading,
+.identity-workspace .source-preview {
+  border-color: #dce4ea;
+}
+.identity-workspace .source-preview {
+  background: #f3f6f8;
+  color: #19324a;
+}
+.identity-workspace .source-preview pre {
+  color: #19324a;
+}
+.identity-workspace .evidence-drawer .hash,
+.identity-workspace .evidence-drawer .subtle,
+.identity-workspace .evidence-drawer .fine-print {
+  color: #64788a;
+}
 .identity-scene {
   --ivory: #19324a;
   --muted: #64788a;
@@ -278,6 +304,7 @@
   transition: transform 0.18s ease;
 }
 .identity-scene .graph-orbit {
+  pointer-events: none;
   stroke: #2563eb13;
 }
 .identity-scene .crosshairs {
@@ -329,7 +356,15 @@
   filter: drop-shadow(0 0 3px #19324a12);
 }
 .identity-scene .edge-hit {
+  pointer-events: stroke;
   stroke-width: 18;
+}
+.identity-scene .graph-lines > ellipse,
+.identity-scene .graph-lines > text,
+.identity-scene .crosshairs,
+.identity-scene .identity-edge-label,
+.identity-scene .identity-endpoint {
+  pointer-events: none;
 }
 .identity-endpoint {
   fill: #fff;

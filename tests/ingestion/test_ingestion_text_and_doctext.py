@@ -137,3 +137,23 @@ def test_prefix_of_another_anchor_is_flagged_as_possible_truncation() -> None:
 def test_facts_use_the_source_capture_time() -> None:
     (fact,) = facts_of("support_001")
     assert fact.effective_time == CAPTURED
+
+
+def test_bulleted_table_rows_keep_their_explicit_state_and_category() -> None:
+    """A handover note writes rows as list items; the printed state must not be ignored."""
+
+    note = (
+        "SHIFT HANDOVER\nSnapshot: 2026-10-01T12:00:00Z\n\n"
+        "- 2026-10-01T12:00:00Z | account_service | account_77 | USER_PROFILE"
+        " | NOT_FOUND | a@x.test\n"
+        "* 2026-10-01T12:00:00Z | support_platform | support_9 | SUPPORT_ATTACHMENT"
+        " | FOUND | b@x.test\n"
+    )
+    out = parse_text(ctx(), note.encode())
+    rows = {f.resource_id: f for f in out.facts}
+    assert set(rows) == {"account_77", "support_9"}
+    assert all(f.layout == "text.pipe_row" for f in rows.values())
+    account, support = rows["account_77"], rows["support_9"]
+    assert (account.state, account.collection) == ("NOT_FOUND", "USER_PROFILE")
+    assert (support.state, support.collection) == ("FOUND", "SUPPORT_ATTACHMENT")
+    assert out.issues == ()

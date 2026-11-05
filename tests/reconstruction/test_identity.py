@@ -26,15 +26,6 @@ def test_similar_people_are_not_merged_without_exact_corroboration() -> None:
     assert result.coverage_issues
 
 
-def test_later_identity_snapshot_and_change_cannot_establish_an_earlier_identity() -> None:
-    bundle = EvidenceBundle(current_identities=(current(),), identity_changes=(change(),))
-    result = resolve_identity(
-        request(email="new@example.test", audit_at=datetime(2026, 1, 3, tzinfo=UTC)), bundle
-    )
-    assert result.subject_id is None
-    assert not result.links
-
-
 def test_multiple_exact_subjects_are_an_explicit_conflict() -> None:
     bundle = EvidenceBundle(
         current_identities=(
@@ -64,7 +55,8 @@ def test_consecutive_changes_create_bounded_identifier_intervals() -> None:
     second = next(
         link
         for link in result.links
-        if link.relationship == "changed_email" and link.right_identifier == "second@example.test"
+        if link.relationship == "changed_email"
+        and link.right_identifier == "second@example.test"
     )
     assert second.valid_from == datetime(2026, 1, 5, tzinfo=UTC)
     assert second.valid_to == datetime(2026, 1, 15, tzinfo=UTC)

@@ -40,10 +40,9 @@ def test_reconstruction_is_deterministic_under_bundle_shuffling() -> None:
     }
     forward = EvidenceBundle(**common, observations=(first, second))
     reverse = EvidenceBundle(**common, observations=(second, first))
-    assert (
-        reconstruct(request(), forward).model_dump_json()
-        == reconstruct(request(), reverse).model_dump_json()
-    )
+    assert reconstruct(request(), forward).model_dump_json() == reconstruct(
+        request(), reverse
+    ).model_dump_json()
 
 
 def test_ingestion_error_and_uncertain_observation_reach_coverage() -> None:

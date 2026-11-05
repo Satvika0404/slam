@@ -11,7 +11,10 @@ def test_multilingual_deletion_requests_are_deterministic() -> None:
 
 
 def test_non_deletion_and_marketing_only_requests_are_not_authorized() -> None:
-    assert interpret_request("Please export a copy of my data").intent is RequestIntent.NON_DELETION
+    assert (
+        interpret_request("Please export a copy of my data").intent
+        is RequestIntent.NON_DELETION
+    )
     assert (
         interpret_request("Remove me from the marketing mailing list").intent
         is RequestIntent.NON_DELETION

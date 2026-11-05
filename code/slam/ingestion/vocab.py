@@ -101,6 +101,8 @@ IDENTIFIER_FIELDS: dict[str, str] = {
     "requester_name": "name",
     "user_id": "user_id",
     "customer_reference": "customer_reference",
+    # Who uploaded an attachment: the attachment belongs to that person (owner link).
+    "uploaded_by": "email",
 }
 SUBJECT_KEY_FIELDS = frozenset(
     {

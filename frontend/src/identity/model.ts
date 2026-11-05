@@ -203,14 +203,21 @@ export function layoutIdentity(
       ? -1
       : b.kind === "subject"
         ? 1
-        : a.id.localeCompare(b.id),
+        : a.kind === "resource" && b.kind !== "resource"
+          ? 1
+          : b.kind === "resource" && a.kind !== "resource"
+            ? -1
+            : a.id.localeCompare(b.id),
   );
   return Object.fromEntries(
     sorted.map((n, i) => [
       n.id,
-      sorted.length <= 8
+      i < anchors.length
         ? anchors[i]
-        : [110 + (i % 5) * 195, 90 + Math.floor(i / 5) * 140],
+        : [
+            110 + ((i - anchors.length) % 5) * 195,
+            650 + Math.floor((i - anchors.length) / 5) * 140,
+          ],
     ]),
   );
 }

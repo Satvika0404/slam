@@ -23,7 +23,7 @@ def test_ingestion_fails_loudly_instead_of_returning_a_silent_empty_bundle(
     assert any(issue.severity.value == "error" for issue in bundle.issues)
 
 
-def test_reconstruction_does_not_fabricate_identity_from_an_empty_bundle() -> None:
+def test_reconstruction_empty_evidence_does_not_fabricate_context() -> None:
     request = AuditRequest.model_validate_json(
         '{"case_id":"c","email":"x@y.test","requested_at":"2026-01-01T00:00:00Z",'
         '"reported_status":"COMPLETE","reported_at":"2026-01-01T00:00:00Z",'
@@ -31,4 +31,8 @@ def test_reconstruction_does_not_fabricate_identity_from_an_empty_bundle() -> No
     )
     context = reconstruct(request, EvidenceBundle())
     assert context.subject_id is None
+    assert context.identity_links == ()
+    assert context.resource_states == ()
+    assert context.active_flows == ()
+    assert context.restore_risks == ()
     assert context.coverage_issues

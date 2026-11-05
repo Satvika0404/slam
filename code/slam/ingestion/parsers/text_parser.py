@@ -20,6 +20,8 @@ PARSER_NAME = "text"
 PARSER_VERSION = "1.0.0"
 
 _ROW = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\s+\|")
+# A table row may be written as a list item ("- 2026-... | system | ...").
+_BULLET = re.compile(r"^[-*•]\s+")
 _SNAPSHOT = re.compile(r"^snapshot\s*[:=]\s*(\S+)\s*$", re.IGNORECASE)
 
 
@@ -39,6 +41,9 @@ def parse_text(ctx: SourceContext, data: bytes) -> ParseOutput:
 
     for number, raw in enumerate(lines, start=1):
         line = raw.rstrip("\r")
+        unbulleted = _BULLET.sub("", line.strip())
+        if _ROW.match(unbulleted):
+            line = unbulleted  # a list-item row is still a table row
         if not line.strip():
             continue
         if _ROW.match(line):

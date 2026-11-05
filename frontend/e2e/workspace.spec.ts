@@ -100,14 +100,14 @@ test("cutoff reconstructs the backend result, later evidence remains inspectable
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("aftertrace-case.csv");
 });
-test("conflicting evidence blocks certification and export", async ({
+test("conflicting evidence prevents COMPLETE certification and preserves the engine's INCOMPLETE output", async ({
   page,
 }) => {
   await page
     .getByLabel("Select investigation case", { exact: true })
     .selectOption("demo_026");
   await expect(page.locator(".workspace-footer .status")).toHaveText(
-    "UNVERIFIED",
+    "INCOMPLETE",
   );
   await page
     .getByRole("button", { name: "Decision chamber", exact: true })
@@ -124,9 +124,12 @@ test("conflicting evidence blocks certification and export", async ({
   await page
     .getByRole("button", { name: "Open audit folio", exact: true })
     .click();
+  await expect(page.locator(".folio-blockers")).toContainText(
+    "Not certified complete",
+  );
   await expect(
-    page.getByRole("button", { name: "Export blocked", exact: true }),
-  ).toBeDisabled();
+    page.getByRole("link", { name: "Export case CSV", exact: true }),
+  ).toBeEnabled();
 });
 test("FTS desk searches actual source content and opens source details", async ({
   page,

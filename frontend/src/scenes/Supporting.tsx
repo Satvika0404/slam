@@ -567,7 +567,14 @@ export default function Supporting(props: SceneProps & { scene: Scene }) {
             {data.answer.ready_for_export && !loading ? (
               <a
                 className="primary-button"
-                href={`/api/cases/${encodeURIComponent(data.case_id)}/export?${query(data.mode, data.request.audit_at)}`}
+                href={
+                  data.execution_export_csv
+                    ? `data:text/csv;charset=utf-8,${encodeURIComponent(data.execution_export_csv)}`
+                    : `/api/cases/${encodeURIComponent(data.case_id)}/export?${query(data.mode, data.request.audit_at)}`
+                }
+                download={
+                  data.execution_export_csv ? "aftertrace-case.csv" : undefined
+                }
               >
                 <Download size={14} />
                 Export case CSV
@@ -636,6 +643,14 @@ export default function Supporting(props: SceneProps & { scene: Scene }) {
               FICTIONAL DEMONSTRATION · Engine results are computed from the
               demonstration evidence.
             </p>
+          )}
+          {!!data.answer.trace?.not_certified_because?.length && (
+            <div className="folio-blockers">
+              <strong>Not certified complete</strong>
+              {data.answer.trace.not_certified_because.map((reason, i) => (
+                <p key={i}>{reason}</p>
+              ))}
+            </div>
           )}
           {data.answer.blocking_issues.length > 0 && (
             <div className="folio-blockers">

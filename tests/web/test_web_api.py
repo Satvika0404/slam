@@ -57,12 +57,14 @@ def test_identity_relations_have_inspectable_sources() -> None:
             assert raw.status_code == 200
 
 
-def test_conflict_is_not_exported_as_a_completed_audit() -> None:
+def test_conflict_is_never_certified_complete() -> None:
     view = client.get("/api/cases/demo_026").json()
     assert view["context"]["unresolved_conflicts"]
-    assert not view["answer"]["ready_for_export"]
-    assert view["answer"]["deletion_status"] is None
-    assert client.get("/api/cases/demo_026/export").status_code == 409
+    assert view["answer"]["deletion_status"] == "INCOMPLETE"
+    assert view["answer"]["trace"]["not_certified_because"]
+    assert next(s for s in view["stages"] if s["id"] == "evidence")["status"] == "CONFLICT DETECTED"
+    exported = client.get("/api/cases/demo_026/export")
+    assert exported.status_code == 200 and "INCOMPLETE" in exported.text
 
 
 def test_live_dataset_failure_is_explicit_and_never_falls_back_to_demo(

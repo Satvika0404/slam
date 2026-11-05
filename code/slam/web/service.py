@@ -12,8 +12,8 @@ from typing import Any
 from slam.contracts import AuditRequest, CaseAnswer, CaseContext, EvidenceBundle, RequestIntent
 from slam.evaluation.data_quality import analyze_evidence_quality
 from slam.ingestion import ingest, load_requests
-from slam.planning import plan
-from slam.reconstruction import reconstruct
+from slam.planning.engine import plan_case
+from slam.reconstruction import linking, reconstruct_with_links
 
 from .demo import corpus
 
@@ -202,7 +202,8 @@ def case_view(
             if cutoff.tzinfo is None or cutoff.utcoffset() is None:
                 raise ValueError("Audit cutoff must include a timezone")
             request = request.model_copy(update={"audit_at": cutoff})
-        context = reconstruct(request, bundle)
+        cohort = dataset(str(root))[0] if mode == "dataset" else (request,)
+        context = reconstruct_with_links(request, bundle, linking.fit(bundle, cohort))
         if request.audit_at < request.requested_at:
             context = context.model_copy(
                 update={
@@ -212,7 +213,7 @@ def case_view(
                     )
                 }
             )
-        answer = plan(context)
+        answer = plan_case(context, bundle)
     if cutoff is not None and (cutoff.tzinfo is None or cutoff.utcoffset() is None):
         raise ValueError("Audit cutoff must include a timezone")
     eligible = set(context.eligible_observation_ids)
@@ -255,6 +256,8 @@ def case_view(
                 if "@" in value
                 else "hash"
                 if len(value) == 64
+                else "resource"
+                if link.relationship == "owns_resource"
                 else "phone"
                 if field_kind == "phone"
                 else "name"
@@ -326,6 +329,8 @@ def case_view(
                 if state == "candidate"
                 else "unknown"
                 if state in {"unknown", "future"}
+                else "confirmed"
+                if link.confidence.value == "CORROBORATED"
                 else "verified",
                 "directional": link.relationship.endswith("_change"),
                 "evidence": evidence,
@@ -358,7 +363,10 @@ def case_view(
         or o.observation_id in context.excluded_future_observation_ids
     ]
     assessments = answer.trace.get("policy_assessments", [])
-    judge_pass = bool(context.resource_states) and len(assessments) == len(context.resource_states)
+    judge_pass = bool(context.resource_states) and (
+        len(assessments) == len(context.resource_states)
+        or answer.trace.get("relevant_resources") == len(context.resource_states)
+    )
     evidence_state = (
         "CONFLICT DETECTED"
         if context.unresolved_conflicts

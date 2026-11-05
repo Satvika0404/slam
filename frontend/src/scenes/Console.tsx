@@ -270,8 +270,31 @@ export default function Console({
             aria-labelledby="intel-tab-graph"
             hidden={tab !== "graph"}
           >
-            {isImported && <div className="original-graph-switch"><button onClick={()=>setOriginalGraph(v=>!v)} aria-pressed={originalGraph}>{originalGraph?"Return to native console graph":"Open preserved original HTML graph"}</button><span>Original node-link JSON, SVG renderer and handlers retained.</span></div>}
-            {isImported && originalGraph ? <iframe className="original-graph-frame" title="Preserved original Ghost Data graph" src="/reference/ghost-data-console.html?embed=graph#graph" sandbox="allow-scripts allow-same-origin"/> : <SystemGraph data={view} onInspect={inspect} />}
+            {isImported && (
+              <div className="original-graph-switch">
+                <button
+                  onClick={() => setOriginalGraph((v) => !v)}
+                  aria-pressed={originalGraph}
+                >
+                  {originalGraph
+                    ? "Return to native console graph"
+                    : "Open preserved original HTML graph"}
+                </button>
+                <span>
+                  Original node-link JSON, SVG renderer and handlers retained.
+                </span>
+              </div>
+            )}
+            {isImported && originalGraph ? (
+              <iframe
+                className="original-graph-frame"
+                title="Preserved original Ghost Data graph"
+                src="/reference/ghost-data-console.html?embed=graph#graph"
+                sandbox="allow-scripts allow-same-origin"
+              />
+            ) : (
+              <SystemGraph data={view} onInspect={inspect} />
+            )}
           </div>
         </div>
       ) : (

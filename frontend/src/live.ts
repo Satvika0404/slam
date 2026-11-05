@@ -15,6 +15,11 @@ export const executionStages = [
     tech: "Manifest · parsers · OCR / optional model",
   },
   {
+    id: "linking",
+    name: "Learn attribution",
+    tech: "Ownership index · validated timing groups",
+  },
+  {
     id: "intent",
     name: "Interpret request",
     tech: "Rules · optional grounded model proposal",
@@ -23,6 +28,11 @@ export const executionStages = [
     id: "identity",
     name: "Resolve identity",
     tech: "Exact current + historical identifiers",
+  },
+  {
+    id: "ownership",
+    name: "Link resources",
+    tech: "Explicit ownership · closure · candidates",
   },
   {
     id: "timeline",

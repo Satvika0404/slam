@@ -2,10 +2,32 @@
   max-width: 1680px;
   margin: auto;
 }
-.original-graph-switch { display:flex;align-items:center;gap:18px;padding:15px 0 24px;flex-wrap:wrap; }
-.original-graph-switch button { font-size:12px;color:#b9cef5;border:1px solid #9cb9e33d;border-radius:5px;padding:11px 14px; }
-.original-graph-switch span { font-size:11px;color:#96a9c2; }
-.original-graph-frame { display:block;width:100%;height:1100px;border:1px solid #dce4ea;border-radius:9px;background:#f3f6f8; }
+.original-graph-switch {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 15px 0 24px;
+  flex-wrap: wrap;
+}
+.original-graph-switch button {
+  font-size: 12px;
+  color: #b9cef5;
+  border: 1px solid #9cb9e33d;
+  border-radius: 5px;
+  padding: 11px 14px;
+}
+.original-graph-switch span {
+  font-size: 11px;
+  color: #96a9c2;
+}
+.original-graph-frame {
+  display: block;
+  width: 100%;
+  height: 1100px;
+  border: 1px solid #dce4ea;
+  border-radius: 9px;
+  background: #f3f6f8;
+}
 .intelligence-console {
   --intel-border: #c2d1ed1d;
   --intel-soft: #a7b7cd;

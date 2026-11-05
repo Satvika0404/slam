@@ -1,9 +1,25 @@
-"""Bounded dependency and recreation-risk graph construction."""
+"""Bounded dependency and recreation-risk graph construction.
+
+Two rules keep the graph from inverting its own evidence:
+
+* An observation becomes a data-flow or restore edge only when its *category* is exactly
+  ``DATA_FLOW`` or ``BACKUP_ARCHIVE``. Plain records such as search-index entries and
+  exports are remaining copies, not processes that copy data.
+* An activity becomes an edge only when its type names an operation that creates a copy
+  (sync, index, export, replicate, restore, ...). Checks, disables and blocks are
+  *mitigations* or probes: ``DISABLE_DATA_FLOW`` and ``BLOCK_RESTORE`` must never be read
+  as a flow or a restore risk, whatever words they happen to share with one.
+
+Activity edges stay claim-grade (their relationship ends in ``_activity``); only the
+``data_flow`` and ``restore_path`` edges rest on an observed state.
+"""
 
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 import networkx as nx  # type: ignore[import-untyped]
@@ -17,9 +33,61 @@ from slam.contracts import (
     ResourceState,
 )
 
-_FLOW_WORDS = ("SYNC", "IMPORT", "INDEX", "EXPORT", "REPLIC", "COPY", "CONNECTOR", "FLOW")
-_RESTORE_WORDS = ("RESTORE", "BACKUP")
+_FLOW_CATEGORY = "DATA_FLOW"
+_RESTORE_CATEGORY = "BACKUP_ARCHIVE"
+_RESTORABLE_STATES = frozenset({"RESTORABLE", "ACTIVE", "PRESENT"})
+
+# Whole-word tokens of an activity type, e.g. SYNC_RECORD -> {"SYNC", "RECORD"}.
+_FLOW_TOKENS = frozenset(
+    {"SYNC", "IMPORT", "INDEX", "EXPORT", "REPLICATE", "REPLICATION", "COPY", "CONNECTOR", "FLOW"}
+)
+_RESTORE_TOKENS = frozenset({"RESTORE"})
+# Any of these makes an activity a probe or a mitigation, never a source of recreation.
+_NON_CREATING_TOKENS = frozenset(
+    {
+        "CHECK",
+        "DISABLE",
+        "BLOCK",
+        "STOP",
+        "PAUSE",
+        "REVOKE",
+        "VERIFY",
+        "TEST",
+        "VALIDATE",
+        "INSPECT",
+        "AUDIT",
+        "READ",
+        "LIST",
+        "GET",
+        "DENY",
+        "CANCEL",
+        "DELETE",
+        "REMOVE",
+        "REDACT",
+        "ANONYMIZE",
+        "RETAIN",
+        "CLASSIFY",
+        "LINK",
+        "UPDATE",
+        "REFRESH",
+        "SEND",
+        "NOTIFY",
+    }
+)
 _INACTIVE = ("DISABLED", "INACTIVE", "STOPPED", "FAILED", "BLOCKED", "DENIED", "ERROR")
+
+
+def classify_activity(activity_type: str) -> str | None:
+    """``"flow"``, ``"restore"`` or ``None`` (not a copy-creating operation)."""
+
+    tokens = {token for token in re.split(r"[^A-Z0-9]+", activity_type.upper()) if token}
+    if tokens & _NON_CREATING_TOKENS:
+        return None
+    if tokens & _RESTORE_TOKENS:
+        return "restore"
+    if tokens & _FLOW_TOKENS:
+        return "flow"
+    return None
 
 
 @dataclass(frozen=True, slots=True)
@@ -159,14 +227,25 @@ def build_dependency_graph(
     coverage: list[str] = []
     resource_ids = {state.resource_id for state in states}
 
+    # A later observation of the same resource supersedes an earlier one: an ACTIVE connector
+    # that a later snapshot shows DISABLED is no longer a flow. Ties at the latest time are all
+    # kept, so a genuine same-time contradiction still surfaces both sides.
+    latest: dict[tuple[str, str], datetime] = {}
     for observation in eligible:
+        key = (observation.system_id, observation.resource_id)
+        latest[key] = max(latest.get(key, observation.effective_time), observation.effective_time)
+
+    for observation in eligible:
+        if observation.effective_time != latest[(observation.system_id, observation.resource_id)]:
+            continue
         category = observation.category.upper()
-        state = observation.observed_state.upper()
-        if category == "DATA_FLOW" or any(word in category for word in _FLOW_WORDS):
+        if category == _FLOW_CATEGORY:
             edge = _observation_edge(observation, "data_flow")
             if edge.active:
                 flows.append(edge)
-        if category == "BACKUP_ARCHIVE" and state in {"RESTORABLE", "ACTIVE", "PRESENT"}:
+        elif category == _RESTORE_CATEGORY and observation.observed_state.upper() in (
+            _RESTORABLE_STATES
+        ):
             edge = _observation_edge(observation, "restore_path")
             if edge.active:
                 restores.append(edge)
@@ -177,14 +256,16 @@ def build_dependency_graph(
     ):
         if activity.occurred_at > request.audit_at:
             continue
+        kind = classify_activity(activity.activity_type)
+        if kind is None:
+            continue
         if not _activity_relevant(activity, resource_ids, identifiers, subject_id):
             continue
-        kind = activity.activity_type.upper()
-        if any(word in kind for word in _RESTORE_WORDS):
+        if kind == "restore":
             edge = _activity_edge(activity, "restore_activity")
             if edge.active:
                 restores.append(edge)
-        elif any(word in kind for word in _FLOW_WORDS):
+        else:
             edge = _activity_edge(activity, "data_flow_activity")
             if edge.active:
                 flows.append(edge)

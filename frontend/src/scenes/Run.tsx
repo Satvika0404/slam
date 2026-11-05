@@ -30,7 +30,7 @@ export default function Run({
   mode: Mode;
   caseId: string;
   cutoff: string | null;
-  onEvidence: SceneProps["onEvidence"];
+  onEvidence: (id: string, view?: AuditCase) => void;
   onScene: SceneProps["onScene"];
   onResult: (view: AuditCase) => void;
   onOpen: (view: AuditCase) => void;
@@ -103,8 +103,14 @@ export default function Run({
             ...s,
             [event.payload.stage ?? "validation"]: snapshot,
           }));
-          if (event.payload.stage === "validation")
-            resultsRef.current(snapshot);
+          if (event.payload.stage === "validation") {
+            const completedSnapshot = {
+              ...snapshot,
+              execution_export_csv: event.payload.case_csv as string | null,
+            };
+            setSnapshots((s) => ({ ...s, validation: completedSnapshot }));
+            resultsRef.current(completedSnapshot);
+          }
         }
         if (event.event === "source.completed") {
           const source = event.payload.source as (typeof sources)[number];
@@ -151,6 +157,8 @@ export default function Run({
     latest = stageEvents.at(-1);
   const answer = snapshots.validation?.answer;
   const output = result?.payload.output_csv as string | null | undefined;
+  const inputMode =
+    events.find((e) => e.event === "run.started")?.payload.mode ?? mode;
   function download() {
     if (!output) return;
     const url = URL.createObjectURL(new Blob([output], { type: "text/csv" }));
@@ -196,6 +204,7 @@ export default function Run({
           Run scope
           <select
             value={scope}
+            aria-label="Run scope"
             disabled={running}
             onChange={(e) => setScope(e.target.value)}
           >
@@ -247,7 +256,7 @@ export default function Run({
         )}
       </div>
       <div className="run-scope-note">
-        {mode === "demo"
+        {inputMode === "demo"
           ? "FICTIONAL DEMO INPUTS · REAL ENGINE EXECUTION"
           : "PARTICIPANT DATASET · REAL ENGINE EXECUTION"}{" "}
         · No external identities or records are modified.
@@ -324,7 +333,7 @@ export default function Run({
             <Identity
               data={snapshots.identity}
               loading={false}
-              onEvidence={onEvidence}
+              onEvidence={(id) => onEvidence(id, snapshots.identity)}
               onScene={onScene}
               onCutoff={() =>
                 setError(
@@ -336,7 +345,7 @@ export default function Run({
             <SystemGraph
               key={`${snapshot.case_id}:${snapshot.fingerprint}`}
               data={fromCase(snapshot)}
-              onInspect={onEvidence}
+              onInspect={(id) => onEvidence(id, snapshot)}
               readOnly
             />
           ) : stage === "ingestion" ? (
@@ -381,7 +390,10 @@ export default function Run({
                       </td>
                       <td>
                         {r.supporting_evidence_ids.map((id) => (
-                          <button key={id} onClick={() => onEvidence(id)}>
+                          <button
+                            key={id}
+                            onClick={() => onEvidence(id, snapshots.timeline)}
+                          >
                             {id}
                           </button>
                         ))}

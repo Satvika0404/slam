@@ -1,113 +1,103 @@
 ---
 owner: lalith
 workstream: Contracts, runtime, evaluation, Docker
-status: IN_PROGRESS
+status: READY_FOR_INTEGRATION
 contract_version: 1.1.0
 contract_sha256: 95cfa189ae07490fe5b42527dc08990b50779d83fa7a82965caefeeb28275a23
-built_on: 0bbee13
+built_on: b4382c9
 merge_after: none
-last_updated: 2026-11-04
+last_updated: 2026-11-05
 ---
 
-# Lalith - contracts, runtime, evaluation, Docker
-
-<!--
-Pre-filled by the integrator from git history and team_handoff/04_LALITH_RUNTIME_EVALUATION_INTEGRATION.md.
-Lalith: correct anything that is wrong and keep this current in every PR from branch `lalith`.
--->
+# Lalith — AFTERTRACE, runtime and integration delivery
 
 ## Delivers
 
-- Foundation baseline, authored by Lalith: commits `c0523a0`, `0e27272`, and `0bbee13`
-  ("Expand ingestion contracts and image provider"). The contract 1.1.0 update is local until the
-  current changes are published. `main` has not received the foundation.
-- Contract models and generated schema (`code/slam/contracts.py`, `contracts/`), `ModelProvider`
-  with fake and OpenAI providers (`code/slam/runtime/`), cache keys, usage metering, `Settings`,
-  Docker/Compose, `uv.lock`, and `run_cases` in `runtime/orchestrator.py`.
-- Evaluation primitives are now on `lalith`: output contract validator and challenge scorer
-  (`code/slam/evaluation/`, re-exported under `code/evaluation/`) with focused tests under
-  `tests/evaluation/`.
-- Data-quality diagnostics and evidence coverage estimates are implemented in
-  `code/slam/evaluation/data_quality.py`. Coverage values are explicit checklist fractions, not
-  probabilities of answer correctness. Diagnostics do not mutate decisions.
-- Added `CaseContext.policy_rules` and `evidence_captured_at` in contract 1.1.0 to settle planner input,
-  participant-visible citation IDs, and audit-time eligibility. Decisions are recorded in
-  `DEPENDENCY_MATRIX.md` and `CONTRACT_CHANGELOG.md`.
-- `run_cases` now ingests once, processes requests in stable case order, isolates case-level exceptions,
-  and returns blocked (non-exportable) answers for failures instead of terminating the full batch.
-- Output validation now supports per-case capture-time maps and audit cutoffs, rejecting citations that
-  are missing or later than that case's `audit_at`.
-- The deterministic planning subsystem and strict CSV exporter are now implemented under
-  `code/slam/planning/`: rule selection, conservative uncertainty handling, findings, ordered
-  remediation, verification, answer validation, and required-case-set export.
-- Planning tests cover non-deletion, delete/redact/retain decisions, eligible evidence, ambiguous rules,
-  active-flow and restore ordering, downstream-copy ordering, and exporter row-set/format safeguards.
-- AFTERTRACE now has a React/TypeScript eight-scene workspace and a local FastAPI adapter. The
-  identity, timeline and decision views inspect real engine read models; fictional examples are
-  labelled separately. Setup and limits: `docs/AFTERTRACE.md`.
-- Manya's reconstruction implementation at `152b0a2` is integrated in the working tree and adapted to
-  populate policy rules and timestamped evidence for contract 1.1.0. Later identity records cannot
-  establish earlier identity. Planner fixes cover mixed compliant/noncompliant verification citations
-  and participant manifest IDs without naming-prefix assumptions.
-- Still open: full `main.py --dataset` wiring, run-level usage/evaluation reports, packaging checks,
-  integration review, and final end-to-end evaluation
-  against participant data. Conditional policy rules without an upstream `applicable_rule_id` block
-  certification because `ResourceState` does not carry the source attributes needed to evaluate them.
+- Canonical reference: `docs/AFTERTRACE_CONTRIBUTOR_REFERENCE.md`, linked from README. It records the
+  actual architecture, event protocol, graph semantics, API/model boundaries, setup, ownership and limits.
+- Ten-chapter React/TypeScript AFTERTRACE interface and FastAPI read layer under `frontend/**` and
+  `code/slam/web/**`. Identity, source, timeline, decision and folio views inspect real backend data.
+- Original HTML graph preserved under `docs/reference/`; the enhanced original keeps its DiGraph,
+  SVG renderer, node-link JSON, IDs, handlers, undo and scenario semantics. Identity Constellation
+  retains HTML nodes/SVG edges and original anchors, adding light styling, filters, provenance,
+  lifecycle states, precise focus, history and progressive expansion.
+- Actual SSE execution of ingestion, attribution learning, intent, identity, ownership, timeline,
+  dependency graph, full-bundle policy planning and validation. Events carry real timing, snapshots,
+  source/model activity and validated outputs; there are no timer-driven fake phases.
+- Existing provider factory/metering supports the configured OpenAI/Groq path. Keys stay server-side,
+  calls remain opt-in and capped, and deterministic runs correctly report zero calls when applicable.
+- The latest GitHub dev baseline at b4382c9 was merged, retaining newer CLI, linking, provider and report
+  work. The frozen context-only planner compatibility implementation is preserved alongside the newer
+  full-bundle plan_case path used by CLI/live execution. The reference explains their difference.
+- Shared contract version/hash remain unchanged. Added web read-model metadata is separate.
 
 ## Cross-owner edits
 
-- `code/slam/planning/__init__.py`, `code/slam/planning/api.py`, `code/slam/planning/export.py`,
-  `code/slam/planning/validation.py`, `tests/planning/test_export.py`, and
-  `tests/planning/test_policy_plan.py` are Satvika-owned. Lalith implemented the deterministic policy
-  planner, validation and CSV export at the user's request because those pieces were still blocking the
-  assembled product. Satvika should review/adopt this work before integration.
-- `code/slam/reconstruction/api.py`, `code/slam/reconstruction/identity.py`,
-  `code/slam/reconstruction/timeline.py`, `code/slam/reconstruction/graph.py`,
-  `code/slam/reconstruction/request_intent.py`, `tests/reconstruction/**`, and
-  `tests/fixtures/reconstruction/**`: incorporated Manya's existing branch work, with time-cutoff and
-  1.1.0 read-model adaptations required for the requested live UI interactions. Manya should review.
-- `docs/integration/ownership.toml`: assigns the new frontend/API paths to Lalith for integration review.
+- `code/slam/ingestion/api.py` (Ashish): opt-in source-completed telemetry, no signature or decision change.
+- `code/slam/reconstruction/api.py` (Manya): opt-in checkpoints around actual operations, preserving the
+  frozen interface and newer ownership/linking behaviour. Other reconstruction modules/tests are
+  retained from the merged teammate baseline.
+- `code/slam/planning/api.py`, `code/slam/planning/export.py`, `tests/planning/test_export.py`,
+  `tests/planning/test_policy_plan.py` (Satvika): retain context-only safety/compatibility checks and
+  export rejection guards. Full-bundle plan_case and newer validation stay intact. Review the two
+  entry points before any consolidation.
+- `docs/integration/ownership.toml` (integration): assigns new frontend/web paths to Lalith.
+- `tests/contracts/test_owned_boundaries.py`: resolved against the newer shared baseline; frozen
+  ingest/reconstruct/plan signatures remain checked.
+- This pushed reference is the shared announcement requested by the user. No private messages were sent.
 
 ## Requires from others
 
-| From | What | Why | Status |
-|---|---|---|---|
-| Ashish, Manya, Satvika | Rebase to contract 1.1.0 and pass owned checks | Integration protocol in `SHARED_BUILD_CONTRACT.md` | Ashish implementation available on `origin/ashish`; Manya implementation on `origin/manya` (`152b0a2`) pending 1.1.0 update/integration; Satvika implementation not present on `origin/satvika` (`346e811`) |
-| Manya, Satvika | Fixtures under `tests/fixtures/<area>/` | The evaluation harness needs independent expected results | OPEN |
-| Satvika / Lalith | Review and adopt planner/export implementation now present on `lalith` | `code/slam/planning/` | OPEN; original Satvika branch still contains only its validator slice |
-| Manya, Satvika | Contract 1.1.0 adoption and updated delivery notes | The shared hash changed for planning/reconstruction inputs | OPEN; notify and integrate after their branches update |
+| From | Item | Status |
+| --- | --- | --- |
+| Ashish | Review source telemetry and exercise real participant sources | Review requested through this reference; no ordinary offline-test blocker |
+| Manya | Review checkpoint placement, actual per-link lifecycle/conflict metadata and attribution UI | Current validity ends are shown honestly; explicit deletion producers remain a data requirement |
+| Satvika | Review context-only/full-bundle API distinction and uncertainty/export semantics | Current engine INCOMPLETE results and uncertainty reasons remain visible |
+| Integrator | Run fresh participant-dataset evaluation, live model measurement and submission checks | Not established here because dataset is absent; earlier reports are not new UI-run measurements |
 
 ## Provides to others
 
-| To | What | Where | They must honour |
-|---|---|---|---|
-| Everyone | Contract 1.1.0 and its schema hash | `code/slam/contracts.py`, `contracts/SCHEMA_SHA256` | Changes need your approval, a `CONTRACT_CHANGELOG.md` entry and notice to all four. |
-| Ashish, Manya | `ModelProvider` (structured output, image input, usage), fake provider | `code/slam/runtime/` | No tools, no write access, no authority over identity, policy or status |
-| Everyone | `build_model_cache_key`, `Settings`, Docker image, locked dependencies | `runtime/cache.py`, `config.py`, `Dockerfile`, `uv.lock` | Dependency changes go through you only |
-| Integrator | `run_cases` and the validators/scorers once written | `runtime/orchestrator.py`, `code/evaluation/` | The orchestrator refuses to fabricate results for unresolved cases |
+| Item | Location / rule |
+| --- | --- |
+| Current implementation map | `docs/AFTERTRACE_CONTRIBUTOR_REFERENCE.md` |
+| Live API | `POST /api/runs/stream`, `GET /api/runtime`; inspect read models, do not manufacture phase events |
+| Graph metadata | Existing IDs and optional web metadata; do not infer deletion from absence or global conflicts |
+| Model integration | Existing provider factory/metering; keys never go to browser/event payloads |
+| Shared contract | 1.1.0 / unchanged hash; use the contract changelog for actual boundary changes |
 
 ## Contract and dependency requests
 
-None open from this workstream. Open requests from others are tracked in `CONTRACT_CHANGELOG.md`
-(Ashish: allow a failed `SourceRecord` for rejected manifest rows).
+No shared-contract change. This increment adds the locked FastAPI web dependency and Node frontend
+package lock, including self-hosted Manrope/Inter/IBM Plex Mono fonts. Docker Compose gains the local
+web profile and forwards existing provider/call/token/cost settings. Use uv.lock and package-lock.json;
+no Ollama, model weights or GPU dependency is introduced.
 
 ## Verification
 
-Docker checks for this increment: `pytest -q tests/evaluation` (12 passed),
-`ruff check code tests scripts` (passed), and `mypy code/slam code/main.py` (43 source files passed).
-The full repository test suite must still be run after teammate integration.
+Merged full Python suite: 625 passed, 34 skipped. Final changed web subset: 16 passed.
+Frontend suite: 31 passed (six pure algorithm/export/stream checks and 25 browser flows).
+Production build, frontend formatting, Ruff, mypy (64 Python source files) and git diff --check passed.
+Browser coverage includes original graph handlers, status/history fixtures, selection, source proof,
+large graphs, mobile/laptop layout, real streaming execution, batch evidence and validated CSV exports.
+Screenshots are ignored under artifacts/aftertrace. Non-failing upstream Starlette/Lucide notices remain.
 
 ## Known limits
 
-The scorer requires a reference CSV and does not imply hidden-answer access. Data-quality patterns
-are diagnostics for exact-time/resource contradictions and identifier collisions; they do not
-resolve those conflicts. Case coverage is a transparent heuristic checklist, not calibrated
-confidence. Real-API behaviour has never been measured.
+No fresh full 518-case dataset run or live API-provider test is claimed. Dataset accuracy, latency and
+cost require measured participant-data runs. Imported console statistics/forecasts remain supplied
+analysis; original evidence/build scripts were not attached. Validity ends establish ENDED, not entity
+or relationship DELETED. Explicit deletion producers and per-link conflicts require actual evidence.
+The web API is local and unauthenticated, with in-memory one-run-per-process execution. No external
+remediation, autonomous self-healing/promotions or durable multi-user job system is provided.
 
 ## Integration notes
 
-- This working tree is two commits ahead of `origin/dev`; its 1.1.0 contract is local until a PR merges.
-- Integrate the Manya branch only after they merge this shared contract and update their delivery hash.
-- `main` has no `contracts/`; decide when `dev` is promoted to `main`.
-- Hotspot files you own that others will edit: `tests/contracts/test_owned_boundaries.py`,
-  `pyproject.toml`, `uv.lock`, `README.md`, `code/main.py`.
+- Shared baseline merged: b4382c9 from origin/dev. Current frontend/graph checkpoints are based on that
+  actual backend rather than the older local stub.
+- Fetch and merge latest dev into individual feature branches before independent work. No force push,
+  branch deletion or private teammate notification is part of this delivery.
+- Do not swap plan(context) and plan_case(context,bundle) silently or hide not_certified_because reasons.
+- Preserve server-generated run CSV bytes when opening a run folio; do not recompute a model-assisted
+  result through a later deterministic GET. Evidence must carry the executed case, especially in batches.
+- Hotspots: runtime events/provider factory, reconstruction/api.py, planning APIs/export, App.tsx,
+  Docker/locks and this reference. Other owner delivery notes remain authoritative for their work.

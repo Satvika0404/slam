@@ -44,20 +44,79 @@ class IdentityResolution:
     conflicts: tuple[str, ...]
 
 
-def _email_candidates(request: AuditRequest, bundle: EvidenceBundle) -> set[str]:
+_SNAPSHOT_FIELDS = ("email", "phone", "email_hash", "name")
+
+
+def _rolled_back(
+    identity: CurrentIdentity, later: list[IdentityChangeEvent]
+) -> tuple[CurrentIdentity, frozenset[str]]:
+    """The snapshot as it stood at the cutoff, plus the fields that had to be rolled back.
+
+    The identity snapshot is the *latest* state. A change made after ``audit_at`` is
+    undone by restoring its ``old_value``, newest change first, so a value that only
+    became true after the audit is never used to match or link anything.
+    """
+
+    values = {
+        "email": identity.email,
+        "phone": identity.phone,
+        "email_hash": identity.email_hash,
+        "name": identity.name,
+    }
+    restored: set[str] = set()
+    for event in sorted(later, key=lambda item: (item.changed_at, item.audit_id), reverse=True):
+        field_name = event.field_name.casefold()
+        if field_name in values:
+            values[field_name] = event.old_value or ""
+            restored.add(field_name)
+    if not restored:
+        return identity, frozenset()
+    return (
+        identity.model_copy(
+            update={**values, "email_normalized": normalize_email(values["email"])}
+        ),
+        frozenset(restored),
+    )
+
+
+def _as_of_view(
+    request: AuditRequest, bundle: EvidenceBundle
+) -> tuple[list[CurrentIdentity], dict[str, frozenset[str]], list[IdentityChangeEvent]]:
+    """Identity data restricted to what was true at ``audit_at``.
+
+    Returns the rolled-back snapshots, which fields were rolled back per user, and only
+    the change events dated at or before the cutoff. Events after the cutoff are neither
+    used nor cited.
+    """
+
+    visible = [e for e in bundle.identity_changes if e.changed_at <= request.audit_at]
+    later: dict[str, list[IdentityChangeEvent]] = defaultdict(list)
+    for event in bundle.identity_changes:
+        if event.changed_at > request.audit_at:
+            later[event.user_id].append(event)
+    identities: list[CurrentIdentity] = []
+    restored: dict[str, frozenset[str]] = {}
+    for identity in bundle.current_identities:
+        view, fields = _rolled_back(identity, later.get(identity.user_id, []))
+        identities.append(view)
+        if fields:
+            restored[identity.user_id] = fields
+    return identities, restored, visible
+
+
+def _email_candidates(
+    request: AuditRequest,
+    identities: list[CurrentIdentity],
+    events: list[IdentityChangeEvent],
+) -> set[str]:
     wanted = normalize_email(request.email)
     candidates = {
         identity.user_id
-        for identity in bundle.current_identities
-        if identity.updated_at <= request.audit_at
-        and (
-            identity.email_normalized.casefold() == wanted
-            or normalize_email(identity.email) == wanted
-        )
+        for identity in identities
+        if identity.email_normalized.casefold() == wanted
+        or normalize_email(identity.email) == wanted
     }
-    for event in bundle.identity_changes:
-        if event.changed_at > request.audit_at:
-            continue
+    for event in events:
         if event.field_name.casefold() != "email":
             continue
         values = (event.old_value, event.new_value)
@@ -66,7 +125,9 @@ def _email_candidates(request: AuditRequest, bundle: EvidenceBundle) -> set[str]
     return candidates
 
 
-def _current_links(identity: CurrentIdentity) -> list[IdentityLink]:
+def _current_links(
+    identity: CurrentIdentity, restored: frozenset[str] = frozenset()
+) -> list[IdentityLink]:
     links: list[IdentityLink] = []
     values = (
         ("email", identity.email),
@@ -83,7 +144,11 @@ def _current_links(identity: CurrentIdentity) -> list[IdentityLink]:
                 right_identifier=value,
                 relationship=f"current_{kind}",
                 evidence_ids=(identity.source_id,),
-                confidence=ConfidenceClass.EXACT,
+                # A rolled-back value is derived from the audit history, not read directly
+                # from the snapshot, so it is corroborated rather than exact.
+                confidence=(
+                    ConfidenceClass.CORROBORATED if kind in restored else ConfidenceClass.EXACT
+                ),
             )
         )
     return links
@@ -167,7 +232,8 @@ def _deduplicate(links: list[IdentityLink]) -> tuple[IdentityLink, ...]:
 def resolve_identity(request: AuditRequest, bundle: EvidenceBundle) -> IdentityResolution:
     """Resolve the request email exactly against current and historical identities."""
 
-    candidates = _email_candidates(request, bundle)
+    identities, restored, events = _as_of_view(request, bundle)
+    candidates = _email_candidates(request, identities, events)
     if not candidates:
         return IdentityResolution(
             subject_id=None,
@@ -187,32 +253,33 @@ def resolve_identity(request: AuditRequest, bundle: EvidenceBundle) -> IdentityR
         )
 
     subject_id = next(iter(candidates))
-    current = [
-        identity
-        for identity in bundle.current_identities
-        if identity.user_id == subject_id and identity.updated_at <= request.audit_at
-    ]
-    changes = [
-        event
-        for event in bundle.identity_changes
-        if event.user_id == subject_id and event.changed_at <= request.audit_at
-    ]
+    current = [identity for identity in identities if identity.user_id == subject_id]
+    changes = [event for event in events if event.user_id == subject_id]
     links = _deduplicate(
-        [link for identity in current for link in _current_links(identity)] + _change_links(changes)
+        [
+            link
+            for identity in current
+            for link in _current_links(identity, restored.get(identity.user_id, frozenset()))
+        ]
+        + _change_links(changes)
     )
 
+    # Identifiers that may attach *evidence* to this subject. A person's name is deliberately
+    # absent: two different people can share an exact name, and a name alone is not
+    # corroboration. Names stay in `links` as facts about the subject.
     values: set[str] = {subject_id, normalize_email(request.email)}
     for identity in current:
         for kind, value in (
             ("email", identity.email),
             ("phone", identity.phone),
             ("email_hash", identity.email_hash),
-            ("name", identity.name),
         ):
             if value.strip():
                 values.add(normalize_identifier(kind, value))
     for event in changes:
         change_kind = event.field_name.casefold()
+        if change_kind == "name":
+            continue
         for changed_value in (event.old_value, event.new_value):
             if changed_value and changed_value.strip():
                 values.add(normalize_identifier(change_kind, changed_value))
