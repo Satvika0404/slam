@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Activity, Check, Network, Play, ShieldCheck } from "lucide-react";
+import {
+  Activity,
+  BrainCircuit,
+  Check,
+  Network,
+  Play,
+  ShieldCheck,
+} from "lucide-react";
 import type { Sandbox } from "./types";
 
 export interface IntelligenceData {
@@ -45,9 +52,33 @@ interface Attribution {
   activity_ids: string[];
   known_owners: string[];
 }
+interface CohortInsights {
+  available: boolean;
+  reason?: string;
+  audited_cases?: number;
+  cases?: { case_id: string; failure_risk: number | null }[];
+  failed?: number;
+  scope: string;
+  model?: {
+    algorithm: string;
+    folds: number;
+    metrics: Record<string, number>;
+    baselines: Record<string, Record<string, number>>;
+    importance: { feature: string; share: number }[];
+  };
+  patterns?: {
+    pattern_id: string;
+    label: string;
+    size: number;
+    mean_p_failure: number | null;
+  }[];
+  novel_cases?: string[];
+  recreation_paths?: Record<string, string[][]>;
+}
 export default function Intelligence({
   data,
   sandbox,
+  runId,
   requestEmail,
   resourceId,
   caseId,
@@ -55,18 +86,20 @@ export default function Intelligence({
 }: {
   data?: IntelligenceData;
   sandbox: Sandbox | null;
+  runId: string;
   requestEmail: string;
   resourceId?: string;
   caseId: string;
   onEvidence: (id: string) => void;
 }) {
-  const [tab, setTab] = useState("patterns"),
+  const [tab, setTab] = useState("attribution"),
     [error, setError] = useState("");
   const [csv, setCsv] = useState(
     `Email Address,Record ID\n${JSON.stringify(requestEmail)},${JSON.stringify(resourceId ?? "")}\n`,
   );
   const [result, setResult] = useState<Record<string, any> | null>(null),
     [sync, setSync] = useState<Record<string, any> | null>(null);
+  const [cohort, setCohort] = useState<CohortInsights | null>(null);
   const [target, setTarget] = useState("");
   const [busy, setBusy] = useState(false);
   const deletes =
@@ -74,6 +107,21 @@ export default function Intelligence({
       (a) => a.operation === "DELETE_RECORD" && a.status === "verified",
     ) ?? [];
   const attribution = data?.attributions?.[caseId];
+  async function loadCohort() {
+    if (cohort) return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/workflow/runs/${runId}/insights`);
+      const value = await response.json();
+      if (!response.ok) throw Error(value.detail);
+      setCohort(value);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
   async function call(url: string, body: unknown, save: (r: any) => void) {
     setBusy(true);
     setError("");
@@ -95,14 +143,24 @@ export default function Intelligence({
   return (
     <section className="wf-intelligence">
       <nav aria-label="Agent intelligence">
-        {["patterns", "self-healing", "sync experiment"].map((t) => (
+        {[
+          "attribution",
+          "cohort insights",
+          "self-healing",
+          "sync experiment",
+        ].map((t) => (
           <button
             className={tab === t ? "active" : ""}
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => {
+              setTab(t);
+              if (t === "cohort insights") void loadCohort();
+            }}
           >
-            {t === "patterns" ? (
+            {t === "attribution" ? (
               <Network size={14} />
+            ) : t === "cohort insights" ? (
+              <BrainCircuit size={14} />
             ) : t === "self-healing" ? (
               <Activity size={14} />
             ) : (
@@ -113,7 +171,7 @@ export default function Intelligence({
         ))}
       </nav>
       {error && <p role="alert">{error}</p>}
-      {tab === "patterns" ? (
+      {tab === "attribution" ? (
         <>
           <h3>{data?.model ?? "Timing attribution"}</h3>
           <p>
@@ -214,6 +272,105 @@ export default function Intelligence({
                 </p>
               )}
           </details>
+        </>
+      ) : tab === "cohort insights" ? (
+        <>
+          <div className="wf-cohort-heading">
+            <div>
+              <span className="wf-kicker">Cross-request intelligence</span>
+              <h3>Recurring failures and recreation paths</h3>
+            </div>
+            <span className="wf-truth-badge">TRIAGE · NOT A VERDICT</span>
+          </div>
+          {busy && !cohort ? (
+            <p role="status">Scoring audited cases and discovering patterns…</p>
+          ) : cohort && !cohort.available ? (
+            <article className="wf-cohort-unavailable">
+              <strong>Not enough evidence for honest model scoring</strong>
+              <p>{cohort.reason}</p>
+              <small>
+                {cohort.audited_cases} audited cases · {cohort.failed ?? 0}
+                failed. The audit and its deterministic evidence remain fully
+                available.
+              </small>
+            </article>
+          ) : cohort?.model ? (
+            <>
+              <div className="wf-cohort-metrics">
+                {[
+                  ["AUC", cohort.model.metrics.auc],
+                  ["Accuracy", cohort.model.metrics.accuracy],
+                  ["Recall", cohort.model.metrics.recall],
+                  ["Brier", cohort.model.metrics.brier],
+                ].map(([label, value]) => (
+                  <article key={String(label)}>
+                    <span>{label}</span>
+                    <strong>{Number(value).toFixed(3)}</strong>
+                    <small>{cohort.model!.folds}-fold out-of-fold</small>
+                  </article>
+                ))}
+              </div>
+              <div className="wf-cohort-columns">
+                <section>
+                  <h4>Discovered failure signatures</h4>
+                  {cohort.patterns?.map((pattern) => (
+                    <article
+                      className="wf-cohort-pattern"
+                      key={pattern.pattern_id}
+                    >
+                      <b>{pattern.pattern_id}</b>
+                      <span>{pattern.label}</span>
+                      <small>
+                        {pattern.size} cases
+                        {pattern.mean_p_failure == null
+                          ? ""
+                          : ` · ${Math.round(pattern.mean_p_failure * 100)}% mean risk`}
+                      </small>
+                    </article>
+                  ))}
+                </section>
+                <section>
+                  <h4>Active paths that could recreate data</h4>
+                  {Object.entries(cohort.recreation_paths ?? {}).flatMap(
+                    ([target, paths]) =>
+                      paths.map((path, index) => (
+                        <article
+                          className="wf-recreation-path"
+                          key={`${target}-${index}`}
+                        >
+                          {path.map((node, nodeIndex) => (
+                            <span key={`${node}-${nodeIndex}`}>
+                              {node}
+                              {nodeIndex < path.length - 1 && <i>→</i>}
+                            </span>
+                          ))}
+                        </article>
+                      )),
+                  )}
+                  {!Object.values(cohort.recreation_paths ?? {}).some(
+                    (paths) => paths.length,
+                  ) && (
+                    <p>No configured active path reaches a failed system.</p>
+                  )}
+                </section>
+              </div>
+              <details>
+                <summary>Model boundaries and strongest drivers</summary>
+                <p>{cohort.scope}.</p>
+                <p>
+                  {cohort.model.algorithm}. Labels come from this audit’s own
+                  verdicts; probabilities prioritize review and cannot certify
+                  completion.
+                </p>
+                {cohort.model.importance.map((item) => (
+                  <p key={item.feature}>
+                    <code>{item.feature}</code> {Math.round(item.share * 100)}%
+                    of model gain
+                  </p>
+                ))}
+              </details>
+            </>
+          ) : null}
         </>
       ) : tab === "self-healing" ? (
         <>

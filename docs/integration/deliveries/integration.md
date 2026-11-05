@@ -4,7 +4,7 @@ workstream: Integration, seam tests, CI, packaging
 status: READY_FOR_INTEGRATION
 contract_version: 1.1.0
 contract_sha256: 95cfa189ae07490fe5b42527dc08990b50779d83fa7a82965caefeeb28275a23
-built_on: b4382c964382614776b835243102814f6a92bf1a
+built_on: 21a90f7745e37e4ce515a04445d48259145de3ed
 merge_after: none
 last_updated: 2026-11-05
 ---
@@ -14,6 +14,17 @@ last_updated: 2026-11-05
 <!-- Used by branches named integration/<topic>. The record at the bottom is append-only. -->
 
 ## Delivers
+
+**This PR (on top of `main` 21a90f7):** an insight layer and a finished console page, both read-only over the pipeline. `output.csv` is byte-identical (sha256 55fabff2...edb81), a normal run still makes 0 model calls, and a model never decides a status or a step.
+- `code/slam/pipeline.py`: `audit_cases` returns each case's context and validated answer; `answer_cases` now delegates to it (same behaviour).
+- `code/slam/insight/`: `facts.py` (labels from the audit; features from the workflow's claims only, with a test that two cases with equal claims and opposite verdicts get equal features), `predict.py` (LightGBM, out-of-fold scores, TreeSHAP drivers, baselines, held-out check against the 32 published answers), `patterns.py` (DBSCAN on failure signatures, time-aware "unseen"), `graph.py` (recreation paths in Neo4j and NetworkX, cross-checked, NetworkX when no server), `explain.py` (the language-model prompt, schema, grounding check and rule-based fallback), `build.py` (writes `dashboard/insight_data.json` and `dashboard/insight_prompt.md`).
+- `python code/main.py --dataset dataset --insight [--insight-llm N]`, with the Groq provider when `SLAM_MODEL_PROVIDER=groq` is passed; the call and token ceilings of the existing metering apply.
+- `dashboard/`: the Ghost Data Console now has six tabs (failure risk, pattern discovery, system graph with recreation paths, case explorer with a prompt viewer, plus the earlier error-pattern and retention tabs). `python dashboard/build_data.py`, the insight stage, then `python dashboard/build_page.py`.
+- `docker-compose.yml`: optional `neo4j` service behind the `graph` profile (no published port, password from the uncommitted `.env`). Default services are unaffected.
+- Live mode: `python code/main.py --dataset dataset --serve` (`insight/server.py`, standard library only). `build.prepare` audits once and `build.analyse` recomputes everything that depends on a deleted system; `facts.apply_deletion` is the Python what-if, `graph.analyse(removed=...)` runs `DETACH DELETE` in Neo4j. One run at a time, loopback by default, Origin check, call cap per run. See `docs/INSIGHT_LAYER.md`.
+- One-command start: `scripts/run_console.{ps1,cmd,sh}` and a `console` service in `docker-compose.yml` (profile `console`, loopback only, starts Neo4j and waits for it). `python code/main.py --dataset dataset --console` builds only the dashboard files that are missing (`insight/console.py`), writes the stored insight data without a model so a first start spends nothing, then serves. `build_data.py` now runs in the container (pandas and scipy added to the dependencies).
+- Tests: `tests/insight/` (32; the Neo4j agreement test skips when no server is configured).
+- `dashboard/insight_sim_panel.html` and the simulation block of `insight.js`: a panel in the System graph tab that re-derives every case's answer and the flagged-record database from the systems deleted in the graph (output.csv and database, before and after). Browser only; it reads the same per-case data as the other tabs.
 
 **This PR (on top of PR #10, already in `dev`):** makes the `dev` to `main` promotion check pass. PR #11 (`dev` to `main`) fails `Delivery note` with *6 file(s) outside your ownership are not declared (belonging to: nobody)*: `.gitignore`, `code/slam/__init__.py`, `code/slam/pipeline.py`, `evaluation/side_by_side_samples.md`, `scripts/build_submission.py` and `scripts/smoke_test.py`. The integrator added them in PR #5, #7 and #8 and they were never put in `ownership.toml`. This PR assigns exactly those six paths to the `integration` owner and records PR #10 in the merge record. No code, test, contract or dependency changes; `output.csv` is unaffected.
 
@@ -48,7 +59,13 @@ Branch `integration/reconstruction`: Manya's reconstruction merged intact (`152b
 
 ## Cross-owner edits
 
-None. `docs/integration/ownership.toml` and this note are the integrator's own paths.
+Each file below is another owner's; the owner must confirm.
+
+- `code/main.py` - Lalith: `--insight`, `--insight-llm` and `--serve*` only; the default path is unchanged; Lalith to confirm
+- `code/slam/config.py` - Lalith: three optional `NEO4J_*` settings; every existing setting and validation is unchanged; Lalith to confirm
+- `pyproject.toml`, `uv.lock` - Lalith: dependencies listed under "Contract and dependency requests"; Lalith to confirm
+- `docker-compose.yml` - Lalith: the optional `neo4j` service and its volume, and the `console` service (profile `console`); the default services are unchanged; Lalith to confirm
+- `.env.example`, `.gitattributes` - Lalith: commented console and Neo4j settings; a `*.cmd` CRLF rule; Lalith to confirm
 
 Earlier PR, kept for the record:
 
@@ -96,7 +113,9 @@ Each file below is another owner's or unowned; the owner must confirm.
 
 ## Contract and dependency requests
 
-None. No new dependency: Groq is reached through the `openai` package already in `uv.lock`, and `pyproject.toml`, `uv.lock`, `Dockerfile` and `docker-compose.yml` are untouched. Compose passes `SLAM_*` values through from `.env` by interpolation and `Settings` reads `.env` itself for the rest, so no compose change is needed.
+This PR adds six dependencies to `pyproject.toml` and `uv.lock`, all with an upper bound: `pandas` and `scipy` (only `dashboard/build_data.py`, which now runs in the container instead of needing them on the host), `numpy` (arrays), `scikit-learn` (DBSCAN, metrics, cross-validation), `lightgbm` (failure predictor, needs `libgomp1`, which the Dockerfile already installs) and `neo4j` (driver, pure Python, imported only when a server is configured). `uv lock --check` passes. No contract change: `contracts/` and `code/slam/contracts.py` are untouched.
+
+Earlier PR, kept for the record: no new dependency: Groq is reached through the `openai` package already in `uv.lock`, and `pyproject.toml`, `uv.lock`, `Dockerfile` and `docker-compose.yml` are untouched. Compose passes `SLAM_*` values through from `.env` by interpolation and `Settings` reads `.env` itself for the rest, so no compose change is needed.
 
 ## Verification
 

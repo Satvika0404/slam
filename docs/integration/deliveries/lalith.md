@@ -13,6 +13,12 @@ last_updated: 2026-11-05
 
 ## Delivers
 
+- Combined-dashboard increment: AFTERTRACE remains the authoritative single-request execution
+  surface, while the newer insight console remains available for deep cohort analysis. The
+  Intelligence Console now embeds its strongest non-duplicated capabilities: five-fold
+  out-of-fold LightGBM failure-risk triage, DBSCAN recurring-failure signatures and NetworkX
+  recreation paths. `docs/AFTERTRACE_DASHBOARD_INTEGRATION.md` records the selection and truth
+  boundaries. Small runs explicitly refuse model scoring instead of displaying unstable metrics.
 - Connected increment: `docs/AFTERTRACE_CONNECTED_WORKFLOW.md` documents explicit SQLite table mapping,
   typed requests, the existing graph extended with record nodes, verified deletion animations,
   source evidence chains, historical replay and current-run recovery/pattern/sync panels.
@@ -52,6 +58,9 @@ last_updated: 2026-11-05
 
 ## Cross-owner edits
 
+- `code/slam/insight/**`, `tests/insight/**`, `dashboard/**` and console launch scripts
+  (integration): merged from `origin/dev` without weakening their triage/simulation boundaries;
+  the primary workflow consumes only a read-only result endpoint.
 - `code/slam/pipeline.py` (integration): merged existing Lalith diagnostics/context collection while
   retaining attribution/cohort behaviour. This shared delivery note records the change for its owner.
 - `code/slam/ingestion/api.py` (Ashish): opt-in source-completed telemetry, no signature or decision change.
@@ -99,6 +108,13 @@ web profile and forwards existing provider/call/token/cost settings. Use uv.lock
 no Ollama, model weights or GPU dependency is introduced.
 
 ## Verification
+
+Combined-dashboard increment: the web/insight Python slice passes 66 tests with one skipped;
+Ruff and strict mypy pass. The frontend production build and Prettier check pass, and the full
+browser suite passes all 40 tests across the connected workflow, analytical console, graph,
+live-backend, responsive and accessibility paths. Docker Compose configuration validates. The
+full Python regression suite passes 722 tests with 19 skipped (one dependency deprecation
+warning).
 
 Connected increment: full Python suite 683 passed / 18 skipped; after adding further negative cases,
 the final web subset passed 32 tests. Full browser suite: 37 passed, followed by six passing changed

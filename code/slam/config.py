@@ -81,6 +81,12 @@ class Settings(BaseSettings):
         default=Decimal("0"), ge=0, validation_alias="SLAM_PRICE_OUTPUT_PER_MTOK_USD"
     )
 
+    # Optional Neo4j server for the insight layer's recreation-path graph. Without it the same
+    # queries run in NetworkX, so nothing depends on a database being up.
+    neo4j_uri: str | None = Field(default=None, validation_alias="NEO4J_URI")
+    neo4j_user: str = Field(default="neo4j", validation_alias="NEO4J_USER")
+    neo4j_password: SecretStr | None = Field(default=None, validation_alias="NEO4J_PASSWORD")
+
     @property
     def groq_key_list(self) -> tuple[str, ...]:
         """The configured Groq keys in order, without blanks or duplicates."""

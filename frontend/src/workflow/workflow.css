@@ -2918,6 +2918,128 @@ body[data-workspace="workflow"] {
   margin: 10px 0;
   width: 100%;
 }
+.wf-cohort-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 8px 0 18px;
+}
+.wf-kicker {
+  color: #0f766e;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.wf-truth-badge {
+  flex: 0 0 auto;
+  border: 1px solid #f3c887;
+  border-radius: 999px;
+  background: #fff8eb;
+  color: #9a5700;
+  padding: 6px 9px;
+  font:
+    700 0.62rem/1 "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.06em;
+}
+.wf-cohort-unavailable {
+  border: 1px solid #dce4ea;
+  border-left: 4px solid #d97706;
+  border-radius: 12px;
+  background: linear-gradient(110deg, #fff, #fff9ef);
+  padding: 16px;
+}
+.wf-cohort-unavailable strong,
+.wf-cohort-unavailable small {
+  display: block;
+}
+.wf-cohort-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.wf-cohort-metrics article {
+  border: 1px solid #dce4ea;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #fff, #eff8f8);
+  padding: 12px;
+}
+.wf-cohort-metrics span,
+.wf-cohort-metrics small,
+.wf-cohort-metrics strong {
+  display: block;
+}
+.wf-cohort-metrics span,
+.wf-cohort-metrics small {
+  color: #64748b;
+  font-size: 0.66rem;
+}
+.wf-cohort-metrics strong {
+  margin: 4px 0;
+  color: #19324a;
+  font:
+    700 1.15rem/1 "IBM Plex Mono",
+    monospace;
+}
+.wf-cohort-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.wf-cohort-columns > section {
+  min-width: 0;
+  border: 1px solid #dce4ea;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 14px;
+}
+.wf-cohort-columns h4 {
+  margin: 0 0 10px;
+  color: #19324a;
+}
+.wf-cohort-pattern {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3px 9px;
+  border-top: 1px solid #e7edf1;
+  padding: 9px 0;
+}
+.wf-cohort-pattern b {
+  grid-row: span 2;
+  align-self: center;
+  border-radius: 8px;
+  background: #e8f4f3;
+  color: #0f766e;
+  padding: 7px;
+  font-family: "IBM Plex Mono", monospace;
+}
+.wf-cohort-pattern small {
+  color: #64748b;
+}
+.wf-recreation-path {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  border-top: 1px solid #e7edf1;
+  padding: 9px 0;
+}
+.wf-recreation-path span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  color: #19324a;
+  font:
+    600 0.7rem/1.2 "IBM Plex Mono",
+    monospace;
+}
+.wf-recreation-path i {
+  color: #d97706;
+  font-style: normal;
+}
 .wf-pattern-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3268,6 +3390,12 @@ body[data-workspace="workflow"] {
   }
 }
 @media (max-width: 620px) {
+  .wf-cohort-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+  .wf-cohort-columns {
+    grid-template-columns: 1fr;
+  }
   .wf-pattern-grid {
     grid-template-columns: 1fr;
   }

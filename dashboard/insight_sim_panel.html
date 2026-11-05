@@ -1,0 +1,47 @@
+      <section class="panel" aria-labelledby="h-sim" id="sim">
+        <div class="panel-h"><div><h2 id="h-sim">What the deletion does to output.csv and the database</h2><p>Select systems in the graph above and delete them. This panel recomputes every case's answer and the flagged records, and shows the files before and after. It is a simulation in the browser. No data is changed.</p></div><span class="asof" id="sim-state"></span></div>
+        <div class="panel-b"><div class="tiles" id="sim-kpi"></div></div>
+
+        <div class="cd-sec" id="live" style="border-top:1px solid var(--line)">
+          <div class="toolbar" style="justify-content:space-between">
+            <h3 style="margin:0">Run live analysis on this deletion</h3>
+            <span class="toolbar">
+              <label for="live-n" style="font-size:12.5px;color:var(--ink-2)">Model explanations</label><select class="field" id="live-n"></select>
+              <button class="btn primary" id="live-run" type="button" disabled>Run live analysis</button>
+              <button class="btn" id="live-reset" type="button" hidden>Back to preprocessed data</button>
+            </span>
+          </div>
+          <p class="note" id="live-hint" style="margin-top:8px">Checking for the live server...</p>
+          <ol class="live-log" id="live-log" aria-live="polite"></ol>
+        </div>
+
+        <div class="cd-sec" style="border-top:1px solid var(--line)">
+          <div class="toolbar" style="justify-content:space-between;margin-bottom:10px">
+            <h3 style="margin:0">output.csv after the deletion</h3>
+            <span class="seg" role="radiogroup" aria-label="Rows to show">
+              <label><input type="radio" name="sim-rows" value="changed" checked><span>Changed rows</span></label>
+              <label><input type="radio" name="sim-rows" value="all"><span>All rows</span></label>
+            </span>
+          </div>
+          <div class="grid2e">
+            <div class="panel" style="border-radius:8px"><div class="panel-b flush tscroll"><table id="sim-cases" style="min-width:520px"></table></div><div class="pager" id="sim-pg"></div></div>
+            <div><p class="note" style="margin:0 0 6px">The first rows of the file as it would be written (columns case_id, deletion_status, steps_json).</p><pre class="code" id="sim-csv" tabindex="0" style="max-height:330px"></pre></div>
+          </div>
+        </div>
+
+        <div class="cd-sec" style="border-top:1px solid var(--line)">
+          <div class="toolbar" style="justify-content:space-between;margin-bottom:10px">
+            <h3 style="margin:0">Database: original and modified</h3>
+            <label class="sr" for="sim-sys-sel">System</label><select class="field" id="sim-sys-sel"></select>
+          </div>
+          <p class="note" style="margin:0 0 10px">Every record the audit flagged as breaking policy, one row per record, taken from the findings of the 355 incomplete cases. Deleting a system removes its records from the modified database.</p>
+          <div class="panel" style="border-radius:8px;margin-bottom:16px"><div class="panel-b flush tscroll"><table id="sim-sys" class="stbl" style="min-width:560px"></table></div></div>
+          <div class="grid2e">
+            <div><h3 style="font:600 14px var(--f-text);margin:0 0 6px">Original database <span class="num muted" id="sim-n-orig"></span></h3>
+              <div class="panel" style="border-radius:8px"><div class="panel-b flush tscroll"><table id="sim-orig" class="stbl" style="min-width:420px"></table></div></div></div>
+            <div><h3 style="font:600 14px var(--f-text);margin:0 0 6px">Modified database <span class="num muted" id="sim-n-mod"></span></h3>
+              <div class="panel" style="border-radius:8px"><div class="panel-b flush tscroll"><table id="sim-mod" class="stbl" style="min-width:420px"></table></div></div></div>
+          </div>
+          <div class="pager" id="sim-pg2" style="border:0;padding-inline:0"></div>
+        </div>
+      </section>

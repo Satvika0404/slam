@@ -133,4 +133,12 @@ owns = [
   "evaluation/side_by_side_samples.md",
   "scripts/build_submission.py",
   "scripts/smoke_test.py",
+  # The insight layer (failure risk, patterns, recreation paths, explanations) and the console
+  # page that shows it. It reads what the pipeline decided and never changes output.csv.
+  "code/slam/insight/**",
+  "tests/insight/**",
+  "dashboard/**",
+  "scripts/run_console.ps1",
+  "scripts/run_console.cmd",
+  "scripts/run_console.sh",
 ]

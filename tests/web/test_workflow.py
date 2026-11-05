@@ -112,7 +112,10 @@ def input_zip(unsafe=False, alias_header=False):
         }
         for name, rows in tables.items():
             if alias_header and name == "user_identities.csv":
-                rows[0] = tuple(("contact" if alias_header == "unsupported" else "Email Address") if field == "email" else field for field in rows[0])
+                replacement = "contact" if alias_header == "unsupported" else "Email Address"
+                rows[0] = tuple(
+                    replacement if field == "email" else field for field in rows[0]
+                )
             text = io.StringIO(newline="")
             csv.writer(text).writerows(rows)
             archive.writestr("dataset/" + name, text.getvalue())

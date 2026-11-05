@@ -8,3 +8,4 @@
 *.pdf  binary
 *.zip  binary
 *.gguf binary
+*.cmd text eol=crlf

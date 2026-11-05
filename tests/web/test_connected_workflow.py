@@ -55,6 +55,11 @@ def test_connection_request_two_deletions_and_measured_sync(tmp_path, monkeypatc
     run_id = events[0]["payload"]["run_id"]
     run = client.get(f"/api/workflow/runs/{run_id}").json()
     assert len(run["cases"]) == 1
+    insights = client.get(f"/api/workflow/runs/{run_id}/insights").json()
+    assert insights["available"] is False
+    assert insights["audited_cases"] == 1
+    assert "five-fold" in insights["reason"]
+    assert "triage" in insights["scope"].lower()
     case_id = run["cases"][0]["case_id"]
     case = client.get(f"/api/workflow/runs/{run_id}/cases/{case_id}").json()
     assert {r["resource_id"] for r in case["context"]["resource_states"]} == {

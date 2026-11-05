@@ -66,7 +66,50 @@ services:
       - uv-cache:/root/.cache/uv
     command: [uvicorn, slam.web.api:app, --app-dir, code, --host, 0.0.0.0, --port, "8000"]
 
+  # The whole dashboard in one command:  docker compose --profile console up
+  # (scripts/run_console.ps1, .cmd or .sh do the same, prepare .env first and open the browser).
+  # It builds the data and page files that are missing, then serves the console and its live
+  # analysis on http://127.0.0.1:8765 (loopback only). Neo4j is started with it.
+  console:
+    extends:
+      service: slam-dev
+    profiles: ["console"]
+    ports:
+      - "127.0.0.1:${SLAM_CONSOLE_PORT:-8765}:8765"
+    environment:
+      SLAM_MODEL_PROVIDER: ${SLAM_CONSOLE_PROVIDER:-fake}
+      SLAM_MODEL: ${SLAM_CONSOLE_MODEL:-fake-structured-v1}
+      SLAM_CONSOLE_REFRESH: ${SLAM_CONSOLE_REFRESH:-}
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -c
+      - exec python code/main.py --dataset dataset --console --serve-host 0.0.0.0 $${SLAM_CONSOLE_REFRESH:+--refresh}
+
+  # Optional graph database for the insight layer's recreation-path queries.
+  # Start it with:  docker compose --profile graph up -d neo4j
+  # Needs NEO4J_PASSWORD (8+ characters) and NEO4J_URI=bolt://neo4j:7687 in the uncommitted .env;
+  # with no password the container refuses to start, and nothing else is affected.
+  # Not published on the host: only containers on this Compose network can reach it.
+  neo4j:
+    image: neo4j:5.26-community
+    profiles: ["graph", "console"]
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-}
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 128m
+    volumes:
+      - neo4j-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/7687'"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
 volumes:
   slam-venv:
   uv-cache:
   slam-cache:
+  neo4j-data:

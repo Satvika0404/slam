@@ -5,6 +5,9 @@ python code/main.py --dataset dataset --evaluate     # also score the 32 public 
                                                      # and write code/evaluation/*.md
 python code/main.py --check-keys                     # probe the configured Groq keys (no tokens)
 python code/main.py --dataset dataset --model-check  # also run the measured model cross-check
+python code/main.py --dataset dataset --insight      # write dashboard/insight_data.json
+python code/main.py --dataset dataset --serve        # live console: re-run on a deletion
+python code/main.py --dataset dataset --console      # build what is missing, then serve
 """
 
 from __future__ import annotations
@@ -49,6 +52,42 @@ def build_parser() -> argparse.ArgumentParser:
         default=60,
         help="how many request texts the intent cross-check sends to the model (default 60)",
     )
+    parser.add_argument(
+        "--insight",
+        action="store_true",
+        help=(
+            "build dashboard/insight_data.json: LightGBM failure risk, DBSCAN patterns, recreation "
+            "paths and explanations; uses the configured model for explanations when one is set; "
+            "never changes output.csv"
+        ),
+    )
+    parser.add_argument(
+        "--insight-llm",
+        type=int,
+        default=80,
+        help="how many failed cases get a model-written explanation (default 80)",
+    )
+    parser.add_argument(
+        "--serve",
+        action="store_true",
+        help=(
+            "serve the console and run the insight stages live on a what-if deletion "
+            "(Neo4j delete, re-audit, LightGBM, DBSCAN, model explanations); never changes "
+            "output.csv"
+        ),
+    )
+    parser.add_argument(
+        "--console",
+        action="store_true",
+        help="like --serve, but first build every file the page needs that is missing",
+    )
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="with --console, rebuild the dashboard data and the stored insight data too",
+    )
+    parser.add_argument("--serve-host", default="127.0.0.1", help="interface to listen on")
+    parser.add_argument("--serve-port", type=int, default=8765)
     return parser
 
 
@@ -68,6 +107,77 @@ def _check_keys(settings: Settings) -> int:
         print(f"{result.label}: {result.status}{model}")
     usable = [r for r in results if r.status == "ok" and r.model_available]
     return 0 if usable else 1
+
+
+def _serve(args: argparse.Namespace, settings: Settings) -> int:
+    from slam.insight.console import prepare_console
+    from slam.insight.server import serve, serve_prepared
+
+    dashboard = REPO_ROOT / "dashboard"
+    cache = REPO_ROOT / ".slam-cache" / "insight_explain.json"
+    if args.console:
+        prep = prepare_console(
+            args.dataset,
+            dashboard,
+            settings,
+            cache_path=cache,
+            output_csv=args.output,
+            refresh=args.refresh,
+            say=lambda line: print(line, flush=True),
+        )
+        server = serve_prepared(
+            prep, dashboard, settings, host=args.serve_host, port=args.serve_port, cache=cache
+        )
+    else:
+        print("auditing the 518 cases once, this takes about half a minute...", flush=True)
+        server = serve(
+            args.dataset,
+            dashboard,
+            settings,
+            host=args.serve_host,
+            port=args.serve_port,
+            cache=cache,
+        )
+    host, port = server.address
+    print(f"live console ready: http://127.0.0.1:{port}/  (listening on {host}:{port})", flush=True)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        server.close()
+    return 0
+
+
+def _insight(args: argparse.Namespace, settings: Settings) -> int:
+    from slam.insight.build import run_insight
+    from slam.runtime.factory import build_provider
+    from slam.runtime.metering import UsageLedger
+
+    provider = build_provider(settings, UsageLedger())
+    result = run_insight(
+        args.dataset,
+        REPO_ROOT / "dashboard",
+        settings=settings,
+        provider=provider,
+        llm_cases=args.insight_llm,
+        cache_dir=REPO_ROOT / ".slam-cache",
+        output_csv=args.output,
+    )
+    print(
+        json.dumps(
+            {
+                "insight": {
+                    "cases": result.cases,
+                    "llm_selected": result.llm_selected,
+                    "llm_accepted": result.llm_accepted,
+                    "stopped": result.stopped,
+                    "data": str(result.output_path),
+                    "prompt": str(result.prompt_path),
+                }
+            },
+            indent=2,
+        )
+    )
+    return 0
 
 
 def main() -> int:
@@ -93,6 +203,11 @@ def main() -> int:
         if metered is None:
             print("--model-check needs a real provider: set SLAM_MODEL_PROVIDER (see .env.example)")
             return 2
+
+    if args.serve or args.console:
+        return _serve(args, settings)
+    if args.insight:
+        return _insight(args, settings)
 
     summary = run(args.dataset, args.output)
     print(

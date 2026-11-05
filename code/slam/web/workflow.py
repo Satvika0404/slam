@@ -13,6 +13,7 @@ import stat
 import threading
 import uuid
 import zipfile
+from collections import Counter
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -540,6 +541,88 @@ def make_router(default_root: Path) -> APIRouter:
                 copy.case_id: copy.id for copy in SANDBOXES.values() if copy.run.id == run.id
             },
         }
+
+    @router.get("/runs/{run_id}/insights")
+    def cohort_insights(run_id: str) -> dict[str, Any]:
+        """Triage and recurring-pattern context; never changes an audit answer or execution."""
+        from dataclasses import asdict
+
+        from slam.insight import graph as insight_graph
+        from slam.insight import patterns, predict
+        from slam.insight.facts import extract_facts
+        from slam.pipeline import AuditedCase
+
+        run = get_run(run_id)
+        if "cohort" in run.intelligence:
+            return dict(run.intelligence["cohort"])
+        if run.bundle is None:
+            raise HTTPException(409, "Finish the audit before computing cohort insights")
+        audited = [
+            AuditedCase(run.requests[key], run.contexts[key], answer)
+            for key, answer in run.answers.items()
+            if key in run.contexts and key in run.requests
+        ]
+        facts = extract_facts(audited, run.bundle, cohort="workflow")
+        usable = [item for item in facts if item.is_audited]
+        classes = Counter(item.failed for item in usable)
+        if len(usable) < 10 or len(classes) < 2 or min(classes.values()) < predict.FOLDS:
+            result = {
+                "available": False,
+                "reason": (
+                    "At least 10 audited cases and five cases in each outcome are required "
+                    "for honest five-fold scoring."
+                ),
+                "audited_cases": len(usable),
+                "failed": sum(item.failed for item in usable),
+                "scope": "Cohort triage only; audit verdicts remain authoritative",
+            }
+            run.intelligence["cohort"] = result
+            return result
+        risks, model = predict.train_and_score(facts, (), {})
+        failed = [item for item in facts if item.failed]
+        p_failure = {key: value.p_failure for key, value in risks.items()}
+        report = patterns.discover(failed, p_failure)
+        paths: dict[str, list[list[str]]] = {}
+        topology_path = Path(__file__).resolve().parents[3] / "dashboard" / "dashboard_data.json"
+        if topology_path.is_file():
+            topology = insight_graph.load_topology(topology_path)
+            network = insight_graph.NetworkxGraph(topology)
+            for target in sorted({system for item in failed for system in item.violating_systems}):
+                paths[target] = [list(path) for path in network.paths_into(target)]
+        result = {
+            "available": True,
+            "scope": (
+                "Out-of-fold triage trained on this audit's verdicts; "
+                "never a deletion verdict"
+            ),
+            "model": {
+                "algorithm": model.algorithm,
+                "cases": model.n_train,
+                "failed": model.n_failed,
+                "folds": model.folds,
+                "metrics": model.cv,
+                "baselines": model.baselines,
+                "calibration": model.calibration,
+                "importance": model.importance[:8],
+            },
+            "patterns": [asdict(item) for item in report.patterns],
+            "novel_cases": sorted(report.novel),
+            "recreation_paths": paths,
+            "cases": [
+                {
+                    "case_id": item.case_id,
+                    "audit_status": item.status,
+                    "failure_risk": (
+                        risks[item.case_id].p_failure if item.case_id in risks else None
+                    ),
+                    "drivers": risks[item.case_id].drivers if item.case_id in risks else (),
+                    "pattern": report.assignment.get(item.case_id),
+                }
+                for item in facts
+            ],
+        }
+        run.intelligence["cohort"] = result
+        return result
 
     @router.get("/runs/{run_id}/cases/{case_id}")
     def case(run_id: str, case_id: str) -> dict[str, Any]:

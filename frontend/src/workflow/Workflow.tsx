@@ -1184,6 +1184,7 @@ export default function Workflow() {
                   </label>
                   <Intelligence
                     key={`${run?.id}:${caseId}`}
+                    runId={run!.id}
                     data={run?.intelligence as IntelligenceData | undefined}
                     sandbox={sandbox}
                     requestEmail={view.request.email}

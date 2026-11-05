@@ -1,0 +1,128 @@
+    <div class="wrap" style="margin-bottom:16px"><div id="live-banner" class="callout" role="status" hidden></div></div>
+    <!-- ============================ FAILURE RISK ============================ -->
+    <section id="panel-risk" role="tabpanel" aria-labelledby="tab-risk" class="wrap">
+      <div class="ph">
+        <div>
+          <h1>Failure risk</h1>
+          <p>A deletion workflow's report is a claim. The audit checks the evidence. This tab shows how often the two disagree, and how far a LightGBM model can predict a failed deletion from the workflow's claims alone.</p>
+        </div>
+        <span class="asof" id="asof-risk"></span>
+      </div>
+      <div class="tiles" id="kpi-risk"></div>
+
+      <section class="panel" aria-labelledby="h-rva">
+        <div class="panel-h"><div><h2 id="h-rva">What the workflow reported, against what the audit found</h2><p>Each bar is one reported status. Segments show the audit result for those cases. The audit reads the evidence at each case's audit date.</p></div></div>
+        <div class="panel-b">
+          <div class="sbars" id="rva"></div>
+          <div class="legend"><span><i class="sw" style="background:var(--ok)"></i>Audit: complete</span><span><i class="sw" style="background:var(--bad)"></i>Audit: incomplete</span><span><i class="sw" style="background:var(--line-2)"></i>Not a deletion request</span></div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-qual">
+        <div class="panel-h"><div><h2 id="h-qual">Predicting a failed deletion from claims</h2><p id="qual-sub"></p></div></div>
+        <div class="panel-b flush tscroll"><table id="qual" style="min-width:640px"></table></div>
+        <div class="panel-b"><p class="note" id="qual-note"></p></div>
+      </section>
+
+      <div class="grid2e">
+        <section class="panel" aria-labelledby="h-hist">
+          <div class="panel-h"><div><h2 id="h-hist">Do scores separate the two outcomes?</h2><p>Out-of-fold failure score for each audited case, by audit result.</p></div></div>
+          <div class="panel-b"><svg class="ichart" id="hist" viewBox="0 0 520 250" role="img" aria-label="Histogram of predicted failure scores by audit result"></svg>
+            <div class="legend"><span><i class="sw" style="background:var(--ok)"></i>Audit: complete</span><span><i class="sw" style="background:var(--bad)"></i>Audit: incomplete</span></div>
+            <details class="data"><summary>Show as table</summary><div class="tscroll"><table id="hist-t"></table></div></details>
+          </div>
+        </section>
+        <section class="panel" aria-labelledby="h-cal">
+          <div class="panel-h"><div><h2 id="h-cal">Is a score of 70% really 70%?</h2><p>Share of cases that failed, by score band. Points on the dashed line are perfectly calibrated.</p></div></div>
+          <div class="panel-b"><svg class="ichart" id="cal" viewBox="0 0 520 250" role="img" aria-label="Calibration of predicted failure score"></svg>
+            <details class="data"><summary>Show as table</summary><div class="tscroll"><table id="cal-t"></table></div></details>
+          </div>
+        </section>
+      </div>
+
+      <div class="grid2e">
+        <section class="panel" aria-labelledby="h-imp">
+          <div class="panel-h"><div><h2 id="h-imp">What drives the score</h2><p>Share of the final model's split gain. All inputs are workflow claims or evidence counts, never an audit finding.</p></div></div>
+          <div class="panel-b ilist" id="imp"></div>
+        </section>
+        <section class="panel" aria-labelledby="h-type">
+          <div class="panel-h"><div><h2 id="h-type">Which kind of failure?</h2><p>One model per failure type, scored out of fold. AUC of 0.5 is chance.</p></div></div>
+          <div class="panel-b" id="typ"></div>
+        </section>
+      </div>
+
+      <section class="panel" aria-labelledby="h-err">
+        <div class="panel-h"><div><h2 id="h-err">Where the model is wrong</h2><p>Select a case to open it in the case explorer.</p></div></div>
+        <div class="panel-b grid2e" id="errs"></div>
+      </section>
+    </section>
+
+    <!-- ============================ PATTERN DISCOVERY ============================ -->
+    <section id="panel-discovery" role="tabpanel" aria-labelledby="tab-discovery" class="wrap" hidden>
+      <div class="ph">
+        <div>
+          <h1>Pattern discovery</h1>
+          <p>DBSCAN groups failed deletions by which kinds of records failed and how. Groups that recur are patterns. Cases that fit no group, or that had no look-alike when they were audited, are the unseen ones.</p>
+        </div>
+        <span class="asof" id="asof-disc"></span>
+      </div>
+      <div class="tiles" id="kpi-disc"></div>
+
+      <section class="panel" aria-labelledby="h-cat2">
+        <div class="panel-h"><div><h2 id="h-cat2">Pattern catalogue</h2><p>Sorted by size. A signature item is a policy category and how it failed. The core is every item carried by at least half the cases.</p></div></div>
+        <div class="panel-b flush tscroll"><table id="pcat" style="min-width:900px"></table></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-tl">
+        <div class="panel-h"><div><h2 id="h-tl">When each pattern appeared</h2><p>One tick per failed case at its audit date. A diamond marks the date a pattern had four cases and became established. A ringed tick had no earlier look-alike.</p></div>
+          <div class="legend" style="margin:0"><span><svg width="12" height="12" aria-hidden="true"><path d="M6 1v10" stroke="var(--accent)" stroke-width="2"/></svg>Failed case</span><span><svg width="12" height="12" aria-hidden="true"><path d="M6 1l5 5-5 5-5-5z" fill="var(--ink)"/></svg>Established</span><span><svg width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="none" stroke="var(--warn)" stroke-width="1.6"/></svg>First of its kind</span></div></div>
+        <div class="panel-b"><div class="tscroll"><svg class="ichart" id="tl" role="img" aria-label="Timeline of failure patterns by audit date" style="min-width:820px"></svg></div></div>
+      </section>
+
+      <div class="grid2e">
+        <section class="panel" aria-labelledby="h-novel">
+          <div class="panel-h"><div><h2 id="h-novel">Cases to look at first</h2><p>Unmatched by any pattern, or first of their kind after the first 30 audits.</p></div></div>
+          <div class="panel-b" id="novel"></div>
+        </section>
+        <section class="panel" aria-labelledby="h-sw">
+          <div class="panel-h"><div><h2 id="h-sw">How sensitive is the grouping?</h2><p>The same data clustered at other distance thresholds. The chosen value is highlighted.</p></div></div>
+          <div class="panel-b flush tscroll"><table id="sweep"></table></div>
+          <div class="panel-b"><p class="note" id="sweep-note"></p></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ============================ CASE EXPLORER ============================ -->
+    <section id="panel-cases" role="tabpanel" aria-labelledby="tab-cases" class="wrap" hidden>
+      <div class="ph">
+        <div>
+          <h1>Case explorer</h1>
+          <p>Every evaluation case with its audit result, ordered plan, predicted risk and an explanation. Explanations written by the language model are marked. All others are rule-based text built from the same facts.</p>
+        </div>
+        <span class="asof" id="asof-cases"></span>
+      </div>
+      <div class="tiles" id="kpi-cases"></div>
+      <div class="cx">
+        <section class="panel cx-list" aria-labelledby="h-list">
+          <div class="panel-h"><div><h2 id="h-list">Cases</h2></div>
+            <div class="toolbar">
+              <label class="sr" for="cx-q">Search case id</label><input class="field" id="cx-q" type="search" placeholder="Case id" autocomplete="off" style="width:120px">
+              <label class="sr" for="cx-st">Audit result</label><select class="field" id="cx-st"><option value="ALL">All results</option><option value="INCOMPLETE">Incomplete</option><option value="COMPLETE">Complete</option><option value="NOT_APPLICABLE">Not applicable</option></select>
+              <label class="sr" for="cx-rp">Reported status</label><select class="field" id="cx-rp"><option value="ALL">Any report</option><option value="COMPLETE">Reported complete</option><option value="PARTIALLY_COMPLETE">Reported partial</option><option value="NOT_STARTED">Reported not started</option></select>
+              <label class="sr" for="cx-pt">Pattern</label><select class="field" id="cx-pt"></select>
+              <label class="sr" for="cx-ex">Explanation source</label><select class="field" id="cx-ex"><option value="ALL">Any explanation</option><option value="llm">Language model</option><option value="rule-based">Rule-based</option></select>
+              <label class="sr" for="cx-so">Sort</label><select class="field" id="cx-so"><option value="risk">Highest risk first</option><option value="id">Case id</option></select>
+            </div>
+          </div>
+          <div class="panel-b flush tscroll"><table id="cx-t" style="min-width:560px"></table></div>
+          <div class="pager" id="cx-pg"></div>
+        </section>
+        <section class="panel cd" id="cd" aria-live="polite" aria-label="Case detail"></section>
+      </div>
+
+      <section class="panel" aria-labelledby="h-prompt">
+        <div class="panel-h"><div><h2 id="h-prompt">The prompt behind the explanations</h2><p>The model receives the audited case as structured facts and writes prose around them. It never sees the request text, an email, a name or a phone number, and it cannot change a status or a step.</p></div></div>
+        <div class="panel-b"><div class="tiles" id="kpi-llm"></div></div>
+        <div id="prompt"></div>
+      </section>
+    </section>

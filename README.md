@@ -5,12 +5,40 @@ SLAM is the portable deletion-audit agent for the HackerRank Orchestrate challen
 ## Start here
 
 - [Connected database workflow, record deletion graph and reliability panels](docs/AFTERTRACE_CONNECTED_WORKFLOW.md)
+- [Why and how the connected workflow and cohort dashboard are combined](docs/AFTERTRACE_DASHBOARD_INTEGRATION.md)
 - [Current AFTERTRACE workflow — one dataset, audit, execution console and final report](docs/AFTERTRACE_WORKFLOW.md)
 - [AFTERTRACE contributor reference — current frontend, live backend flow, graphs and boundaries](docs/AFTERTRACE_CONTRIBUTOR_REFERENCE.md)
 - [Revised implementation plan](docs/REVISED_SLAM_PLAN.md)
 - [Four-person handoff index](team_handoff/README.md)
 - [Shared build contract](team_handoff/SHARED_BUILD_CONTRACT.md)
 - [Official participant problem statement](team_handoff/reference/problem_statement.md)
+
+## Run the console on your machine
+
+The console is the dashboard plus a live analysis you can run after deleting systems in the graph.
+It needs **Docker** (Docker Desktop on Windows or macOS) and the participant files in `dataset/`
+(see "Run the pipeline" below). One command does the rest:
+
+| System | Command |
+|---|---|
+| Windows (PowerShell or cmd) | `scripts\run_console.cmd` |
+| macOS, Linux, Git Bash | `scripts/run_console.sh` |
+| Any | `docker compose --profile console up` (needs the `.env` lines below first) |
+
+The launcher creates `.env` from `.env.example` if it is missing, gives Neo4j a random local password,
+starts Neo4j and the console, waits until it answers and opens **http://127.0.0.1:8765**. The first
+start builds the Docker image and audits all 518 cases (about a minute); later starts take under a
+minute. It builds only the dashboard files that are missing, and the console listens on this machine
+only. Options: `-Port 9000` / `--port 9000`, `-Refresh` / `--refresh` (rebuild the data files),
+`-NoBrowser` / `--no-browser`, `-Stop` / `--stop`.
+
+Model-written explanations in live runs are optional and cost API tokens. Without a key the console
+explains cases with rules and spends nothing. To enable them add `GROQ_API_KEYS`, `SLAM_API_MAX_CALLS`,
+`SLAM_CONSOLE_PROVIDER=groq` and `SLAM_CONSOLE_MODEL=<model id>` to `.env` (see `.env.example`).
+
+If something fails: `docker compose --profile console logs console`. "Docker is not running" means
+Docker Desktop has to be started first. A busy port is changed with `-Port`. The Python run without
+Docker cannot read the 11 screenshots (no Tesseract), so the console is Docker-only.
 
 ## Team split
 
@@ -102,6 +130,22 @@ Key values are never printed or logged, and the model never changes `output.csv`
 Pipeline stages and owners: `slam.ingestion` (Ashish) -> `slam.reconstruction` (Manya) ->
 `slam.planning` (Satvika) -> `slam.evaluation` validator and scorer (Lalith) -> `output.csv`.
 Known limits and open decisions are in `docs/integration/deliveries/integration.md`.
+
+### Optional: insight layer and console
+
+Failure-risk model (LightGBM), failure patterns (DBSCAN), recreation paths (Neo4j with NetworkX),
+model-written explanations (Groq) and the six-tab Ghost Data Console. It reads what the pipeline
+decided and never changes `output.csv`. Run it with
+`python code/main.py --dataset dataset --insight` and see [docs/INSIGHT_LAYER.md](docs/INSIGHT_LAYER.md)
+for the steps, the exact prompt, the measured numbers and the limits.
+
+With `--serve` the console runs the analysis live on a what-if deletion (Neo4j delete, re-audit,
+LightGBM retrain, DBSCAN, model explanations) instead of showing preprocessed data.
+
+The strongest cohort capabilities are also embedded in AFTERTRACE's Intelligence Console. They
+require enough audited cases for honest five-fold scoring and are always labelled as triage, not
+as evidence that a deletion completed. The connected workflow remains the authoritative surface
+for request evidence, working-copy execution, database read-back and receipts.
 
 ## Development environment
 
