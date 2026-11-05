@@ -4,7 +4,7 @@ workstream: Contracts, runtime, evaluation, Docker
 status: READY_FOR_INTEGRATION
 contract_version: 1.1.0
 contract_sha256: 95cfa189ae07490fe5b42527dc08990b50779d83fa7a82965caefeeb28275a23
-built_on: 0bee04b
+built_on: 80f8a59
 merge_after: none
 last_updated: 2026-11-05
 ---
@@ -13,6 +13,13 @@ last_updated: 2026-11-05
 
 ## Delivers
 
+- Connected increment: `docs/AFTERTRACE_CONNECTED_WORKFLOW.md` documents explicit SQLite table mapping,
+  typed requests, the existing graph extended with record nodes, verified deletion animations,
+  source evidence chains, historical replay and current-run recovery/pattern/sync panels.
+- Merged the newer `origin/lalith` reliability/evaluation work into the current pipeline at 80f8a59.
+  Bounded recovery and evidence diagnostics now have measured UI paths; production promotion remains
+  an explicit review boundary. Working code was checkpointed at 526e78f before the user's later
+  instruction to defer further pushes until the complete combined result is verified.
 - Current increment: `docs/AFTERTRACE_WORKFLOW.md` specifies the four-step, one-input workflow:
   Dataset -> Audit -> Intelligence Console -> Final report. The old chapters are a development
   archive; no demo/imported-analysis selector appears in the default product.
@@ -90,6 +97,17 @@ web profile and forwards existing provider/call/token/cost settings. Use uv.lock
 no Ollama, model weights or GPU dependency is introduced.
 
 ## Verification
+
+Connected increment: full Python suite 683 passed / 18 skipped; after adding further negative cases,
+the final web subset passed 32 tests. Full browser suite: 37 passed, followed by six passing changed
+workflow tests. Build, formatting, Ruff and mypy (75 files) passed. The browser checks exercise a
+connected snapshot with two actual DELETE actions and a retained record: the complete request graph
+is visible first, precisely two record nodes disappear after verification, retained/system nodes
+remain, and history restores the removed nodes. Actual sync worker branches measured 0 -> 1 rows
+when enabled and 0 -> 0 when disabled. Recovery passed all six gates and blocked conflicting input.
+Ambiguous subject identities, access requests and malformed/duplicate recovery rows are rejected.
+
+Earlier workflow baseline verification:
 
 Full Python suite with participant-data tests enabled: 649 passed, 18 skipped. Final web subset:
 24 passed. Frontend suite: 36 passed, including the real ZIP -> audit -> SQLite execution -> proof ->

@@ -6,6 +6,7 @@ import csv
 import hashlib
 import io
 import json
+import re
 import sqlite3
 import uuid
 from dataclasses import asdict
@@ -118,10 +119,13 @@ def normalize_headers(text: str) -> tuple[bool, dict[str, Any] | None, int]:
     if len(names) != len(set(names)) or not {"email", "resource_id"}.issubset(names):
         return False, None, 0
     rows = list(reader)
-    if not rows or any(
-        not row.get(fields[names.index("email")]) or not row.get(fields[names.index("resource_id")])
-        for row in rows
-    ):
+    if not rows or any(None in row or any(value is None for value in row.values()) for row in rows):
+        return False, None, 0
+    emails = [row[fields[names.index("email")]].strip() for row in rows]
+    resources = [row[fields[names.index("resource_id")]].strip() for row in rows]
+    if any(not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email) for email in emails):
+        return False, None, 0
+    if any(not resource for resource in resources) or len(resources) != len(set(resources)):
         return False, None, 0
     out = io.StringIO(newline="")
     writer = csv.writer(out)

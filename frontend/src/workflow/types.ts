@@ -17,6 +17,7 @@ export interface CaseSummary {
   uncertain: boolean;
 }
 export interface RunInfo {
+  request_count?: number;
   intelligence?: unknown;
   csv_available?: boolean;
   working_copies?: Record<string, string>;

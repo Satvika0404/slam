@@ -27,13 +27,11 @@ test("connected database drives full graph, verified removals, recovery and sync
   page.on("pageerror", (error) => errors.push(error.message));
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
-  await page
-    .getByLabel("Connect SQLite database")
-    .setInputFiles({
-      name: "customers.db",
-      mimeType: "application/octet-stream",
-      buffer: database(),
-    });
+  await page.getByLabel("Connect SQLite database").setInputFiles({
+    name: "customers.db",
+    mimeType: "application/octet-stream",
+    buffer: database(),
+  });
   const dialog = page.getByRole("dialog", { name: "Map database tables" });
   await expect(dialog).toBeVisible();
   await dialog.getByLabel("receipts action").selectOption("RETAIN");

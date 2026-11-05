@@ -318,7 +318,14 @@ export default function Workflow() {
           const p = event.payload;
           if (event.event === "run.started") {
             id = String(p.run_id);
-            setRun({ id, input, status: "running", cases: [], errors: {} });
+            setRun({
+              id,
+              input,
+              request_count: Number(p.request_count),
+              status: "running",
+              cases: [],
+              errors: {},
+            });
             sessionStorage.setItem("aftertrace.workflow.run", id);
           }
           if (p.stage) setPhase(p.stage);
@@ -537,6 +544,7 @@ export default function Workflow() {
   const filteredCases = summaries.filter((c) =>
     c.case_id.toLowerCase().includes(query.toLowerCase()),
   );
+  const requestCount = run?.request_count ?? input?.requests ?? 0;
   const visibleRecords = records.filter(
     (r) =>
       (!system || r.system_id === system) &&
@@ -802,7 +810,7 @@ export default function Workflow() {
               <div className="wf-audit-counter">
                 <strong>
                   {summaries.length}
-                  <span>/{input?.requests ?? 0}</span>
+                  <span>/{requestCount}</span>
                 </strong>
                 <p>
                   {busy === "audit"
@@ -822,12 +830,12 @@ export default function Workflow() {
               role="progressbar"
               aria-label="Requests audited"
               aria-valuemin={0}
-              aria-valuemax={input?.requests ?? 0}
+              aria-valuemax={requestCount}
               aria-valuenow={summaries.length}
             >
               <i
                 style={{
-                  width: `${input?.requests ? (summaries.length / input.requests) * 100 : 0}%`,
+                  width: `${requestCount ? (summaries.length / requestCount) * 100 : 0}%`,
                 }}
               />
             </div>

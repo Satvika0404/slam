@@ -245,7 +245,13 @@ def start_audit(item: Input, request_text: str | None = None) -> StreamingRespon
             return
         RUNS[run.id] = run
         try:
-            send("run.started", run_id=run.id, input=item.public(), api_calls=0)
+            send(
+                "run.started",
+                run_id=run.id,
+                input=item.public(),
+                request_count=1 if request_text else item.requests,
+                api_calls=0,
+            )
             send("stage.started", stage="ingestion")
 
             def observer(kind: str, payload: dict[str, Any]) -> None:
@@ -488,6 +494,7 @@ def make_router(default_root: Path) -> APIRouter:
             "id": run.id,
             "input": run.input.public(),
             "status": run.status,
+            "request_count": len(run.requests),
             "cases": [
                 {
                     "case_id": key,

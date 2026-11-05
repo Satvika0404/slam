@@ -1,5 +1,9 @@
 # AFTERTRACE — contributor reference
 
+Latest increment: [connected records and reliability panels](AFTERTRACE_CONNECTED_WORKFLOW.md).
+The existing SVG graph now includes row nodes whose removal follows verified SQL deletion.
+SQLite mapping, typed requests and bounded recovery/sync experiments share the same input/run.
+
 The default product now uses the four-step [one-dataset workflow](AFTERTRACE_WORKFLOW.md), including
 isolated SQLite remediation with fresh read-back verification. That document supersedes the
 ten-chapter navigation below; those chapters remain a development archive for renderer checks.

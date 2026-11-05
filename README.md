@@ -4,6 +4,7 @@ SLAM is the portable deletion-audit agent for the HackerRank Orchestrate challen
 
 ## Start here
 
+- [Connected database workflow, record deletion graph and reliability panels](docs/AFTERTRACE_CONNECTED_WORKFLOW.md)
 - [Current AFTERTRACE workflow — one dataset, audit, execution console and final report](docs/AFTERTRACE_WORKFLOW.md)
 - [AFTERTRACE contributor reference — current frontend, live backend flow, graphs and boundaries](docs/AFTERTRACE_CONTRIBUTOR_REFERENCE.md)
 - [Revised implementation plan](docs/REVISED_SLAM_PLAN.md)

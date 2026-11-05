@@ -1,5 +1,9 @@
 # AFTERTRACE: one dataset, one continuous workflow
 
+The [connected workflow addendum](AFTERTRACE_CONNECTED_WORKFLOW.md) documents SQLite table mapping,
+typed requests, full request-scoped record graphs, actual deletion animations and measured
+recovery/pattern/sync panels added on 5 November 2026.
+
 The default interface is now **Dataset -> Audit -> Intelligence Console -> Final report**.
 The former ten chapters grew from separate audit, imported-analysis and execution views. They are
 retained only as a development archive for renderer regression checks (`?legacy=1`), with no link
