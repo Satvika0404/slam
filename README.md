@@ -1,9 +1,11 @@
 # SLAM — Ghost Data Still Exists
 
-SLAM is the planned portable, AI-assisted deletion-audit agent for the HackerRank Orchestrate challenge. The latest approved architecture uses deterministic evidence and policy logic with bounded API-based structured extraction. It does not use Ollama, `llama.cpp`, local model weights, or a GPU-specific development path.
+SLAM is the portable deletion-audit agent for the HackerRank Orchestrate challenge. AFTERTRACE provides a single-dataset workflow for auditing, inspecting evidence, executing remediation in isolated SQLite copies, and verifying the result. The current workflow is keyless; the existing optional API adapters remain available separately. It does not require Ollama, local model weights, or a GPU.
 
 ## Start here
 
+- [Current AFTERTRACE workflow — one dataset, audit, execution console and final report](docs/AFTERTRACE_WORKFLOW.md)
+- [AFTERTRACE contributor reference — current frontend, live backend flow, graphs and boundaries](docs/AFTERTRACE_CONTRIBUTOR_REFERENCE.md)
 - [Revised implementation plan](docs/REVISED_SLAM_PLAN.md)
 - [Four-person handoff index](team_handoff/README.md)
 - [Shared build contract](team_handoff/SHARED_BUILD_CONTRACT.md)
@@ -30,8 +32,8 @@ Contract version `1.1.0` is now executable rather than only documented. Lalith's
 - locked Python 3.11 dependencies and offline contract/runtime tests.
 
 Ingestion, reconstruction and a first planner are implemented and wired end to end
-(`code/slam/pipeline.py`); the frozen `plan(context)` stays a stub, and the pipeline calls the
-additive `plan_case(context, bundle)` instead. See "Run the pipeline" below.
+(`code/slam/pipeline.py`); the frozen `plan(context)` remains a conservative compatibility API,
+and the pipeline calls `plan_case(context, bundle)`. See "Run the pipeline" below.
 
 ## Run the pipeline
 
@@ -117,6 +119,19 @@ verify the baseline without starting teammate-owned work, run:
 ```bash
 docker compose run --rm slam-dev python code/main.py --foundation-status
 ```
+
+## AFTERTRACE frontend
+
+The default interface is **Dataset -> Audit -> Intelligence Console -> Final report**. Identity,
+source and timeline inspection share the same recorded run. The console performs real mutations
+only in isolated working copies and records fresh read-back evidence. Original challenge inputs
+and audit CSV remain unchanged. Start its API with
+`docker compose --profile web up -d --build aftertrace-api`, then run `npm ci` and
+`npm run dev -- --port 5173` from `frontend/`. Open http://127.0.0.1:5173.
+
+See the [current workflow, scope and testing guide](docs/AFTERTRACE_WORKFLOW.md). Use the ignored
+participant `dataset/` folder or upload one compatible dataset ZIP. Earlier scenes are kept in a
+development-only archive for regression tests; they do not supply demo data to the main workflow.
 
 ## Teammate start point
 

@@ -41,6 +41,8 @@ def export_output_csv(
     """Write exactly one row per required case, sorted by case id, or raise."""
 
     required = list(required_case_ids)
+    if len(set(required)) != len(required):
+        raise ExportError("required_case_ids contains duplicates")
     by_id: dict[str, CaseAnswer] = {}
     for answer in answers:
         if answer.case_id in by_id:
@@ -49,12 +51,14 @@ def export_output_csv(
     missing = sorted(set(required) - set(by_id))
     extra = sorted(set(by_id) - set(required))
     if len(set(required)) != len(required) or missing or extra:
-        raise ExportError(f"case mismatch: missing={missing[:5]} extra={extra[:5]}")
+        raise ExportError(f"answer set mismatch: missing={missing[:5]} extra={extra[:5]}")
     rows = []
     for case_id in sorted(required):
         answer = by_id[case_id]
         if answer.deletion_status is None or not answer.ready_for_export:
-            raise ExportError(f"{case_id} has no supported answer: {answer.blocking_issues}")
+            raise ExportError(
+                f"blocked answer: {case_id} has no supported answer: {answer.blocking_issues}"
+            )
         not_applicable = answer.deletion_status is DeletionStatus.NOT_APPLICABLE
         body = "[]" if not_applicable else steps_json(answer)
         rows.append((case_id, answer.deletion_status.value, body))
