@@ -9,12 +9,16 @@ from pathlib import Path
 import pytest
 from slam.contracts import (
     AuditRequest,
+    CaseContext,
     CurrentIdentity,
     DeletionStatus,
     EvidenceBundle,
+    GraphEdge,
     Observation,
     Operation,
     PolicyRule,
+    RequestIntent,
+    ResourceState,
     SourceKind,
     SourceRecord,
     SourceSpan,
@@ -51,7 +55,13 @@ def _request(text: str = "Please delete my account.") -> AuditRequest:
 
 
 def _obs(
-    label: str, resource: str, system: str, category: str, state: str, with_email: bool = True
+    label: str,
+    resource: str,
+    system: str,
+    category: str,
+    state: str,
+    with_email: bool = True,
+    source_fields: dict[str, str] | None = None,
 ) -> Observation:
     return Observation(
         observation_id=hashlib.sha256(label.encode()).hexdigest(),
@@ -63,12 +73,12 @@ def _obs(
         effective_time=datetime(2026, 1, 20, tzinfo=UTC),
         source_kind=SourceKind.JSON,
         identifiers={"email": EMAIL} if with_email else {},
-        fields={"evidence_nature": "observation", "source": {}},
+        fields={"evidence_nature": "observation", "source": source_fields or {}},
         spans=(SourceSpan(source_id="evidence_1", json_path=f"$.{label}"),),
     )
 
 
-def _bundle(*observations: Observation) -> EvidenceBundle:
+def _bundle(*observations: Observation, rules: tuple[PolicyRule, ...] = RULES) -> EvidenceBundle:
     identity = CurrentIdentity(
         user_id="user_1",
         name="Pat",
@@ -92,7 +102,7 @@ def _bundle(*observations: Observation) -> EvidenceBundle:
         sources=(source,),
         current_identities=(identity,),
         observations=observations,
-        policy_rules=RULES,
+        policy_rules=rules,
     )
 
 
@@ -102,18 +112,35 @@ def _plan(bundle: EvidenceBundle, text: str = "Please delete my account."):  # t
 
 
 def test_complete_case_has_only_evidence_backed_verification() -> None:
-    answer = _plan(_bundle(_obs("a", "account_1", "account_service", "USER_PROFILE", "NOT_FOUND")))
+    answer = _plan(
+        _bundle(
+            _obs("scope", "account_1", "account_service", "SNAPSHOT_SCOPE", "SCOPED", False),
+            _obs("a", "account_1", "account_service", "USER_PROFILE", "NOT_FOUND"),
+        )
+    )
     assert answer.deletion_status is DeletionStatus.COMPLETE
     assert [s.operation for s in answer.steps] == [Operation.VERIFY_RECORD_ABSENT]
     assert answer.steps[0].evidence_id == "evidence_1"
 
 
-def test_incomplete_case_follows_the_specified_step_order() -> None:
+def test_incomplete_case_orders_mitigation_before_records_and_copies_before_profile() -> None:
     answer = _plan(
         _bundle(
             _obs("p", "account_1", "account_service", "USER_PROFILE", "PRESENT"),
             _obs("s", "search_1", "search_service", "SEARCH_INDEX_ENTRY", "PRESENT"),
-            _obs("f", "data_flow_1", "integration_service", "DATA_FLOW", "ACTIVE"),
+            _obs(
+                "f",
+                "data_flow_1",
+                "integration_service",
+                "DATA_FLOW",
+                "ACTIVE",
+                source_fields={
+                    "source_system": "account_service",
+                    "source_resource_id": "account_1",
+                    "target_system": "search_service",
+                    "target_resource_id": "search_1",
+                },
+            ),
             _obs("b", "backup_1", "backup_service", "BACKUP_ARCHIVE", "RESTORABLE"),
         )
     )
@@ -126,11 +153,34 @@ def test_incomplete_case_follows_the_specified_step_order() -> None:
         Operation.DELETE_RECORD,
         Operation.DELETE_RECORD,
     ]
-    # Spec: operation order, then system_id, then resource_id ascending.
-    assert [s.resource_id for s in remediation[2:]] == ["account_1", "search_1"]
+    assert [s.resource_id for s in remediation[2:]] == ["search_1", "account_1"]
     assert ops.index(Operation.DISABLE_DATA_FLOW) < ops.index(Operation.DELETE_RECORD)
     assert all(s.evidence_id == "" for s in answer.steps if s.phase.value != "FINDING")
     assert all(s.evidence_id == "evidence_1" for s in answer.steps if s.phase.value == "FINDING")
+
+
+def test_order_is_stable_when_input_observations_are_shuffled() -> None:
+    observations = (
+        _obs("profile", "account_1", "account_service", "USER_PROFILE", "PRESENT"),
+        _obs("search", "search_1", "search_service", "SEARCH_INDEX_ENTRY", "PRESENT"),
+        _obs(
+            "flow",
+            "flow_1",
+            "integration",
+            "DATA_FLOW",
+            "ACTIVE",
+            source_fields={
+                "source_system": "account_service",
+                "source_resource_id": "account_1",
+                "target_system": "search_service",
+                "target_resource_id": "search_1",
+            },
+        ),
+        _obs("backup", "backup_1", "backup", "BACKUP_ARCHIVE", "RESTORABLE"),
+    )
+    forward = _plan(_bundle(*observations))
+    reverse = _plan(_bundle(*reversed(observations)))
+    assert forward.steps == reverse.steps
 
 
 def test_non_deletion_is_not_applicable_without_steps() -> None:
@@ -146,7 +196,10 @@ def test_conflict_never_certifies_complete() -> None:
         _obs("a", "account_1", "account_service", "USER_PROFILE", "NOT_FOUND"),
         _obs("b", "account_1", "account_service", "USER_PROFILE", "PRESENT"),
     )
-    assert _plan(bundle).deletion_status is DeletionStatus.INCOMPLETE
+    answer = _plan(bundle)
+    assert answer.deletion_status is None
+    assert answer.ready_for_export is False
+    assert answer.blocking_issues
 
 
 def test_unclear_request_gets_no_status_and_export_refuses_it(tmp_path: Path) -> None:
@@ -157,7 +210,10 @@ def test_unclear_request_gets_no_status_and_export_refuses_it(tmp_path: Path) ->
 
 
 def test_export_is_sorted_exact_and_rejects_missing_cases(tmp_path: Path) -> None:
-    bundle = _bundle(_obs("a", "account_1", "account_service", "USER_PROFILE", "NOT_FOUND"))
+    bundle = _bundle(
+        _obs("scope", "account_1", "account_service", "SNAPSHOT_SCOPE", "SCOPED", False),
+        _obs("a", "account_1", "account_service", "USER_PROFILE", "NOT_FOUND"),
+    )
     answer = _plan(bundle)
     target = tmp_path / "o.csv"
     export_output_csv([answer], ["c1"], target)
@@ -190,45 +246,276 @@ def test_without_a_bundle_exposure_is_assumed_never_a_false_complete() -> None:
     assert answer.deletion_status is DeletionStatus.INCOMPLETE
 
 
-def _with_late_audit_record(bundle: EvidenceBundle) -> EvidenceBundle:
-    """A retained audit record seen before the cutoff, in a file exported after it."""
+def test_compliant_tombstone_retains_stable_reference_and_verifies() -> None:
+    from slam.planning import plan
 
-    audit = _obs("aud", "audit_record_1", "security_service", "SECURITY_AUDIT_LOG", "PRESENT")
-    audit = audit.model_copy(
-        update={"spans": (SourceSpan(source_id="evidence_late", json_path="$.a"),)}
+    rules = (
+        PolicyRule(rule_id="tombstone", category="ACCOUNT_TOMBSTONE", required_action="REDACT"),
     )
-    late = SourceRecord(
-        source_id="evidence_late",
-        kind=SourceKind.JSON,
-        origin="t",
-        path="l.json",
-        captured_at=datetime(2026, 3, 1, tzinfo=UTC),
-        sha256="c" * 64,
-        parse_status="parsed",
-    )
-    rule = PolicyRule(rule_id="r_audit", category="SECURITY_AUDIT_LOG", required_action="RETAIN")
-    return bundle.model_copy(
-        update={
-            "sources": (*bundle.sources, late),
-            "observations": (*bundle.observations, audit),
-            "policy_rules": (*bundle.policy_rules, rule),
-        }
-    )
-
-
-def test_late_exported_retained_record_is_only_an_uncited_future_check() -> None:
-    base = _bundle(_obs("p", "account_1", "account_service", "USER_PROFILE", "PRESENT"))
-    answer = _plan(_with_late_audit_record(base))
-    assert answer.deletion_status is DeletionStatus.INCOMPLETE
-    audit = [s for s in answer.steps if s.resource_id == "audit_record_1"]
-    assert [(s.phase.value, s.operation, s.evidence_id) for s in audit] == [
-        ("VERIFICATION", Operation.VERIFY_RECORD_PRESENT, "")
-    ]  # never a finding, never cited
-
-
-def test_late_exported_retained_record_never_appears_in_a_complete_answer() -> None:
-    base = _bundle(_obs("a", "account_1", "account_service", "USER_PROFILE", "NOT_FOUND"))
-    answer = _plan(_with_late_audit_record(base))
+    observation = _obs(
+        "tombstone", "t1", "account_service", "ACCOUNT_TOMBSTONE", "REDACTED"
+    ).model_copy(update={"identifiers": {"user_id": "stable-42"}})
+    answer = plan(reconstruct(_request(), _bundle(observation, rules=rules)))
     assert answer.deletion_status is DeletionStatus.COMPLETE
-    assert [s.resource_id for s in answer.steps] == ["account_1"]
-    assert all(s.evidence_id for s in answer.steps)
+    assert [step.operation for step in answer.steps] == [Operation.VERIFY_RECORD_REDACTED]
+
+
+def test_tombstone_with_exposed_hash_is_incomplete_and_redacted() -> None:
+    from slam.planning import plan
+
+    rules = (
+        PolicyRule(rule_id="tombstone", category="ACCOUNT_TOMBSTONE", required_action="REDACT"),
+    )
+    observation = _obs(
+        "tombstone", "t1", "account_service", "ACCOUNT_TOMBSTONE", "PRESENT", False
+    ).model_copy(update={"identifiers": {"email_hash": "a" * 64}})
+    answer = plan(reconstruct(_request(), _bundle(observation, rules=rules)))
+    assert answer.deletion_status is DeletionStatus.INCOMPLETE
+    assert [step.operation for step in answer.steps] == [
+        Operation.REPORT_EXPOSED_PII,
+        Operation.REDACT_RECORD,
+        Operation.VERIFY_RECORD_REDACTED,
+    ]
+
+
+def test_required_retained_record_remains_and_gets_evidence_backed_verification() -> None:
+    from slam.planning import plan
+
+    rules = (PolicyRule(rule_id="hold", category="SECURITY_AUDIT", required_action="RETAIN"),)
+    observation = _obs("audit", "audit-7", "audit_service", "SECURITY_AUDIT", "PRESENT")
+    answer = plan(reconstruct(_request(), _bundle(observation, rules=rules)))
+    assert answer.deletion_status is DeletionStatus.COMPLETE
+    assert answer.steps[0].operation is Operation.VERIFY_RECORD_PRESENT
+    assert answer.steps[0].evidence_id == "evidence_1"
+
+
+def test_shared_support_record_is_redacted_not_deleted() -> None:
+    from slam.planning import plan
+
+    rules = (PolicyRule(rule_id="support", category="SUPPORT_MESSAGE", required_action="REDACT"),)
+    observation = _obs("support", "ticket-4", "support_service", "SUPPORT_MESSAGE", "PRESENT")
+    answer = plan(reconstruct(_request(), _bundle(observation, rules=rules)))
+    assert [step.operation for step in answer.steps] == [
+        Operation.REPORT_EXPOSED_PII,
+        Operation.REDACT_RECORD,
+        Operation.VERIFY_RECORD_REDACTED,
+    ]
+
+
+def test_attributable_analytics_is_anonymized() -> None:
+    from slam.planning import plan
+
+    rules = (
+        PolicyRule(rule_id="analytics", category="ANALYTICS_PROFILE", required_action="ANONYMIZE"),
+    )
+    observation = _obs("analytics", "profile-4", "analytics", "ANALYTICS_PROFILE", "PRESENT")
+    answer = plan(reconstruct(_request(), _bundle(observation, rules=rules)))
+    assert [step.operation for step in answer.steps] == [
+        Operation.REPORT_EXPOSED_PII,
+        Operation.ANONYMIZE_RECORD,
+        Operation.VERIFY_RECORD_ANONYMIZED,
+    ]
+
+
+@pytest.mark.parametrize(
+    ("category", "action", "state", "identifier"),
+    [
+        ("SUPPORT_MESSAGE", "REDACT", "REDACTED", "email_normalized"),
+        ("ANALYTICS_PROFILE", "ANONYMIZE", "ANONYMIZED", "email_hash"),
+        ("ACCOUNT_TOMBSTONE", "REDACT", "REDACTED", "email_hash"),
+    ],
+)
+def test_treatment_state_claim_does_not_override_exposed_identifiers(
+    category: str, action: str, state: str, identifier: str
+) -> None:
+    observation = _obs("still-exposed", "record-1", "service", category, state).model_copy(
+        update={"identifiers": {identifier: EMAIL if identifier != "email_hash" else "a" * 64}}
+    )
+    rules = (PolicyRule(rule_id="rule", category=category, required_action=action),)
+    bundle = _bundle(observation, rules=rules)
+    answer = plan_case(reconstruct(_request(), bundle), bundle)
+    expected = Operation.REDACT_RECORD if action == "REDACT" else Operation.ANONYMIZE_RECORD
+    assert answer.deletion_status is DeletionStatus.INCOMPLETE
+    assert expected in [step.operation for step in answer.steps]
+
+
+def test_future_only_citation_blocks_certification() -> None:
+    future = datetime(2026, 3, 1, tzinfo=UTC)
+    context = CaseContext(
+        request=_request(),
+        request_intent=RequestIntent.DELETION,
+        policy_rules=RULES,
+        evidence_captured_at={"future-evidence": future},
+        resource_states=(
+            ResourceState(
+                system_id="account_service",
+                resource_id="account-1",
+                category="USER_PROFILE",
+                state="PRESENT",
+                at=_request().audit_at,
+                supporting_evidence_ids=("future-evidence",),
+            ),
+        ),
+    )
+    from slam.planning import plan
+
+    answer = plan(context)
+    assert answer.deletion_status is None
+    assert not answer.ready_for_export
+    assert any("no eligible supporting evidence" in item for item in answer.blocking_issues)
+
+
+def test_duplicate_category_rules_require_an_explicit_applicable_rule() -> None:
+    from slam.planning import plan
+
+    bundle = _bundle(
+        _obs("a", "account_1", "account_service", "USER_PROFILE", "NOT_FOUND"),
+        rules=(
+            PolicyRule(rule_id="delete", category="USER_PROFILE", required_action="DELETE"),
+            PolicyRule(
+                rule_id="retain-under-hold",
+                category="USER_PROFILE",
+                required_action="RETAIN",
+                condition="legal hold applies",
+            ),
+        ),
+    )
+    context = reconstruct(_request(), bundle)
+    answer = plan(context)
+    assert answer.deletion_status is None
+    assert any("ambiguous or missing policy rule" in item for item in answer.blocking_issues)
+
+
+def test_dependent_copy_is_remediated_before_its_source():
+    evidence = "evidence_1"
+    context = CaseContext(
+        request=_request(),
+        request_intent=RequestIntent.DELETION,
+        subject_id="user_1",
+        policy_rules=(
+            PolicyRule(rule_id="profile", category="USER_PROFILE", required_action="DELETE"),
+            PolicyRule(rule_id="copy", category="SEARCH_INDEX_ENTRY", required_action="DELETE"),
+        ),
+        evidence_captured_at={evidence: datetime(2026, 1, 20, tzinfo=UTC)},
+        resource_states=(
+            ResourceState(
+                system_id="accounts",
+                resource_id="profile",
+                category="USER_PROFILE",
+                state="PRESENT",
+                at=_request().audit_at,
+                supporting_evidence_ids=(evidence,),
+            ),
+            ResourceState(
+                system_id="search",
+                resource_id="copy",
+                category="SEARCH_INDEX_ENTRY",
+                state="PRESENT",
+                at=_request().audit_at,
+                supporting_evidence_ids=(evidence,),
+            ),
+        ),
+        active_flows=(
+            GraphEdge(
+                source="resource:accounts:profile",
+                target="resource:search:copy",
+                relationship="data_flow",
+                evidence_ids=(evidence,),
+                active=True,
+            ),
+        ),
+    )
+    answer = plan_case(context)
+    remediation = [step.resource_id for step in answer.steps if step.phase.value == "REMEDIATION"]
+    assert remediation == ["copy", "profile"]
+
+
+def test_independent_remediations_use_system_resource_order():
+    evidence = "evidence_1"
+    context = CaseContext(
+        request=_request(),
+        request_intent=RequestIntent.DELETION,
+        policy_rules=(
+            PolicyRule(rule_id="delete", category="USER_PROFILE", required_action="DELETE"),
+        ),
+        evidence_captured_at={evidence: datetime(2026, 1, 20, tzinfo=UTC)},
+        resource_states=tuple(
+            ResourceState(
+                system_id=system,
+                resource_id=resource,
+                category="USER_PROFILE",
+                state="PRESENT",
+                at=_request().audit_at,
+                supporting_evidence_ids=(evidence,),
+            )
+            for system, resource in (("z-system", "z-record"), ("a-system", "a-record"))
+        ),
+    )
+    answer = plan_case(context)
+    findings = [step.system_id for step in answer.steps if step.phase.value == "FINDING"]
+    assert findings == ["a-system", "z-system"]
+
+
+def test_active_dependency_cycle_blocks_certification():
+    evidence = "evidence_1"
+    context = CaseContext(
+        request=_request(),
+        request_intent=RequestIntent.DELETION,
+        policy_rules=(
+            PolicyRule(rule_id="delete", category="USER_PROFILE", required_action="DELETE"),
+        ),
+        evidence_captured_at={evidence: datetime(2026, 1, 20, tzinfo=UTC)},
+        resource_states=(
+            ResourceState(
+                system_id="accounts",
+                resource_id="profile",
+                category="USER_PROFILE",
+                state="PRESENT",
+                at=_request().audit_at,
+                supporting_evidence_ids=(evidence,),
+            ),
+        ),
+        active_flows=(
+            GraphEdge(
+                source="resource:accounts:profile",
+                target="resource:search:copy",
+                relationship="data_flow",
+                evidence_ids=(evidence,),
+                active=True,
+            ),
+            GraphEdge(
+                source="resource:search:copy",
+                target="resource:accounts:profile",
+                relationship="data_flow",
+                evidence_ids=(evidence,),
+                active=True,
+            ),
+        ),
+    )
+    answer = plan_case(context)
+    assert answer.deletion_status is None
+    assert not answer.ready_for_export
+    assert any("dependency cycle" in reason for reason in answer.blocking_issues)
+
+
+def test_future_evidence_does_not_support_an_earlier_audit():
+    future = datetime(2026, 3, 1, tzinfo=UTC)
+    context = CaseContext(
+        request=_request(),
+        request_intent=RequestIntent.DELETION,
+        policy_rules=RULES,
+        evidence_captured_at={"future-evidence": future},
+        resource_states=(
+            ResourceState(
+                system_id="account_service",
+                resource_id="account-1",
+                category="USER_PROFILE",
+                state="NOT_FOUND",
+                at=_request().audit_at,
+                supporting_evidence_ids=("future-evidence",),
+            ),
+        ),
+    )
+    answer = plan_case(context)
+    assert answer.deletion_status is None
+    assert any("no eligible supporting evidence" in item for item in answer.blocking_issues)

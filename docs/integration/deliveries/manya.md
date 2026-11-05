@@ -4,7 +4,7 @@ workstream: Request intent, identity, temporal state, dependency graph
 status: INTEGRATED
 contract_version: 1.1.0
 contract_sha256: 95cfa189ae07490fe5b42527dc08990b50779d83fa7a82965caefeeb28275a23
-built_on: 0d02a57be96b70f055e69e7c0d16adb652b7b882
+built_on: a722cbcca0ee39919effde4bbaa46de460ad4223
 merge_after: ashish
 last_updated: 2026-11-05
 ---
