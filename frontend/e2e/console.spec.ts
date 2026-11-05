@@ -15,7 +15,7 @@ import type { SystemGraph } from "../src/console/types";
 import type { AuditCase } from "../src/types";
 
 async function open(page: Page) {
-  await page.goto("/");
+  await page.goto("/?legacy=1");
   await page
     .getByRole("button", { name: "Intelligence console", exact: true })
     .click();

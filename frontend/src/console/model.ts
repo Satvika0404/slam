@@ -204,6 +204,14 @@ export function fromCase(data: AuditCase): ConsoleData {
       states.some((s) => s.category === r.category),
     );
     const actions = [...new Set(policy.map((p) => p.required_action))];
+    if (!actions.length)
+      actions.push(
+        ...new Set(
+          data.answer.steps
+            .filter((s) => s.phase === "REMEDIATION" && s.system_id === id)
+            .map((s) => s.operation),
+        ),
+      );
     return {
       id,
       label: human(id),
@@ -237,6 +245,7 @@ export function fromCase(data: AuditCase): ConsoleData {
     source: system(e.source),
     target: system(e.target),
     kind: "engine risk",
+    resource_id: e.source.split(":").at(-1),
     op: e.relationship,
     events: 0,
     fail_rate: null,

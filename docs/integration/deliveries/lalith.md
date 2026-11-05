@@ -4,7 +4,7 @@ workstream: Contracts, runtime, evaluation, Docker
 status: READY_FOR_INTEGRATION
 contract_version: 1.1.0
 contract_sha256: 95cfa189ae07490fe5b42527dc08990b50779d83fa7a82965caefeeb28275a23
-built_on: b4382c9
+built_on: 0bee04b
 merge_after: none
 last_updated: 2026-11-05
 ---
@@ -13,9 +13,21 @@ last_updated: 2026-11-05
 
 ## Delivers
 
+- Current increment: `docs/AFTERTRACE_WORKFLOW.md` specifies the four-step, one-input workflow:
+  Dataset -> Audit -> Intelligence Console -> Final report. The old chapters are a development
+  archive; no demo/imported-analysis selector appears in the default product.
+- `code/slam/web/workflow.py` pins input bytes, runs the actual keyless pipeline once and scopes
+  cases/evidence/CSV to that run. ZIP input validates paths/limits and never replaces source files.
+- `code/slam/web/remediation.py` performs real SQL DELETE/UPDATE only in isolated per-request
+  SQLite copies. It checks authorization, evidence, retention, control ordering, committed read-back,
+  idempotence and fresh policy verification; it keeps the original audit immutable.
+- The preserved SystemGraph now follows actual working-copy record counts and receipt-backed ended
+  control links. Before/latest/per-receipt exploration is explicitly recorded playback. No source
+  relationship is called deleted merely because it disappears from a view.
+
 - Canonical reference: `docs/AFTERTRACE_CONTRIBUTOR_REFERENCE.md`, linked from README. It records the
   actual architecture, event protocol, graph semantics, API/model boundaries, setup, ownership and limits.
-- Ten-chapter React/TypeScript AFTERTRACE interface and FastAPI read layer under `frontend/**` and
+- Four-step default React/TypeScript AFTERTRACE interface, archived chapters and FastAPI layer under `frontend/**` and
   `code/slam/web/**`. Identity, source, timeline, decision and folio views inspect real backend data.
 - Original HTML graph preserved under `docs/reference/`; the enhanced original keeps its DiGraph,
   SVG renderer, node-link JSON, IDs, handlers, undo and scenario semantics. Identity Constellation
@@ -78,17 +90,24 @@ no Ollama, model weights or GPU dependency is introduced.
 
 ## Verification
 
-Merged full Python suite: 625 passed, 34 skipped. Final changed web subset: 16 passed.
-Frontend suite: 31 passed (six pure algorithm/export/stream checks and 25 browser flows).
-Production build, frontend formatting, Ruff, mypy (64 Python source files) and git diff --check passed.
-Browser coverage includes original graph handlers, status/history fixtures, selection, source proof,
-large graphs, mobile/laptop layout, real streaming execution, batch evidence and validated CSV exports.
-Screenshots are ignored under artifacts/aftertrace. Non-failing upstream Starlette/Lucide notices remain.
+Full Python suite with participant-data tests enabled: 649 passed, 18 skipped. Final web subset:
+24 passed. Frontend suite: 36 passed, including the real ZIP -> audit -> SQLite execution -> proof ->
+report flow, original graph regressions, stale input protection, refresh restore, recorded replay,
+non-reduced/reduced motion and 390/768/1024/1440 layouts. Final workflow subset rerun is recorded in
+this increment's commit. Production build, frontend formatting, Ruff, mypy (66 Python source files)
+and whitespace checks pass.
+
+The new workflow API audited all 518 official requests from 94 evidence files with no execution
+errors and 8,328 actual events. Its original CSV is byte-identical to the earlier CLI run. Executed
+case_33's two planned actions and case_54's four actions (including a flow control) in isolated
+copies, obtaining COMPLETE read-back verification for those materialized scopes. Original CSV and
+all 103 official input files remain unchanged. Zero API calls. The earlier 11/32 exact sample result
+is not improved or concealed by these UI/execution changes.
 
 ## Known limits
 
-No fresh full 518-case dataset run or live API-provider test is claimed. Dataset accuracy, latency and
-cost require measured participant-data runs. Imported console statistics/forecasts remain supplied
+No live API-provider or hidden-answer accuracy claim is made. Full-dataset predictions and repeatability
+were measured; canonical correctness for the 518 hidden-answer cases is unknown. Imported console statistics/forecasts remain supplied
 analysis; original evidence/build scripts were not attached. Validity ends establish ENDED, not entity
 or relationship DELETED. Explicit deletion producers and per-link conflicts require actual evidence.
 The web API is local and unauthenticated, with in-memory one-run-per-process execution. No external
@@ -96,7 +115,7 @@ remediation, autonomous self-healing/promotions or durable multi-user job system
 
 ## Integration notes
 
-- Shared baseline merged: b4382c9 from origin/dev. Current frontend/graph checkpoints are based on that
+- Shared baseline merged through 0bee04b from origin/dev. Current frontend/graph checkpoints are based on that
   actual backend rather than the older local stub.
 - Fetch and merge latest dev into individual feature branches before independent work. No force push,
   branch deletion or private teammate notification is part of this delivery.

@@ -39,6 +39,9 @@ export interface RegisterEntry {
   ev: string[];
 }
 export interface SystemNode {
+  live_state?: string;
+  remaining?: number;
+  original_resources?: number;
   id: string;
   label: string;
   tier: string;
@@ -57,6 +60,10 @@ export interface SystemNode {
   evidence_ids?: string[];
 }
 export interface SystemEdge {
+  resource_id?: string;
+  execution_state?: string;
+  proof_id?: string;
+  event_at?: string;
   source: string;
   target: string;
   kind: string;

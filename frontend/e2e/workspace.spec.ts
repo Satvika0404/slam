@@ -5,7 +5,7 @@ test.beforeEach(async ({ page, request }) => {
       timeout: 15000,
     })
     .toBeTruthy();
-  await page.goto("/");
+  await page.goto("/?legacy=1");
   await expect(
     page.getByRole("heading", { name: "Gone. Or just out of sight?" }),
   ).toBeVisible();
@@ -197,6 +197,17 @@ test("desktop scenes, mobile layout, reduced motion and presentation controls", 
 test("dataset mode reports missing input instead of substituting demo", async ({
   page,
 }) => {
+  await page.route("**/api/**", async (route) => {
+    if (new URL(route.request().url()).searchParams.get("mode") === "dataset") {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({
+          detail: "Participant dataset is not installed on this server.",
+        }),
+      });
+    } else await route.continue();
+  });
   await page.getByLabel("Data mode", { exact: true }).selectOption("dataset");
   await expect(page.getByRole("alert")).toContainText(
     "Participant dataset is not installed",

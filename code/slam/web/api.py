@@ -25,6 +25,12 @@ ROOT = Path(
 Mode = Literal["demo", "dataset"]
 app = FastAPI(title="AFTERTRACE", version="0.1.0")
 
+# The default product is one dataset -> one audit run -> isolated execution -> report.
+from . import remediation, workflow  # noqa: E402
+
+app.include_router(workflow.make_router(ROOT))
+app.include_router(remediation.router)
+
 
 @app.get("/api/runtime")
 def runtime() -> dict[str, Any]:

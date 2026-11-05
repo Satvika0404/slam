@@ -10,7 +10,7 @@ import {
 import { consumeExecution } from "../src/live";
 
 async function openIdentity(page: Page) {
-  await page.goto("/");
+  await page.goto("/?legacy=1");
   await page
     .getByRole("button", { name: "Identity constellation", exact: true })
     .click();
@@ -366,7 +366,7 @@ test("live backend execution automatically advances and displays actual output a
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("/?legacy=1");
   await page
     .getByRole("button", { name: "Live backend execution", exact: true })
     .click();
@@ -418,7 +418,7 @@ test("live backend execution automatically advances and displays actual output a
 test("batch evidence inspection uses the executed case and folio downloads the validated run output", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?legacy=1");
   await page
     .getByRole("button", { name: "Live backend execution", exact: true })
     .click();

@@ -8,7 +8,7 @@ test.beforeEach(async ({ request }) => {
     .toBeTruthy();
 });
 async function open(page: Page) {
-  await page.goto("/");
+  await page.goto("/?legacy=1");
   await expect(
     page.getByRole("heading", { name: "Gone. Or just out of sight?" }),
   ).toBeVisible();
@@ -25,7 +25,7 @@ test("loading waits for the actual response and shows no simulated progress", as
     await gate;
     await route.continue();
   });
-  await page.goto("/");
+  await page.goto("/?legacy=1");
   await expect(
     page.getByRole("status", { name: "Loading investigation workspace" }),
   ).toBeVisible();
@@ -54,7 +54,7 @@ test("connection error has a working retry and preserves real case results", asy
       });
     else await route.continue();
   });
-  await page.goto("/");
+  await page.goto("/?legacy=1");
   await expect(page.getByRole("alert")).toContainText(
     "Local API is temporarily unavailable.",
   );
@@ -272,7 +272,7 @@ test("signature scenes work with WebGL explicitly disabled", async () => {
       viewport: { width: 1280, height: 800 },
       reducedMotion: "reduce",
     });
-    await page.goto("http://127.0.0.1:5173/");
+    await page.goto("http://127.0.0.1:5173/?legacy=1");
     await expect(
       page.getByRole("heading", { name: "Gone. Or just out of sight?" }),
     ).toBeVisible();

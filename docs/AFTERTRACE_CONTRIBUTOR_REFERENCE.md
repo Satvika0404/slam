@@ -1,5 +1,10 @@
 # AFTERTRACE — contributor reference
 
+The default product now uses the four-step [one-dataset workflow](AFTERTRACE_WORKFLOW.md), including
+isolated SQLite remediation with fresh read-back verification. That document supersedes the
+ten-chapter navigation below; those chapters remain a development archive for renderer checks.
+Original audit decisions/CSV and working-copy execution results remain separate.
+
 Updated 5 November 2026. This is the shared implementation reference for the frontend, backend run
 visualisation and graphs. It describes implemented code and its limits, not guaranteed accuracy or
 production readiness. Read root `AGENTS.md` and the ownership/delivery notes before editing.

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   Copy,
@@ -16,6 +16,7 @@ import type {
   ConsoleData,
   InspectEvidence,
   SystemGraph as Graph,
+  SystemEdge,
 } from "./types";
 import {
   edgeKey,
@@ -39,12 +40,20 @@ export default function SystemGraph({
   data,
   onInspect,
   readOnly = false,
+  workflow = false,
+  onSelectSystem,
+  onSelectEdge,
 }: {
   data: ConsoleData;
   onInspect: InspectEvidence;
   readOnly?: boolean;
+  workflow?: boolean;
+  onSelectSystem?: (id: string) => void;
+  onSelectEdge?: (edge: SystemEdge) => void;
 }) {
   const original = data.graph;
+  const [selectedEdge, setSelectedEdge] = useState<string | null>(null);
+  const [viewportWidth, setViewportWidth] = useState(1000);
   const [graph, setGraph] = useState<Graph>(original),
     [selected, setSelected] = useState<string[]>([]),
     [inspect, setInspect] = useState(
@@ -73,6 +82,18 @@ export default function SystemGraph({
     ),
     canvas = useRef<SVGSVGElement>(null),
     confirmButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (readOnly) setGraph(original);
+  }, [original, readOnly]);
+  useEffect(() => {
+    const element = canvas.current?.parentElement;
+    if (!workflow || !element) return;
+    const observer = new ResizeObserver((entries) =>
+      setViewportWidth(entries[0].contentRect.width),
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [workflow]);
   const orphans = orphanNodes(original, graph),
     removed = original.nodes.filter(
       (n) => !graph.nodes.some((x) => x.id === n.id),
@@ -83,28 +104,79 @@ export default function SystemGraph({
     preview = removeScenario(original, graph, selected, cascade);
   const layers = useMemo(() => graphLayers(graph), [graph]);
   const positions = useMemo(() => {
+    if (workflow && viewportWidth < 540) {
+      const ids = original.nodes.map((n) => n.id).sort();
+      return {
+        nodes: new Map(ids.map((id, i) => [id, { x: 46, y: 55 + i * 128 }])),
+        w: 300,
+        h: Math.max(400, 100 + ids.length * 128),
+      };
+    }
+    if (workflow && graph.edges.length === 0) {
+      const ids = original.nodes.map((n) => n.id).sort();
+      const columns = Math.min(3, Math.max(1, ids.length));
+      return {
+        nodes: new Map(
+          ids.map((id, i) => [
+            id,
+            {
+              x: 80 + (i % columns) * 300,
+              y: 100 + Math.floor(i / columns) * 150,
+            },
+          ]),
+        ),
+        w: 1000,
+        h: Math.max(400, 200 + Math.ceil(ids.length / columns) * 150),
+      };
+    }
     const groups = new Map<number, string[]>();
+    const isolated: string[] = [];
     graph.nodes.forEach((n) => {
+      const connected = graph.edges.some(
+        (e) => e.source === n.id || e.target === n.id,
+      );
+      if (workflow && !connected) {
+        isolated.push(n.id);
+        return;
+      }
       const level = layers.get(n.id) ?? 0;
       groups.set(level, [...(groups.get(level) ?? []), n.id]);
     });
     const result = new Map<string, { x: number; y: number }>();
     groups.forEach((ids, level) =>
-      ids
+      ids.sort().forEach((id, i) =>
+        result.set(id, {
+          x: 38 + level * 260,
+          y: 70 + i * (workflow ? 128 : 86),
+        }),
+      ),
+    );
+    if (workflow) {
+      const base = Math.max(0, ...groups.keys()) + 1;
+      isolated
         .sort()
         .forEach((id, i) =>
-          result.set(id, { x: 38 + level * 260, y: 70 + i * 86 }),
-        ),
-    );
+          result.set(id, {
+            x: 38 + (base + Math.floor(i / 3)) * 260,
+            y: 70 + (i % 3) * 128,
+          }),
+        );
+    }
     return {
       nodes: result,
       w: Math.max(1000, 80 + (Math.max(0, ...groups.keys()) + 1) * 260),
       h: Math.max(
         440,
-        100 + Math.max(0, ...[...groups.values()].map((a) => a.length)) * 86,
+        100 +
+          Math.max(
+            0,
+            Math.min(3, isolated.length),
+            ...[...groups.values()].map((a) => a.length),
+          ) *
+            (workflow ? 128 : 86),
       ),
     };
-  }, [graph, layers]);
+  }, [graph, layers, original, workflow, viewportWidth]);
   const inspected = graph.nodes.find((n) => n.id === inspect),
     neighbors = inspect
       ? new Set([
@@ -212,16 +284,24 @@ export default function SystemGraph({
           .map((e) => (reverse ? e.source : e.target))
       : [];
   return (
-    <div className={`intel-tab-body ${readOnly ? "live-graph-readonly" : ""}`}>
+    <div
+      className={`intel-tab-body ${readOnly ? "live-graph-readonly" : ""} ${workflow ? "workflow-system-graph" : ""}`}
+    >
       <div className="intel-sandbox-label">
         <GitBranch size={17} />
         <strong>
-          {readOnly ? "BACKEND DEPENDENCY SNAPSHOT" : "REVERSIBLE SCENARIO"}
+          {workflow
+            ? "LIVE RECORD ATLAS"
+            : readOnly
+              ? "BACKEND DEPENDENCY SNAPSHOT"
+              : "REVERSIBLE SCENARIO"}
         </strong>
         <span>
-          {readOnly
-            ? "Topology emitted by the backend. Explore nodes and evidence; source editing is disabled."
-            : "Changes affect this browser session only. Removing a system from the map does not delete its records or prove a compliant state."}
+          {workflow
+            ? "Systems stay on the map. Counters and connections follow measured record state."
+            : readOnly
+              ? "Topology emitted by the backend. Explore nodes and evidence; source editing is disabled."
+              : "Changes affect this browser session only. Removing a system from the map does not delete its records or prove a compliant state."}
         </span>
       </div>
       <ConsoleStats
@@ -278,11 +358,11 @@ export default function SystemGraph({
         <div className="intel-map-scroll">
           <svg
             ref={canvas}
-            viewBox={`0 0 ${positions.w} ${positions.h}`}
+            viewBox={`0 0 ${positions.w} ${workflow ? Math.min(520, positions.h) : positions.h}`}
             className="intel-system-map"
             role="group"
             aria-label="Interactive system dependency map"
-            style={{ height: Math.min(760, positions.h) }}
+            style={{ height: Math.min(workflow ? 520 : 760, positions.h) }}
             onPointerDown={(e) => {
               if ((e.target as Element).closest('[role="button"]')) return;
               drag.current = {
@@ -356,16 +436,36 @@ export default function SystemGraph({
                 const forward = t.x > s.x;
                 const sx = s.x + (forward ? 205 : 0),
                   tx = t.x + (forward ? 0 : 205);
-                const cy = s.y + 31;
+                const cy = s.y + (workflow ? 47 : 31);
                 const path =
                   e.source === e.target
                     ? `M${s.x + 180} ${s.y} C${s.x + 230} ${s.y - 50},${s.x + 80} ${s.y - 55},${s.x + 90} ${s.y}`
-                    : `M${sx} ${cy} C${sx + (forward ? 70 : -80)} ${cy},${tx - (forward ? 70 : -80)} ${t.y + 31},${tx} ${t.y + 31}`;
+                    : `M${sx} ${cy} C${sx + (forward ? 70 : -80)} ${cy},${tx - (forward ? 70 : -80)} ${t.y + (workflow ? 47 : 31)},${tx} ${t.y + (workflow ? 47 : 31)}`;
                 return (
                   <path
                     key={`${edgeKey(e)}:${i}`}
                     d={path}
-                    className={`intel-map-link ${e.restore ? "is-restore" : e.active ? "is-active" : ""} ${e.kind === "inferred" ? "is-inferred" : ""}`}
+                    className={`intel-map-link ${e.restore ? "is-restore" : e.active ? "is-active" : ""} ${e.kind === "inferred" ? "is-inferred" : ""} execution-${e.execution_state ?? "observed"} ${selectedEdge === `${edgeKey(e)}:${e.resource_id ?? e.op}` ? "is-edge-selected" : ""}`}
+                    role={workflow ? "button" : undefined}
+                    tabIndex={workflow ? 0 : undefined}
+                    aria-label={
+                      workflow
+                        ? `Inspect connection ${e.source} to ${e.target}: ${e.execution_state ?? (e.active ? "active" : "observed")}`
+                        : undefined
+                    }
+                    onClick={() => {
+                      setSelectedEdge(`${edgeKey(e)}:${e.resource_id ?? e.op}`);
+                      onSelectEdge?.(e);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedEdge(
+                          `${edgeKey(e)}:${e.resource_id ?? e.op}`,
+                        );
+                        onSelectEdge?.(e);
+                      }
+                    }}
                     opacity={muted ? 0.1 : 1}
                     markerEnd="url(#intel-map-arrow)"
                   >
@@ -387,20 +487,24 @@ export default function SystemGraph({
                     tabIndex={0}
                     aria-label={`Inspect system ${n.label}`}
                     aria-pressed={chosen}
-                    className={`intel-map-node action-${n.action.toLowerCase()} ${chosen ? "is-inspected" : ""} ${selected.includes(n.id) ? "is-selected" : ""}`}
+                    className={`intel-map-node action-${n.action.toLowerCase()} ${chosen ? "is-inspected" : ""} ${selected.includes(n.id) ? "is-selected" : ""} execution-${n.live_state ?? "observed"}`}
                     transform={`translate(${p.x} ${p.y})`}
                     opacity={focus && !neighbors.has(n.id) ? 0.2 : 1}
-                    onClick={() => setInspect(n.id)}
+                    onClick={() => {
+                      setInspect(n.id);
+                      onSelectSystem?.(n.id);
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
                         setInspect(n.id);
+                        onSelectSystem?.(n.id);
                       }
                     }}
                   >
                     <rect
                       width="205"
-                      height="62"
+                      height={workflow ? "94" : "62"}
                       rx="7"
                       fill="url(#intel-node-glass)"
                     />
@@ -420,6 +524,32 @@ export default function SystemGraph({
                       {n.action} · {n.resources} resources
                     </text>
                     <circle cx="187" cy="17" r="3" className="intel-node-led" />
+                    {workflow && (
+                      <>
+                        <line
+                          x1="15"
+                          y1="58"
+                          x2="190"
+                          y2="58"
+                          className="wf-node-divider"
+                        />
+                        <text
+                          x="15"
+                          y="78"
+                          className={`wf-node-state state-${n.live_state ?? "observed"}`}
+                        >
+                          {n.live_state === "running"
+                            ? "ACTION RUNNING"
+                            : `${n.remaining ?? n.resources} / ${n.original_resources ?? n.resources} RECORDS PRESENT`}
+                        </text>
+                        <circle
+                          cx="186"
+                          cy="74"
+                          r="4"
+                          className={`wf-node-state-dot state-${n.live_state ?? "observed"}`}
+                        />
+                      </>
+                    )}
                     <title>
                       {n.label} · {n.category} ·{" "}
                       {n.rules || "No policy association"}
