@@ -15,12 +15,11 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from slam.contracts import (
-    AuditRequest,
-    CaseAnswer,
-    CaseContext,
-    DeletionStatus,
-    EvidenceBundle,
+from slam.contracts import AuditRequest, CaseAnswer, CaseContext, DeletionStatus, EvidenceBundle
+from slam.evaluation.data_quality import (
+    EvidenceQualityReport,
+    analyze_evidence_quality,
+    write_quality_reports,
 )
 from slam.evaluation.scorer import EvaluationMetrics, score_outputs
 from slam.evaluation.validator import validate_output_csv
@@ -41,6 +40,9 @@ class RunSummary:
     link_groups: list[str] = field(default_factory=list)
     seconds: float = 0.0
     output_path: Path | None = None
+    evidence_quality: EvidenceQualityReport | None = None
+    diagnostic_json_path: Path | None = None
+    diagnostic_markdown_path: Path | None = None
 
     @property
     def ok(self) -> bool:
@@ -93,6 +95,7 @@ def audit_cases(
     *,
     provider: ModelProvider | None = None,
     link_model: linking.LinkModel | None = None,
+    contexts: list[CaseContext] | None = None,
 ) -> tuple[list[AuditedCase], dict[str, str]]:
     """Reconstruct, plan and validate every request; a failing case is recorded, never guessed."""
 
@@ -101,6 +104,8 @@ def audit_cases(
     for request in requests:
         try:
             context = reconstruct_with_links(request, bundle, link_model, provider=provider)
+            if contexts is not None:
+                contexts.append(context)
             answer = plan_case(context, bundle)
             if answer.deletion_status is not None:
                 answer = validate_answer(
@@ -118,8 +123,11 @@ def answer_cases(
     *,
     provider: ModelProvider | None = None,
     link_model: linking.LinkModel | None = None,
+    contexts: list[CaseContext] | None = None,
 ) -> tuple[list[CaseAnswer], dict[str, str]]:
-    audited, failures = audit_cases(requests, bundle, provider=provider, link_model=link_model)
+    audited, failures = audit_cases(
+        requests, bundle, provider=provider, link_model=link_model, contexts=contexts
+    )
     return [item.answer for item in audited], failures
 
 
@@ -138,13 +146,26 @@ def run(
     # Timing signatures are learned from every known request (the cohort), not only this run's.
     everyone = tuple({r.case_id: r for r in (*requests, *cohort)}.values())
     model = linking.fit(bundle, everyone)
-    answers, failures = answer_cases(requests, bundle, provider=provider, link_model=model)
+    contexts: list[CaseContext] = []
+    answers, failures = answer_cases(
+        requests, bundle, provider=provider, link_model=model, contexts=contexts
+    )
     summary = RunSummary(cases=len(requests), failures=failures)
     summary.link_groups = [
         f"{g.key[0]}@{g.key[1]} window {g.window[0]:.0f}..{g.window[1]:.0f} min, "
         f"{g.pairs} pairs, {g.resolved:.0%} resolved"
         for g in model.groups
     ]
+    summary.evidence_quality = analyze_evidence_quality(
+        bundle,
+        expected_source_ids=tuple(source.source_id for source in bundle.sources),
+        contexts=tuple(contexts),
+    )
+    summary.diagnostic_json_path = output_path.parent / "evaluation" / "data_quality_report.json"
+    summary.diagnostic_markdown_path = output_path.parent / "evaluation" / "data_quality_report.md"
+    write_quality_reports(
+        summary.evidence_quality, summary.diagnostic_json_path, summary.diagnostic_markdown_path
+    )
     for answer in answers:
         if answer.deletion_status is None:
             summary.failures[answer.case_id] = "; ".join(answer.blocking_issues)

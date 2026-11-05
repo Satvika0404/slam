@@ -1,0 +1,71 @@
+{
+  "accounted_sources": 1,
+  "conflicting_observation_groups": 1,
+  "duplicate_content_groups": 0,
+  "expected_sources": 1,
+  "failed_sources": 0,
+  "findings": [
+    {
+      "affected_resources": [
+        "resource:accounts:synthetic-user"
+      ],
+      "code": "INCOMPATIBLE_OBSERVATIONS",
+      "detection_rule_version": "1.0.0",
+      "explanation": "Different states share system/resource/category/scope at 2026-01-01T00:00:00+00:00.",
+      "observation_references": [
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222222222222222222222222222"
+      ],
+      "severity": "error",
+      "source_references": [
+        "synthetic-a"
+      ],
+      "stable_id": "cb126be795491a2a3b93e389"
+    }
+  ],
+  "identity_collision_groups": 0,
+  "impact": {
+    "assumptions": [
+      "Reachability follows explicit active edges only.",
+      "A finding is diagnostic evidence, not a policy or deletion decision.",
+      "Identity validity uses change timestamps and current snapshot update times."
+    ],
+    "directly_affected_cases": [],
+    "directly_affected_resources": [
+      "resource:accounts:synthetic-user"
+    ],
+    "evidence_coverage_gaps": [],
+    "potentially_reachable_resources": [],
+    "potentially_reachable_systems": [],
+    "unknowns": [
+      "Case attribution requires supplied CaseContext objects.",
+      "Unobserved systems and missing graph edges cannot be inferred."
+    ]
+  },
+  "ingestion_issue_counts": {},
+  "issues": [
+    {
+      "affected_resources": [],
+      "code": "CONFLICTING_RESOURCE_OBSERVATIONS",
+      "detection_rule_version": "1.0.0",
+      "message": "Same system/resource/category/time has multiple observed states: ABSENT, PRESENT",
+      "observation_ids": [
+        "1111111111111111111111111111111111111111111111111111111111111111",
+        "2222222222222222222222222222222222222222222222222222222222222222"
+      ],
+      "severity": "error",
+      "source_ids": [
+        "synthetic-a"
+      ],
+      "stable_id": "",
+      "subject_ids": []
+    }
+  ],
+  "observation_provenance_fraction": 1.0,
+  "observations": 2,
+  "observations_with_source_links": 2,
+  "parse_success_fraction": 1.0,
+  "parsed_sources": 1,
+  "partial_sources": 0,
+  "source_accounting_fraction": 1.0
+}
