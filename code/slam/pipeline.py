@@ -122,7 +122,9 @@ def run(
     everyone = tuple({r.case_id: r for r in (*requests, *cohort)}.values())
     model = linking.fit(bundle, everyone)
     contexts: list[CaseContext] = []
-    answers, failures = answer_cases(requests, bundle, provider=provider, link_model=model, contexts=contexts)
+    answers, failures = answer_cases(
+        requests, bundle, provider=provider, link_model=model, contexts=contexts
+    )
     summary = RunSummary(cases=len(requests), failures=failures)
     summary.link_groups = [
         f"{g.key[0]}@{g.key[1]} window {g.window[0]:.0f}..{g.window[1]:.0f} min, "

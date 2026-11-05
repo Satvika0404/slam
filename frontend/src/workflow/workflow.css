@@ -2818,3 +2818,325 @@ body[data-workspace="workflow"] {
     font-size: 9px;
   }
 }
+
+.wf-request-prompt {
+  margin: 20px 0;
+  max-width: 410px;
+}
+.wf-request-prompt label {
+  display: block;
+  font-size: 11px;
+  color: #718392;
+  margin-bottom: 8px;
+}
+.wf-request-prompt textarea,
+.wf-intelligence textarea {
+  width: 100%;
+  min-height: 90px;
+  border: 1px solid #dce4ea;
+  border-radius: 7px;
+  padding: 12px;
+  background: #fff;
+  color: #19324a;
+  font:
+    12px Inter,
+    sans-serif;
+  resize: vertical;
+}
+.wf-mapping {
+  margin: 20px 0;
+  border-bottom: 1px solid #dce4ea;
+  padding: 15px 0;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.wf-mapping h3 {
+  width: 100%;
+  font-size: 17px;
+}
+.wf-mapping small {
+  font-size: 11px;
+  color: #718392;
+}
+.wf-mapping label {
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wf-mapping select,
+.wf-intelligence select {
+  border: 1px solid #dce4ea;
+  background: white;
+  padding: 8px;
+  border-radius: 4px;
+  max-width: 100%;
+}
+.wf-intelligence {
+  border: 1px solid #dce4ea;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  background: #ffffffb8;
+}
+.wf-intelligence nav {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.wf-intelligence nav button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px;
+  font-size: 10px;
+  text-transform: capitalize;
+  color: #718392;
+  border-bottom: 2px solid transparent;
+}
+.wf-intelligence nav button.active {
+  color: #0f766e;
+  border-color: #0f766e;
+}
+.wf-intelligence h3 {
+  font-size: 18px;
+}
+.wf-intelligence p {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #718392;
+  margin: 12px 0;
+}
+.wf-intelligence code {
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+.wf-intelligence select {
+  font-size: 11px;
+  margin: 10px 0;
+  width: 100%;
+}
+.wf-pattern-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 18px;
+}
+.wf-pattern-grid article {
+  border: 1px solid #dce4ea;
+  border-radius: 6px;
+  padding: 13px;
+  min-width: 0;
+}
+.wf-pattern-grid span {
+  font-size: 8px;
+  color: #718392;
+}
+.wf-pattern-grid strong {
+  display: block;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.wf-pattern-grid small,
+.wf-pattern-grid b {
+  font-size: 8px;
+  color: #718392;
+  display: block;
+  margin-top: 8px;
+  font-weight: 400;
+}
+.wf-pattern-window {
+  height: 5px;
+  background: #e2edeb;
+  margin-top: 12px;
+}
+.wf-pattern-window i {
+  height: 100%;
+  display: block;
+  background: #0f766e;
+}
+.wf-healing-arm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 25px 0;
+  font-size: 10px;
+  color: #718392;
+}
+.wf-healing-arm > i {
+  flex: 1;
+  height: 1px;
+  background: #cbdadd;
+}
+.wf-healed-component {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #dce4ea;
+  border-radius: 7px;
+  padding: 14px;
+  background: #fff;
+}
+.wf-healing-arm.recovered .wf-healed-component {
+  border-color: #0f766e;
+  background: #e4f4ec;
+  color: #0f766e;
+  animation: wf-record-change 1s ease;
+}
+.wf-healing-arm.unresolved .wf-healed-component {
+  border-color: #d97706;
+  background: #fff5e9;
+  color: #ad6b16;
+}
+.wf-recovery-result pre {
+  white-space: pre-wrap;
+  background: #edf4f2;
+  padding: 15px;
+  font-size: 10px;
+}
+.wf-recovery-result small {
+  font-size: 9px;
+  color: #718392;
+}
+.wf-sync-branches {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+.wf-sync-branches article {
+  border: 1px solid #cbded6;
+  border-radius: 7px;
+  padding: 18px;
+  background: #edf7f2;
+}
+.wf-sync-branches .recreated {
+  background: #fff3ec;
+  border-color: #e8ccb9;
+}
+.wf-sync-branches span {
+  font-size: 8px;
+  letter-spacing: 0.1em;
+}
+.wf-sync-branches strong {
+  display: block;
+  font-size: 40px;
+  margin-top: 12px;
+  color: #0f766e;
+}
+.wf-sync-branches .recreated strong {
+  color: #b06643;
+}
+.wf-sync-branches strong small {
+  font-size: 20px;
+}
+.wf-sync-branches article > small {
+  font-size: 8px;
+  color: #718392;
+}
+.wf-graph-history {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 14px;
+  font-size: 10px;
+  color: #718392;
+}
+.wf-evidence-chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid #cbded6;
+  background: linear-gradient(120deg, #f0f7f5, #fff);
+  border-radius: 8px;
+  padding: 18px;
+  margin: 12px 0 20px;
+}
+.wf-evidence-chain > div {
+  flex: 1;
+  min-width: 150px;
+}
+.wf-evidence-chain span {
+  display: block;
+  color: var(--quiet);
+  font-size: 10px;
+  margin: 5px 0;
+}
+.wf-evidence-chain strong {
+  display: block;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.wf-evidence-chain button {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  color: var(--teal);
+  font-size: 11px;
+  padding: 5px 0;
+}
+.wf-evidence-chain > small {
+  flex-basis: 100%;
+  color: var(--quiet);
+  font-size: 10px;
+}
+.workflow-system-graph .intel-map-node.execution-deleted {
+  animation: wf-row-delete 0.8s ease forwards;
+  pointer-events: none;
+}
+.workflow-system-graph .intel-map-link.execution-deleted {
+  animation: wf-link-delete 0.8s ease forwards;
+  pointer-events: none;
+}
+.workflow-system-graph .intel-map-node.execution-ended {
+  opacity: 0.4;
+}
+@keyframes wf-row-delete {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  40% {
+    opacity: 0.6;
+    filter: blur(1px);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(4px);
+  }
+}
+@keyframes wf-link-delete {
+  0% {
+    opacity: 1;
+    stroke-dasharray: 300 0;
+  }
+  100% {
+    opacity: 0;
+    stroke-dasharray: 0 300;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workflow-system-graph .intel-map-node.execution-deleted,
+  .workflow-system-graph .intel-map-link.execution-deleted {
+    opacity: 0;
+  }
+}
+@media (max-width: 620px) {
+  .wf-pattern-grid {
+    grid-template-columns: 1fr;
+  }
+  .wf-intelligence {
+    padding: 14px;
+  }
+  .wf-intelligence nav {
+    gap: 3px;
+  }
+  .wf-intelligence nav button {
+    font-size: 9px;
+    padding: 7px;
+  }
+}

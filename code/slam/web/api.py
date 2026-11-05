@@ -26,10 +26,12 @@ Mode = Literal["demo", "dataset"]
 app = FastAPI(title="AFTERTRACE", version="0.1.0")
 
 # The default product is one dataset -> one audit run -> isolated execution -> report.
-from . import remediation, workflow  # noqa: E402
+from . import connect, experiments, remediation, workflow  # noqa: E402
 
 app.include_router(workflow.make_router(ROOT))
 app.include_router(remediation.router)
+app.include_router(connect.router)
+app.include_router(experiments.router)
 
 
 @app.get("/api/runtime")

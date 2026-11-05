@@ -1,3 +1,5 @@
+import Connect from "./Connect";
+import Intelligence, { type IntelligenceData } from "./Intelligence";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
@@ -89,6 +91,8 @@ export default function Workflow() {
   const [input, setInput] = useState<DatasetInput | null>(null);
   const [loadingInput, setLoadingInput] = useState(true);
   const [stage, setStage] = useState(0);
+  const [prompt, setPrompt] = useState("");
+  const [graphHistory, setGraphHistory] = useState(false);
   const [run, setRun] = useState<RunInfo | null>(null);
   const [caseId, setCaseId] = useState("");
   const [view, setView] = useState<AuditCase | null>(null);
@@ -107,6 +111,7 @@ export default function Workflow() {
     sandbox: string | null;
   } | null>(null);
   const [system, setSystem] = useState<string | null>(null);
+  const [selectedRecord, setSelectedRecord] = useState<string | null>(null);
   const [edge, setEdge] = useState<SystemEdge | null>(null);
   const [query, setQuery] = useState("");
   const [replay, setReplay] = useState<number | null>(null);
@@ -188,6 +193,7 @@ export default function Workflow() {
     setView(null);
     setSandbox(null);
     setSystem(null);
+    setSelectedRecord(null);
     setEdge(null);
     setEvidence(null);
     setReplay(null);
@@ -304,7 +310,7 @@ export default function Workflow() {
     try {
       await consumeExecution(
         await fetch("/api/workflow/runs", {
-          ...json({ input_id: input.id }),
+          ...json({ input_id: input.id, request_text: prompt.trim() || null }),
           signal: c.signal,
         }),
         (event) => {
@@ -472,8 +478,62 @@ export default function Workflow() {
         event_at: receipt?.at,
       };
     });
+    const systems = [...data.graph.nodes];
+    for (const record of records) {
+      const parent = systems.find((n) => n.id === record.system_id);
+      if (!parent) continue;
+      const id = `row:${record.system_id}:${record.resource_id}`;
+      const running = sandbox?.actions.some(
+        (a) =>
+          a.resource_id === record.resource_id &&
+          a.system_id === record.system_id &&
+          a.status === "running",
+      );
+      const removed = !record.present && !!record.receipt;
+      data.graph.nodes.push({
+        ...parent,
+        tier: "row",
+        id,
+        label: record.resource_id,
+        category: record.category,
+        resources: 1,
+        original_resources: 1,
+        remaining: record.present ? 1 : 0,
+        live_state: removed
+          ? graphHistory
+            ? "ended"
+            : "deleted"
+          : running
+            ? "running"
+            : record.receipt
+              ? "verified"
+              : "observed",
+      });
+      data.graph.edges.push({
+        source: record.system_id,
+        target: id,
+        kind: "contains record",
+        op: "contains",
+        events: 0,
+        fail_rate: null,
+        active: false,
+        restore: false,
+        resource_id: record.resource_id,
+        execution_state: removed
+          ? graphHistory
+            ? "ended"
+            : "deleted"
+          : "observed",
+        evidence_ids: view.context.resource_states.find(
+          (r) =>
+            r.resource_id === record.resource_id &&
+            r.system_id === record.system_id,
+        )?.supporting_evidence_ids,
+        proof_id: record.receipt?.id,
+      });
+    }
     return data;
-  }, [view, records, sandbox, replay]);
+  }, [view, records, sandbox, replay, graphHistory]);
   const filteredCases = summaries.filter((c) =>
     c.case_id.toLowerCase().includes(query.toLowerCase()),
   );
@@ -481,6 +541,9 @@ export default function Workflow() {
     (r) =>
       (!system || r.system_id === system) &&
       (history || r.present || !r.receipt),
+  );
+  const selectedEvidence = view?.context.resource_states.find(
+    (r) => `row:${r.system_id}:${r.resource_id}` === selectedRecord,
   );
   const actions =
     sandbox?.actions ??
@@ -628,6 +691,23 @@ export default function Workflow() {
                   }}
                 />
               </div>
+              <div className="wf-request-prompt">
+                <label htmlFor="deletion-prompt">Deletion request</label>
+                <textarea
+                  id="deletion-prompt"
+                  placeholder="Delete personal data for person@example.com, or leave blank to audit the supplied requests"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                />
+              </div>
+              <Connect
+                onInput={(value) => {
+                  inputVersion.current += 1;
+                  reset();
+                  setInput(value);
+                  setLoadingInput(false);
+                }}
+              />
               <span className="wf-input-note">
                 <LockKeyhole size={13} />
                 Source evidence stays read-only. Execution uses an isolated
@@ -1000,11 +1080,16 @@ export default function Workflow() {
                         workflow
                         onInspect={inspect}
                         onSelectSystem={(id) => {
-                          setSystem(id);
+                          const row = records.find(
+                            (r) => `row:${r.system_id}:${r.resource_id}` === id,
+                          );
+                          setSystem(row?.system_id ?? id);
+                          setSelectedRecord(row ? id : null);
                           setEdge(null);
                         }}
                         onSelectEdge={(e) => {
                           setEdge(e);
+                          setSelectedRecord(null);
                           setSystem(e.source);
                         }}
                       />
@@ -1031,6 +1116,21 @@ export default function Workflow() {
                       </button>
                     </div>
                   )}
+                  <label className="wf-graph-history">
+                    <input
+                      type="checkbox"
+                      checked={graphHistory}
+                      onChange={(e) => setGraphHistory(e.target.checked)}
+                    />
+                    Show deleted nodes in graph history
+                  </label>
+                  <Intelligence
+                    key={`${run?.id}:${caseId}`}
+                    data={run?.intelligence as IntelligenceData | undefined}
+                    sandbox={sandbox}
+                    requestEmail={view.request.email}
+                    resourceId={view.context.resource_states[0]?.resource_id}
+                  />
                   <div className="wf-graph-key">
                     <span>
                       <i className="key-observed" />
@@ -1128,6 +1228,7 @@ export default function Workflow() {
                       <button
                         onClick={() => {
                           setSystem(null);
+                          setSelectedRecord(null);
                           setEdge(null);
                         }}
                       >
@@ -1136,6 +1237,53 @@ export default function Workflow() {
                     )}
                     <span>{visibleRecords.length} records</span>
                   </div>
+                  {selectedEvidence && view && (
+                    <section
+                      className="wf-evidence-chain"
+                      aria-label="Record evidence chain"
+                    >
+                      <div>
+                        <Fingerprint size={16} />
+                        <span>Resolved subject</span>
+                        <strong>
+                          {view.context.subject_id ?? "Unresolved"}
+                        </strong>
+                      </div>
+                      <ChevronRight size={16} />
+                      <div>
+                        <Database size={16} />
+                        <span>Observed resource</span>
+                        <strong>
+                          {selectedEvidence.system_id}/
+                          {selectedEvidence.resource_id}
+                        </strong>
+                      </div>
+                      <ChevronRight size={16} />
+                      <div>
+                        <FileText size={16} />
+                        <span>Source at audit cutoff</span>
+                        <strong>
+                          {selectedEvidence.state} ·{" "}
+                          {clock(selectedEvidence.at)} UTC
+                        </strong>
+                        {selectedEvidence.supporting_evidence_ids.map((id) => (
+                          <button key={id} onClick={() => inspect(id)}>
+                            {id}
+                            <ArrowUpRight size={12} />
+                          </button>
+                        ))}
+                        {selectedEvidence.conflicting_evidence_ids.map((id) => (
+                          <button key={id} onClick={() => inspect(id)}>
+                            Conflicting: {id}
+                          </button>
+                        ))}
+                      </div>
+                      <small>
+                        Original evidence chain. Execution changes have separate
+                        read-back receipts below.
+                      </small>
+                    </section>
+                  )}
                   {edge && (
                     <div className="wf-edge-detail">
                       <span>

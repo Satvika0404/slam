@@ -104,6 +104,39 @@ export default function SystemGraph({
     preview = removeScenario(original, graph, selected, cascade);
   const layers = useMemo(() => graphLayers(graph), [graph]);
   const positions = useMemo(() => {
+    if (workflow && original.nodes.some((n) => n.tier === "row")) {
+      const stores = original.nodes
+        .filter((n) => n.tier !== "row")
+        .sort((a, b) => a.id.localeCompare(b.id));
+      const nodes = new Map<string, { x: number; y: number }>();
+      const columns = viewportWidth < 540 ? 1 : 2;
+      let y = 35;
+      for (let start = 0; start < stores.length; start += columns) {
+        let height = 145;
+        for (let col = 0; col < columns; col++) {
+          const store = stores[start + col];
+          if (!store) continue;
+          const children = original.edges
+            .filter(
+              (e) => e.source === store.id && e.kind === "contains record",
+            )
+            .map((e) => e.target)
+            .sort();
+          const ownHeight = Math.max(145, children.length * 112 + 25);
+          height = Math.max(height, ownHeight);
+          nodes.set(store.id, {
+            x: 25 + col * 490,
+            y: y + (ownHeight - 120) / 2,
+          });
+          children.forEach((id, i) =>
+            nodes.set(id, { x: 255 + col * 490, y: y + i * 112 }),
+          );
+        }
+        y += height;
+      }
+      return { nodes, w: columns * 490 + 10, h: y + 25 };
+    }
+
     if (workflow && viewportWidth < 540) {
       const ids = original.nodes.map((n) => n.id).sort();
       return {
@@ -356,7 +389,7 @@ export default function SystemGraph({
         <div className="intel-map-scroll">
           <svg
             ref={canvas}
-            viewBox={`0 0 ${positions.w} ${workflow ? Math.min(520, positions.h) : positions.h}`}
+            viewBox={`0 0 ${positions.w} ${positions.h}`}
             className="intel-system-map"
             role="group"
             aria-label="Interactive system dependency map"
@@ -445,7 +478,14 @@ export default function SystemGraph({
                     d={path}
                     className={`intel-map-link ${e.restore ? "is-restore" : e.active ? "is-active" : ""} ${e.kind === "inferred" ? "is-inferred" : ""} execution-${e.execution_state ?? "observed"} ${selectedEdge === `${edgeKey(e)}:${e.resource_id ?? e.op}` ? "is-edge-selected" : ""}`}
                     role={workflow ? "button" : undefined}
-                    tabIndex={workflow ? 0 : undefined}
+                    tabIndex={
+                      workflow
+                        ? e.execution_state === "deleted"
+                          ? -1
+                          : 0
+                        : undefined
+                    }
+                    aria-hidden={e.execution_state === "deleted"}
                     aria-label={
                       workflow
                         ? `Inspect connection ${e.source} to ${e.target}: ${e.execution_state ?? (e.active ? "active" : "observed")}`
@@ -481,9 +521,12 @@ export default function SystemGraph({
                 return (
                   <g
                     key={n.id}
+                    data-node-id={n.id}
+                    data-node-kind={n.tier === "row" ? "record" : "system"}
                     role="button"
-                    tabIndex={0}
-                    aria-label={`Inspect system ${n.label}`}
+                    tabIndex={n.live_state === "deleted" ? -1 : 0}
+                    aria-hidden={n.live_state === "deleted"}
+                    aria-label={`Inspect ${n.tier === "row" ? "record" : "system"} ${n.label}`}
                     aria-pressed={chosen}
                     className={`intel-map-node action-${n.action.toLowerCase()} ${chosen ? "is-inspected" : ""} ${selected.includes(n.id) ? "is-selected" : ""} execution-${n.live_state ?? "observed"}`}
                     transform={`translate(${p.x} ${p.y})`}

@@ -8,6 +8,7 @@ import hashlib
 import io
 import json
 import queue
+import re
 import stat
 import threading
 import uuid
@@ -72,6 +73,7 @@ class Run:
     answers: dict[str, CaseAnswer] = field(default_factory=dict)
     errors: dict[str, str] = field(default_factory=dict)
     csv: str | None = None
+    intelligence: dict[str, Any] = field(default_factory=dict)
 
     def case(self, case_id: str) -> dict[str, Any]:
         if self.bundle is None or case_id not in self.answers:
@@ -212,6 +214,7 @@ def event_stream(work: Callable[[Callable[..., None], threading.Event], None]) -
 class AuditBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     input_id: str
+    request_text: str | None = None
 
 
 def executable(context: CaseContext, answer: CaseAnswer) -> bool:
@@ -228,7 +231,7 @@ def executable(context: CaseContext, answer: CaseAnswer) -> bool:
     )
 
 
-def start_audit(item: Input) -> StreamingResponse:
+def start_audit(item: Input, request_text: str | None = None) -> StreamingResponse:
     # Pin bytes before execution. Uploaded and configured inputs remain read-only.
     fresh = register_input(item.root, item.name)
     INPUTS.pop(fresh.id, None)
@@ -253,6 +256,26 @@ def start_audit(item: Input) -> StreamingResponse:
                 bundle = ingest(item.root, provider=None)
             run.bundle = bundle
             requests = load_requests(item.root)
+            if request_text:
+                emails = set(
+                    re.findall(
+                        r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}", request_text.lower()
+                    )
+                )
+                if len(emails) != 1:
+                    raise ValueError("Supply exactly one email in the deletion request")
+                now = datetime.now(UTC)
+                requests = (
+                    AuditRequest(
+                        case_id="request_" + run.id[:8],
+                        email=next(iter(emails)),
+                        requested_at=now,
+                        reported_at=now,
+                        audit_at=now,
+                        reported_status="NOT_STARTED",
+                        request_text=request_text,
+                    ),
+                )
             run.requests = {r.case_id: r for r in requests}
             send(
                 "stage.completed",
@@ -262,6 +285,16 @@ def start_audit(item: Input) -> StreamingResponse:
             )
             send("stage.started", stage="linking")
             model = linking.fit(bundle, requests)
+            from dataclasses import asdict
+
+            from slam.evaluation.data_quality import analyze_evidence_quality
+
+            run.intelligence = {
+                "model": "Validated timing-window attribution",
+                "learning": "Refitted from known-owner pairs in this run",
+                "groups": [asdict(g) for g in model.groups],
+                "quality": analyze_evidence_quality(bundle).to_dict(),
+            }
             send("stage.completed", stage="linking", learned_groups=len(model.groups))
             for index, request in enumerate(requests):
                 if stopped.is_set():
@@ -310,6 +343,9 @@ def start_audit(item: Input) -> StreamingResponse:
                 output = directory / "original-audit.csv"
                 export_output_csv(tuple(run.answers.values()), tuple(run.requests), output)
                 run.csv = output.read_text(encoding="utf-8")
+            run.intelligence["quality"] = analyze_evidence_quality(
+                bundle, contexts=tuple(run.contexts.values())
+            ).to_dict()
             run.status = "completed"
             send(
                 "run.completed",
@@ -424,7 +460,24 @@ def make_router(default_root: Path) -> APIRouter:
         item = INPUTS.get(body.input_id)
         if item is None:
             raise HTTPException(404, "Load a dataset first")
-        return start_audit(item)
+        if item.name == "Connected SQLite snapshot" and not body.request_text:
+            raise HTTPException(
+                422, "Enter the request and one subject email before auditing this snapshot"
+            )
+        if (
+            body.request_text
+            and len(
+                set(
+                    re.findall(
+                        r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}",
+                        body.request_text.lower(),
+                    )
+                )
+            )
+            != 1
+        ):
+            raise HTTPException(422, "Include exactly one subject email in the request")
+        return start_audit(item, body.request_text)
 
     @router.get("/runs/{run_id}")
     def run_info(run_id: str) -> dict[str, Any]:
@@ -447,6 +500,7 @@ def make_router(default_root: Path) -> APIRouter:
                 for key, answer in run.answers.items()
             ],
             "errors": run.errors,
+            "intelligence": run.intelligence,
             "csv_available": run.csv is not None,
             "working_copies": {
                 copy.case_id: copy.id for copy in SANDBOXES.values() if copy.run.id == run.id
