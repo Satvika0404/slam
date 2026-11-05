@@ -64,6 +64,21 @@ def sync(body: SyncBody) -> dict[str, Any]:
                 source.backup(db)
                 db.execute("CREATE TABLE sync_control(enabled INTEGER)")
                 db.execute("INSERT INTO sync_control VALUES(?)", (int(enabled),))
+                db.execute(
+                    "INSERT OR REPLACE INTO records VALUES(?,?,?,?)",
+                    (body.system_id, body.resource_id, state.state, json.dumps(payload)),
+                )
+                original_rows = db.execute(
+                    "SELECT count(*) FROM records WHERE system_id=? AND resource_id=?",
+                    (body.system_id, body.resource_id),
+                ).fetchone()[0]
+                # The control is set BEFORE both branches perform the same real deletion.
+                db.execute(
+                    "DELETE FROM records WHERE system_id=? AND resource_id=?",
+                    (body.system_id, body.resource_id),
+                )
+                db.commit()
+            with sqlite3.connect(path) as db:
                 before = db.execute(
                     "SELECT count(*) FROM records WHERE system_id=? AND resource_id=?",
                     (body.system_id, body.resource_id),
@@ -83,6 +98,8 @@ def sync(body: SyncBody) -> dict[str, Any]:
             branches.append(
                 {
                     "sync_enabled": enabled,
+                    "original_rows": original_rows,
+                    "control_set_before_delete": True,
                     "before_rows": before,
                     "after_rows": after,
                     "recreated": before == 0 and after > 0,

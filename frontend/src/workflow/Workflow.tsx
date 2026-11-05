@@ -39,6 +39,7 @@ import type { ExecutionEvent } from "../live";
 import type { AuditCase } from "../types";
 import type {
   CaseSummary,
+  Action,
   DatasetInput,
   RunInfo,
   Sandbox,
@@ -121,6 +122,7 @@ export default function Workflow() {
   const controller = useRef<AbortController | null>(null);
   const upload = useRef<HTMLInputElement>(null);
   const main = useRef<HTMLElement>(null);
+  const identityDetail = useRef<HTMLDetailsElement>(null);
   const copies = useRef(new Map<string, string>());
   const inputVersion = useRef(0);
 
@@ -430,6 +432,9 @@ export default function Workflow() {
     if (!view) return [];
     if (sandbox && replay === null) return sandbox.records;
     return view.context.resource_states.map((r) => {
+      const preview = view.record_previews?.find(
+        (p) => p.system_id === r.system_id && p.resource_id === r.resource_id,
+      );
       const receipt =
         replay !== null
           ? sandbox?.receipts
@@ -448,6 +453,10 @@ export default function Workflow() {
         state,
         present: !absent(state),
         receipt: receipt ?? null,
+        fields:
+          receipt && receipt.operation !== "DELETE_RECORD"
+            ? preview?.proposed_fields
+            : preview?.fields,
       };
     });
   }, [view, sandbox, replay]);
@@ -465,11 +474,17 @@ export default function Workflow() {
         ...node,
         remaining: own.filter((r) => r.present).length,
         original_resources: own.length,
-        live_state: running
-          ? "running"
-          : own.some((r) => r.receipt)
-            ? "verified"
-            : "observed",
+        live_state:
+          replay === null &&
+          sandbox?.actions.some(
+            (a) => a.system_id === node.id && a.status === "failed",
+          )
+            ? "failed"
+            : running
+              ? "running"
+              : own.some((r) => r.receipt)
+                ? "verified"
+                : "observed",
       };
     });
     data.graph.edges = data.graph.edges.map((e) => {
@@ -510,11 +525,19 @@ export default function Workflow() {
           ? graphHistory
             ? "ended"
             : "deleted"
-          : running
-            ? "running"
-            : record.receipt
-              ? "verified"
-              : "observed",
+          : replay === null &&
+              sandbox?.actions.some(
+                (a) =>
+                  a.system_id === record.system_id &&
+                  a.resource_id === record.resource_id &&
+                  a.status === "failed",
+              )
+            ? "failed"
+            : running
+              ? "running"
+              : record.receipt
+                ? "verified"
+                : "observed",
       });
       data.graph.edges.push({
         source: record.system_id,
@@ -553,7 +576,7 @@ export default function Workflow() {
   const selectedEvidence = view?.context.resource_states.find(
     (r) => `row:${r.system_id}:${r.resource_id}` === selectedRecord,
   );
-  const actions =
+  const actions: Action[] =
     sandbox?.actions ??
     view?.answer.steps
       .filter((s) => s.phase === "REMEDIATION")
@@ -840,6 +863,29 @@ export default function Workflow() {
               />
             </div>
             <div className="wf-audit-body">
+              {journal
+                .filter((e) => e.event === "recovery.completed")
+                .map((e, i) => (
+                  <div
+                    className={`wf-inline-recovery ${e.payload.status}`}
+                    role="status"
+                    key={i}
+                  >
+                    <Activity size={18} />
+                    <div>
+                      <strong>
+                        {String(e.payload.component)} ·{" "}
+                        {e.payload.status === "recovered"
+                          ? "Recovered this run"
+                          : "Recovery blocked"}
+                      </strong>
+                      <p>
+                        {String(e.payload.adapter_version)} · validated input
+                        copy; original preserved
+                      </p>
+                    </div>
+                  </div>
+                ))}
               <div className="wf-phase-list">
                 {executionStages.map((p, i) => {
                   const latest = journal
@@ -948,7 +994,9 @@ export default function Workflow() {
 
         {(stage === 2 || stage === 3) && (
           <>
-            <div className="wf-context-bar">
+            <div
+              className={`wf-context-bar ${stage === 2 ? "wf-console-context" : ""}`}
+            >
               <div>
                 <span className="wf-eyebrow">
                   {stage === 2
@@ -991,7 +1039,9 @@ export default function Workflow() {
                 )}
               </div>
             </div>
-            <div className="wf-workspace-grid">
+            <div
+              className={`wf-workspace-grid ${stage === 2 ? "wf-console-workspace" : ""}`}
+            >
               <aside className="wf-request-index">
                 <header>
                   <span className="wf-eyebrow">REQUESTS</span>
@@ -1137,6 +1187,8 @@ export default function Workflow() {
                     data={run?.intelligence as IntelligenceData | undefined}
                     sandbox={sandbox}
                     requestEmail={view.request.email}
+                    caseId={view.case_id}
+                    onEvidence={inspect}
                     resourceId={view.context.resource_states[0]?.resource_id}
                   />
                   <div className="wf-graph-key">
@@ -1256,6 +1308,20 @@ export default function Workflow() {
                         <strong>
                           {view.context.subject_id ?? "Unresolved"}
                         </strong>
+                        <button
+                          onClick={() => {
+                            setDetail("identity");
+                            if (identityDetail.current) {
+                              identityDetail.current.open = true;
+                              identityDetail.current.scrollIntoView({
+                                block: "center",
+                              });
+                            }
+                          }}
+                        >
+                          Explore current and historical identity
+                          <ArrowUpRight size={12} />
+                        </button>
                       </div>
                       <ChevronRight size={16} />
                       <div>
@@ -1330,6 +1396,11 @@ export default function Workflow() {
                       <RecordTile
                         key={`${record.system_id}:${record.resource_id}`}
                         record={record}
+                        preview={view.record_previews?.find(
+                          (p) =>
+                            p.system_id === record.system_id &&
+                            p.resource_id === record.resource_id,
+                        )}
                         inspect={inspect}
                       />
                     ))}
@@ -1343,7 +1414,7 @@ export default function Workflow() {
                       </div>
                     )}
                   </div>
-                  <details className="wf-inspect-audit">
+                  <details className="wf-inspect-audit" ref={identityDetail}>
                     <summary>
                       Inspect identity, original evidence and policy{" "}
                       <ChevronDown size={15} />
@@ -1560,6 +1631,9 @@ export default function Workflow() {
                                   ? "Failed; dependent actions stopped"
                                   : "Waiting for execution"}
                           </small>
+                          {a.error && (
+                            <small className="wf-action-error">{a.error}</small>
+                          )}
                           {a.proof_id && (
                             <button onClick={() => inspect(a.proof_id!)}>
                               Inspect proof <ArrowUpRight size={11} />
@@ -1667,9 +1741,11 @@ export default function Workflow() {
 function RecordTile({
   record,
   inspect,
+  preview,
 }: {
   record: WorkingRecord;
   inspect: (id: string) => void;
+  preview?: NonNullable<AuditCase["record_previews"]>[number];
 }) {
   const removed = !record.present && !!record.receipt;
   return (
@@ -1703,6 +1779,67 @@ function RecordTile({
           <span>Observed in {human(record.system_id)}</span>
         )}
       </p>
+      {!!(record.fields && Object.keys(record.fields).length) && (
+        <details className="wf-fields">
+          <summary>
+            {preview?.operation === "REDACT_RECORD" ||
+            preview?.operation === "ANONYMIZE_RECORD"
+              ? "Inspect field treatment"
+              : "Inspect record fields"}
+          </summary>
+          <span>
+            {record.receipt
+              ? "Committed read-back"
+              : "Before execution · proposed changes"}
+          </span>
+          {Object.entries(record.fields)
+            .slice(0, 40)
+            .map(([path, value]) => {
+              const change = record.receipt?.field_changes?.find(
+                (c) => c.path === path,
+              );
+              const proposed =
+                preview?.changed_fields.includes(path) && !record.receipt;
+              return (
+                <div
+                  key={path}
+                  className={
+                    change
+                      ? "changed-field field-committed"
+                      : proposed
+                        ? "changed-field"
+                        : ""
+                  }
+                  data-field-path={path}
+                >
+                  <code>{path}</code>
+                  <span>{String(value ?? "∅").slice(0, 180)}</span>
+                  {proposed && (
+                    <strong>
+                      → {String(preview?.proposed_fields[path] ?? "REMOVED")}
+                    </strong>
+                  )}
+                </div>
+              );
+            })}
+          {record.receipt?.field_changes
+            ?.filter((c) => !(c.path in (record.fields ?? {})))
+            .map((c) => (
+              <div
+                key={c.path}
+                className="changed-field field-committed"
+                data-field-path={c.path}
+              >
+                <code>{c.path}</code>
+                <del>{String(c.before).slice(0, 100)}</del>
+                <strong>REMOVED · verified</strong>
+              </div>
+            ))}
+          {(preview?.observation_ids ?? []).map((id) => (
+            <small key={id}>Observation {id}</small>
+          ))}
+        </details>
+      )}
       {record.receipt && (
         <button onClick={() => inspect(record.receipt!.id)}>
           Verified {clock(record.receipt.at)} UTC <ArrowUpRight size={12} />

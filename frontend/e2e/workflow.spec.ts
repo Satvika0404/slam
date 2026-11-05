@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 
-function fixtureZip(): Buffer {
+function fixtureZip(aliasHeader: boolean | "unsupported" = false): Buffer {
   const head =
     "case_id,email,requested_at,reported_status,reported_at,audit_at,request_text\n";
   const tables: Record<string, string> = {
@@ -74,6 +74,13 @@ function fixtureZip(): Buffer {
     email: "sam@example.test",
   });
   tables["evidence/records.json"] = JSON.stringify({ records });
+  if (aliasHeader)
+    tables["user_identities.csv"] = tables["user_identities.csv"].replace(
+      "user_id,name,email,",
+      aliasHeader === "unsupported"
+        ? "user_id,name,contact,"
+        : "user_id,name,Email Address,",
+    );
   return execFileSync(
     "python",
     [
@@ -84,7 +91,7 @@ function fixtureZip(): Buffer {
   );
 }
 
-async function loadRun(page: Page) {
+async function loadRun(page: Page, aliasHeader = false) {
   await page.goto("/");
   await expect(
     page.getByRole("heading", {
@@ -94,14 +101,14 @@ async function loadRun(page: Page) {
   await page.getByLabel("Upload dataset ZIP").setInputFiles({
     name: "fictional-workflow.zip",
     mimeType: "application/zip",
-    buffer: fixtureZip(),
+    buffer: fixtureZip(aliasHeader),
   });
+  await expect(page.getByText("Uploaded dataset", { exact: true })).toBeVisible(
+    { timeout: 15000 },
+  );
   await expect(
     page.getByRole("button", { name: "Begin the audit" }),
-  ).toBeEnabled();
-  await expect(
-    page.getByText("Uploaded dataset", { exact: true }),
-  ).toBeVisible();
+  ).toBeEnabled({ timeout: 15000 });
   await page.getByRole("button", { name: "Begin the audit" }).click();
   await expect(
     page.getByRole("heading", { name: "See the change. Keep the proof." }),
@@ -110,6 +117,38 @@ async function loadRun(page: Page) {
     page.getByText("pat@example.test", { exact: true }).first(),
   ).toBeVisible();
 }
+
+test("a parser recovered in this audit highlights its real component", async ({
+  page,
+}) => {
+  await loadRun(page, true);
+  await page.getByRole("button", { name: "self-healing", exact: true }).click();
+  const recovered = page.getByLabel("Recovery in this audit");
+  await expect(recovered).toContainText("user_identities.csv");
+  await expect(recovered).toContainText("Recovered this run");
+  await expect(recovered).toContainText("1 attempt");
+});
+
+test("an unsupported parser failure remains visibly unresolved in the audit", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Upload dataset ZIP").setInputFiles({
+    name: "unsupported.zip",
+    mimeType: "application/zip",
+    buffer: fixtureZip("unsupported"),
+  });
+  await expect(
+    page.getByText("Uploaded dataset", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Begin the audit" }).click();
+  await expect(page.locator(".wf-inline-recovery.unresolved")).toContainText(
+    "Recovery blocked",
+  );
+  await expect(
+    page.getByRole("button", { name: "Execute reviewed plan", exact: true }),
+  ).toHaveCount(0);
+});
 
 test("one input flows through audit, real deletion, graph history and final evidence", async ({
   page,
@@ -139,6 +178,11 @@ test("one input flows through audit, real deletion, graph history and final evid
     "data-state",
     "PRESENT",
   );
+  const support = page.locator('[data-resource-id="support_1"]');
+  await support.getByText("Inspect field treatment", { exact: true }).click();
+  await expect(support.locator(".changed-field").first()).toContainText(
+    "REMOVED",
+  );
   await page.screenshot({
     path: "../artifacts/aftertrace/workflow-before.png",
     fullPage: true,
@@ -155,6 +199,10 @@ test("one input flows through audit, real deletion, graph history and final evid
   await expect(
     page.getByText("Execution finished. Evidence recorded.", { exact: true }),
   ).toBeVisible();
+  await expect(support).toHaveAttribute("data-state", "REDACTED");
+  await expect(support.locator(".field-committed").first()).toContainText(
+    "REMOVED · verified",
+  );
   await page.getByRole("button", { name: "Continue to final report" }).click();
   await expect(
     page.getByRole("heading", { name: "Verified in the working copy." }),

@@ -3,6 +3,18 @@ import { Activity, Check, Network, Play, ShieldCheck } from "lucide-react";
 import type { Sandbox } from "./types";
 
 export interface IntelligenceData {
+  attributions?: Record<
+    string,
+    { linked: Attribution[]; candidates: Attribution[] }
+  >;
+  recoveries?: {
+    component: string;
+    status: string;
+    adapter_version: string;
+    missing_before: string[];
+    checks: string;
+    attempts: { outcome: string; elapsed_ms: number }[];
+  }[];
   model: string;
   learning: string;
   groups: {
@@ -26,16 +38,27 @@ export interface IntelligenceData {
     };
   };
 }
+interface Attribution {
+  resource_id: string;
+  system_id: string;
+  group: string[];
+  activity_ids: string[];
+  known_owners: string[];
+}
 export default function Intelligence({
   data,
   sandbox,
   requestEmail,
   resourceId,
+  caseId,
+  onEvidence,
 }: {
   data?: IntelligenceData;
   sandbox: Sandbox | null;
   requestEmail: string;
   resourceId?: string;
+  caseId: string;
+  onEvidence: (id: string) => void;
 }) {
   const [tab, setTab] = useState("patterns"),
     [error, setError] = useState("");
@@ -50,6 +73,7 @@ export default function Intelligence({
     sandbox?.actions.filter(
       (a) => a.operation === "DELETE_RECORD" && a.status === "verified",
     ) ?? [];
+  const attribution = data?.attributions?.[caseId];
   async function call(url: string, body: unknown, save: (r: any) => void) {
     setBusy(true);
     setError("");
@@ -122,6 +146,45 @@ export default function Intelligence({
             </p>
           )}
           <details>
+            <summary>
+              Why this case was linked — candidates and evidence
+            </summary>
+            {[
+              ...(attribution?.linked ?? []).map((a) => ({
+                ...a,
+                status: "Corroborated timing attribution",
+              })),
+              ...(attribution?.candidates ?? []).map((a) => ({
+                ...a,
+                status: "Candidate — abstained",
+              })),
+            ].map((a, i) => (
+              <article className="wf-attribution" key={i}>
+                <strong>{a.status}</strong>
+                <code>
+                  {a.system_id}/{a.resource_id}
+                </code>
+                <p>
+                  {a.group.join(" · ")} · known owners:{" "}
+                  {a.known_owners.join(", ") ||
+                    "not established by explicit ownership"}
+                </p>
+                {a.activity_ids.map((id) => (
+                  <button key={id} onClick={() => onEvidence(id)}>
+                    {id} ↗
+                  </button>
+                ))}
+              </article>
+            ))}
+            {!attribution?.linked.length && !attribution?.candidates.length && (
+              <p>
+                No timing attribution was made for this case. Inspect its
+                explicit identity/resource evidence; no candidate ownership is
+                invented.
+              </p>
+            )}
+          </details>
+          <details>
             <summary>Input diagnostics and conflicts</summary>
             {data?.quality.issues.map((issue, i) => (
               <p key={i}>
@@ -155,6 +218,37 @@ export default function Intelligence({
       ) : tab === "self-healing" ? (
         <>
           <h3>Watch a component recover</h3>
+          {data?.recoveries?.length ? (
+            data.recoveries.map((r) => (
+              <section
+                className={`wf-healing-arm ${r.status}`}
+                key={r.component}
+                aria-label="Recovery in this audit"
+              >
+                <span>
+                  {r.component}
+                  <small>Missing {r.missing_before.join(", ")}</small>
+                </span>
+                <i />
+                <span className="wf-healed-component">
+                  <Activity size={16} />
+                  {r.status === "recovered"
+                    ? "Recovered this run"
+                    : "Unresolved"}
+                  <small>{r.adapter_version}</small>
+                </span>
+                <i />
+                <span>
+                  Validated
+                  <small>
+                    {r.attempts.length} attempt · {r.checks}
+                  </small>
+                </span>
+              </section>
+            ))
+          ) : (
+            <p>No table-header recovery was needed in this audit.</p>
+          )}
           <p>
             Run the bounded header adapter on an input snippet. The result
             records the failure, recovery and independent checks. This snippet
@@ -274,6 +368,11 @@ export default function Intelligence({
                       {b.recreated ? "Row recreated" : "Row remains absent"}
                     </p>
                     <small>Measured matching rows after worker execution</small>
+                    <small>
+                      {b.original_rows} original → {b.before_rows} after
+                      deletion → {b.after_rows} after sync. Control set before
+                      deletion.
+                    </small>
                   </article>
                 ))}
               </div>

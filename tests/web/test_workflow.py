@@ -1,6 +1,7 @@
 """Evidence-bound, input-immutable workflow and actual isolated SQLite execution."""
 
 import csv
+import hashlib
 import io
 import json
 import sqlite3
@@ -48,7 +49,7 @@ def frames(response):
     ]
 
 
-def input_zip(unsafe=False):
+def input_zip(unsafe=False, alias_header=False):
     content = io.BytesIO()
     with zipfile.ZipFile(content, "w") as archive:
         if unsafe:
@@ -110,6 +111,8 @@ def input_zip(unsafe=False):
             ],
         }
         for name, rows in tables.items():
+            if alias_header and name == "user_identities.csv":
+                rows[0] = tuple(("contact" if alias_header == "unsupported" else "Email Address") if field == "email" else field for field in rows[0])
             text = io.StringIO(newline="")
             csv.writer(text).writerows(rows)
             archive.writestr("dataset/" + name, text.getvalue())
@@ -156,6 +159,38 @@ def test_one_uploaded_input_is_pinned_to_every_case_and_export():
     root = workflow.INPUTS[item["id"]].root
     (root / "evidence/account.json").write_text("{}")
     assert client.post("/api/workflow/runs", json={"input_id": item["id"]}).status_code == 409
+
+
+def test_header_parser_recovers_during_the_actual_audit_without_source_changes():
+    item = client.post("/api/workflow/input", content=input_zip(alias_header=True)).json()
+    root = workflow.INPUTS[item["id"]].root
+    original = (root / "user_identities.csv").read_bytes()
+    events = frames(client.post("/api/workflow/runs", json={"input_id": item["id"]}))
+    assert events[-1]["event"] == "run.completed"
+    recovery = next(e["payload"] for e in events if e["event"] == "recovery.completed")
+    assert recovery["status"] == "recovered"
+    assert recovery["component"] == "user_identities.csv"
+    assert recovery["attempts"][0]["outcome"] == "recovered"
+    assert recovery["source_sha256"] == hashlib.sha256(original).hexdigest()
+    assert recovery["source_sha256"] != recovery["recovered_sha256"]
+    assert not recovery["promoted"]
+    assert (root / "user_identities.csv").read_bytes() == original
+    run_id = events[0]["payload"]["run_id"]
+    run = client.get(f"/api/workflow/runs/{run_id}").json()
+    assert run["intelligence"]["recoveries"][0]["status"] == "recovered"
+
+
+def test_unsupported_parser_header_stays_unresolved_and_never_reaches_execution():
+    item = client.post("/api/workflow/input", content=input_zip(alias_header="unsupported")).json()
+    root = workflow.INPUTS[item["id"]].root
+    original = (root / "user_identities.csv").read_bytes()
+    events = frames(client.post("/api/workflow/runs", json={"input_id": item["id"]}))
+    assert events[-1]["event"] == "run.failed"
+    recovery = next(e["payload"] for e in events if e["event"] == "recovery.completed")
+    assert recovery["status"] == "unresolved"
+    assert recovery["recovered_sha256"] is None
+    assert not any(e["event"] == "case.completed" for e in events)
+    assert (root / "user_identities.csv").read_bytes() == original
 
 
 def test_upload_rejects_traversal_before_extracting(tmp_path):

@@ -74,11 +74,12 @@ class Run:
     errors: dict[str, str] = field(default_factory=dict)
     csv: str | None = None
     intelligence: dict[str, Any] = field(default_factory=dict)
+    recoveries: list[dict[str, Any]] = field(default_factory=list)
 
     def case(self, case_id: str) -> dict[str, Any]:
         if self.bundle is None or case_id not in self.answers:
             raise HTTPException(404, "This request has no completed audit in this run")
-        return service.case_view(
+        result = service.case_view(
             case_id,
             "dataset",
             self.input.root,
@@ -89,6 +90,10 @@ class Run:
                 self.answers[case_id],
             ),
         )
+        from .remediation import record_previews
+
+        result["record_previews"] = record_previews(self, case_id)
+        return result
 
 
 def rows(path: Path) -> list[dict[str, str]]:
@@ -258,10 +263,15 @@ def start_audit(item: Input, request_text: str | None = None) -> StreamingRespon
                 if kind == "source.completed":
                     send(kind, **payload)
 
+            from .recovery import recover_tables
+
+            root, run.recoveries = recover_tables(
+                item.root, STORAGE / run.id / "recovered-input", send
+            )
             with observe(observer):
-                bundle = ingest(item.root, provider=None)
+                bundle = ingest(root, provider=None)
             run.bundle = bundle
-            requests = load_requests(item.root)
+            requests = load_requests(root)
             if request_text:
                 emails = set(
                     re.findall(
@@ -294,12 +304,29 @@ def start_audit(item: Input, request_text: str | None = None) -> StreamingRespon
             from dataclasses import asdict
 
             from slam.evaluation.data_quality import analyze_evidence_quality
+            from slam.reconstruction.ownership import owners_as_of
 
             run.intelligence = {
                 "model": "Validated timing-window attribution",
                 "learning": "Refitted from known-owner pairs in this run",
                 "groups": [asdict(g) for g in model.groups],
                 "quality": analyze_evidence_quality(bundle).to_dict(),
+                "recoveries": run.recoveries,
+                "attributions": {
+                    request.case_id: {
+                        kind: [
+                            {
+                                **asdict(a),
+                                "known_owners": sorted(
+                                    owners_as_of(model.owner_index, a.resource_id, request.audit_at)
+                                ),
+                            }
+                            for a in getattr(model.for_case(request.case_id), field)
+                        ]
+                        for kind, field in (("linked", "attributed"), ("candidates", "candidates"))
+                    }
+                    for request in requests
+                },
             }
             send("stage.completed", stage="linking", learned_groups=len(model.groups))
             for index, request in enumerate(requests):

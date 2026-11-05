@@ -3045,6 +3045,148 @@ body[data-workspace="workflow"] {
   font-size: 10px;
   color: #718392;
 }
+.wf-fields {
+  border-top: 1px solid var(--line);
+  padding-top: 9px;
+  margin-top: 9px;
+  font-size: 9px;
+}
+.wf-inline-recovery {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: #e7f3ee;
+  border: 1px solid #b9d7ce;
+  color: var(--teal);
+  border-radius: 7px;
+  font-size: 11px;
+}
+.wf-inline-recovery.unresolved {
+  background: #fff3e2;
+  border-color: #e8cfad;
+  color: #96651a;
+}
+.wf-inline-recovery p {
+  font-size: 10px;
+  margin-top: 3px;
+}
+.wf-attribution {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+}
+.wf-attribution > code {
+  display: block;
+}
+.wf-attribution button {
+  font-size: 10px;
+  color: var(--teal);
+  padding: 4px 8px 4px 0;
+}
+.wf-fields summary {
+  cursor: pointer;
+  color: var(--teal);
+}
+.wf-fields > span {
+  display: block;
+  color: var(--quiet);
+  margin: 8px 0;
+}
+.wf-fields > div {
+  display: grid;
+  gap: 3px;
+  padding: 5px;
+  margin: 3px 0;
+  overflow-wrap: anywhere;
+}
+.wf-fields .changed-field {
+  background: #fff1df;
+  border-left: 2px solid var(--amber);
+  animation: wf-record-change 0.7s ease;
+}
+.wf-fields .field-committed {
+  background: #e7f4ee;
+  border-color: var(--teal);
+  animation: wf-field-verified 0.7s ease;
+}
+@keyframes wf-field-verified {
+  from {
+    background: #b8e5d4;
+    box-shadow: 0 0 0 4px #0f766e18;
+  }
+  to {
+    background: #e7f4ee;
+    box-shadow: none;
+  }
+}
+.wf-fields > small {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--quiet);
+  margin-top: 7px;
+}
+.workflow-system-graph .execution-failed rect:first-child {
+  stroke: var(--coral);
+  fill: #fff0ec;
+}
+.workflow-system-graph .execution-failed .wf-node-state {
+  fill: var(--coral);
+}
+.wf-action-error {
+  color: var(--coral) !important;
+  overflow-wrap: anywhere;
+}
+.wf-healing-arm small {
+  display: block;
+  font-size: 9px;
+  margin-top: 5px;
+  max-width: 220px;
+}
+@media (min-width: 980px) {
+  .wf-console-context {
+    padding-top: 18px;
+    padding-bottom: 17px;
+    align-items: center;
+  }
+  .wf-console-context h1 {
+    font-size: 32px;
+    line-height: 1.1;
+    margin-top: 6px;
+  }
+  .wf-console-context h1 br {
+    display: none;
+  }
+  .wf-console-context h1 em {
+    margin-left: 10px;
+  }
+  .wf-console-workspace .wf-action-panel {
+    padding: 16px;
+    top: 130px;
+  }
+  .wf-console-workspace .wf-action-title h2 {
+    font-size: 20px;
+    margin-top: 5px;
+  }
+  .wf-console-workspace .wf-action-title h2 br {
+    display: none;
+  }
+  .wf-console-workspace .wf-copy-boundary {
+    margin-top: 12px;
+    padding: 10px 0;
+  }
+  .wf-console-workspace .wf-action-list {
+    max-height: 195px;
+    overflow: auto;
+  }
+  .wf-console-workspace .intel-system-map {
+    height: min(390px, 46vh) !important;
+    min-height: 280px;
+  }
+  .wf-console-workspace .intel-map-scroll {
+    min-height: 280px;
+  }
+}
 .wf-evidence-chain {
   display: flex;
   flex-wrap: wrap;

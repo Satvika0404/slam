@@ -52,6 +52,8 @@ last_updated: 2026-11-05
 
 ## Cross-owner edits
 
+- `code/slam/pipeline.py` (integration): merged existing Lalith diagnostics/context collection while
+  retaining attribution/cohort behaviour. This shared delivery note records the change for its owner.
 - `code/slam/ingestion/api.py` (Ashish): opt-in source-completed telemetry, no signature or decision change.
 - `code/slam/reconstruction/api.py` (Manya): opt-in checkpoints around actual operations, preserving the
   frozen interface and newer ownership/linking behaviour. Other reconstruction modules/tests are

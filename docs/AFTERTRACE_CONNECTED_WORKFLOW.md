@@ -3,6 +3,9 @@
 Implemented 5 November 2026. Read alongside [the workflow reference](AFTERTRACE_WORKFLOW.md).
 This increment preserves the existing SVG SystemGraph and SLAM 1.1.0 shared contracts.
 
+The [eight-point acceptance checklist](AFTERTRACE_EIGHT_POINT_ACCEPTANCE.md) documents the later
+field-preview, partial-failure, actual in-run recovery and laptop-composition refinements.
+
 ## User flow
 
 1. **Connect SQLite** uploads a snapshot. Inspect its tables, choose a stable row key, email and
@@ -50,6 +53,12 @@ case and surrounding space. It rejects colliding columns, missing/invalid values
 and duplicate resource keys. One attempt, a two-second cooperative budget and zero model tokens apply.
 Two development, two held-out and two rejection checks gate review eligibility. Attempts, adapter
 version, missing fields and validated output are recorded under ignored artifacts.
+
+During the actual audit, `code/slam/web/recovery.py` detects allowlisted missing/aliased headers in
+required participant tables, repairs only a separate input copy and invokes the ordinary ingestion
+table validator before continuing. Real recovery events identify the affected stage/file; the panel
+marks **Recovered this run**. Receipts include original/adapted file hashes. Unsupported/colliding
+headers stop the run. Original source files remain unchanged.
 
 This is bounded input recovery with **review eligibility**, not automatic production-code rewriting
 or adapter promotion. The integrated improvement-loop framework additionally supports diagnosis,

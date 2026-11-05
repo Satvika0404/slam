@@ -93,6 +93,59 @@ def test_header_recovery_has_measured_success_and_failure():
     assert failed["promotion"] == "blocked"
 
 
+def test_field_preview_matches_committed_redaction_and_preserves_shared_content(tmp_path):
+    path = tmp_path / "support.db"
+    with sqlite3.connect(path) as db:
+        db.execute("CREATE TABLE support(id TEXT,email TEXT,body TEXT)")
+        db.execute("INSERT INTO support VALUES('m1','pat@example.test','Keep shared context')")
+    connection = client.post("/api/workflow/databases", content=path.read_bytes()).json()
+    item = client.post(
+        f"/api/workflow/databases/{connection['id']}/map",
+        json={
+            "tables": [
+                {
+                    "table": "support",
+                    "key": "id",
+                    "email": "email",
+                    "action": "REDACT",
+                    "category": "SUPPORT_MESSAGE",
+                }
+            ]
+        },
+    ).json()
+    events = frames(
+        client.post(
+            "/api/workflow/runs",
+            json={
+                "input_id": item["id"],
+                "request_text": "Please delete personal data for pat@example.test",
+            },
+        )
+    )
+    assert events[-1]["event"] == "run.completed"
+    run_id = events[0]["payload"]["run_id"]
+    run = client.get(f"/api/workflow/runs/{run_id}").json()
+    case_id = run["cases"][0]["case_id"]
+    case = client.get(f"/api/workflow/runs/{run_id}/cases/{case_id}").json()
+    preview = case["record_previews"][0]
+    assert preview["operation"] == "REDACT_RECORD"
+    assert "record.row.email" in preview["changed_fields"]
+    assert preview["fields"]["record.row.body"] == preview["proposed_fields"]["record.row.body"]
+    sandbox = client.post(
+        "/api/workflow/sandboxes", json={"run_id": run_id, "case_id": case_id}
+    ).json()
+    execution = frames(client.post(f"/api/workflow/sandboxes/{sandbox['id']}/execute"))
+    snapshot = execution[-1]["payload"]["snapshot"]
+    record = snapshot["records"][0]
+    assert record["present"] and record["state"] == "REDACTED"
+    assert "record.row.email" not in record["fields"]
+    assert record["fields"]["record.row.body"] == "Keep shared context"
+    assert any(
+        c["path"] == "record.row.email" and c["after"] is None
+        for c in snapshot["receipts"][0]["field_changes"]
+    )
+
+
 def test_unknown_table_and_non_database_input_are_rejected():
     assert client.post("/api/workflow/databases", content=b"bad").status_code == 422
     assert (

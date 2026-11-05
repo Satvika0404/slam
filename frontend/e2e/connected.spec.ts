@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
 
 function database(): Buffer {
   return execFileSync("python", [
@@ -62,6 +63,20 @@ test("connected database drives full graph, verified removals, recovery and sync
   await page
     .getByRole("button", { name: "Prepare working copy", exact: true })
     .click();
+  await expect(
+    page.getByRole("button", { name: "Execute reviewed plan", exact: true }),
+  ).toBeEnabled();
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.evaluate(() => scrollTo(0, 0));
+  const graphBox = await graph.boundingBox();
+  const controlBox = await page
+    .getByRole("button", { name: "Execute reviewed plan", exact: true })
+    .boundingBox();
+  expect(graphBox!.y + graphBox!.height).toBeLessThanOrEqual(768);
+  expect(controlBox!.y + controlBox!.height).toBeLessThanOrEqual(768);
+  await page.screenshot({
+    path: "../artifacts/aftertrace/connected-laptop.png",
+  });
   await page.screenshot({
     path: "../artifacts/aftertrace/connected-before.png",
     fullPage: true,
@@ -151,4 +166,83 @@ test("connected database drives full graph, verified removals, recovery and sync
     ).toBe(true);
   }
   expect(errors).toEqual([]);
+});
+
+test("one committed deletion survives a later failed deletion with the exact surviving row", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Connect SQLite database").setInputFiles({
+    name: "partial.db",
+    mimeType: "application/octet-stream",
+    buffer: database(),
+  });
+  const dialog = page.getByRole("dialog", { name: "Map database tables" });
+  await dialog.getByLabel("receipts action").selectOption("RETAIN");
+  await dialog.getByRole("button", { name: "Use mapped snapshot" }).click();
+  await page
+    .getByLabel("Deletion request")
+    .fill("Please delete personal data for pat@example.test");
+  await page.getByRole("button", { name: "Begin the audit" }).click();
+  await page
+    .getByRole("button", { name: "Prepare working copy", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Execute reviewed plan", exact: true }),
+  ).toBeVisible();
+  const runId = await page.evaluate(() =>
+    sessionStorage.getItem("aftertrace.workflow.run"),
+  );
+  const run = await (await request.get(`/api/workflow/runs/${runId}`)).json();
+  const id = Object.values(run.working_copies)[0] as string;
+  const sandbox = await (
+    await request.get(`/api/workflow/sandboxes/${id}`)
+  ).json();
+  const first = sandbox.actions[0].resource_id,
+    second = sandbox.actions[1].resource_id;
+  // Test-only fault injection: a real SQLite trigger aborts the second DELETE before commit.
+  execFileSync(
+    "docker",
+    [
+      "compose",
+      "exec",
+      "-T",
+      "aftertrace-api",
+      "python",
+      "-c",
+      `import sqlite3; p=${JSON.stringify(`/workspace/artifacts/aftertrace/workflow/${runId}/sandboxes/${id}/working-copy.sqlite`)}; db=sqlite3.connect(p); db.execute("CREATE TRIGGER fail_second BEFORE DELETE ON records WHEN OLD.resource_id='${second}' BEGIN SELECT RAISE(ABORT,'test-only blocked delete'); END"); db.commit(); db.close()`,
+    ],
+    { cwd: resolve("..") },
+  );
+  await page
+    .getByRole("button", { name: "Execute reviewed plan", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText(
+    "dependent actions were stopped",
+  );
+  const graph = page.locator(".wf-graph-shell");
+  await expect(graph.locator(".intel-map-node.execution-deleted")).toHaveCount(
+    1,
+  );
+  await expect(
+    graph.locator(".intel-map-node.execution-failed[data-node-kind=record]"),
+  ).toHaveCount(1);
+  await expect(page.locator(`[data-resource-id="${first}"]`)).toHaveAttribute(
+    "data-state",
+    "ABSENT",
+  );
+  await expect(page.locator(`[data-resource-id="${second}"]`)).toHaveAttribute(
+    "data-state",
+    "PRESENT",
+  );
+  await expect(page.locator(".wf-action-list .failed")).toContainText(
+    "IntegrityError",
+  );
+  const state = await (
+    await request.get(`/api/workflow/sandboxes/${id}`)
+  ).json();
+  expect(state.receipts).toHaveLength(1);
+  expect(state.receipts[0].verified).toBe(true);
+  expect(state.after).toBeNull();
 });

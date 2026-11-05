@@ -125,7 +125,13 @@ class Sandbox:
                 "external systems and source files are unchanged"
             ),
             "status": self.status,
-            "records": [{k: v for k, v in r.items() if k != "payload"} for r in records],
+            "records": [
+                {
+                    **{k: v for k, v in r.items() if k != "payload"},
+                    "fields": field_values(r["payload"]),
+                }
+                for r in records
+            ],
             "actions": self.actions,
             "receipts": self.receipts,
             "after": self.after,
@@ -272,6 +278,71 @@ def scrub(value: Any, needles: set[str], anonymize: bool) -> Any:
     return value
 
 
+def field_values(payload: Any, prefix: str = "") -> dict[str, Any]:
+    """Readable field paths; original values remain available in source/receipt drawers."""
+    result: dict[str, Any] = {}
+    if isinstance(payload, dict):
+        for key, value in payload.items():
+            path = f"{prefix}.{key}" if prefix else key
+            if isinstance(value, dict) and path.count(".") < 5:
+                result.update(field_values(value, path))
+            else:
+                result[path] = (
+                    value
+                    if isinstance(value, (str, int, float, bool, type(None)))
+                    else json.dumps(value)
+                )
+    return result
+
+
+def record_previews(run: workflow.Run, case_id: str) -> list[dict[str, Any]]:
+    context, answer = run.contexts[case_id], run.answers[case_id]
+    sandbox = Sandbox("preview", run, case_id, Path("."), [])
+    previews = []
+    for state in context.resource_states:
+        payload = payload_for(run, case_id, state)
+        operation = next(
+            (
+                s.operation.value
+                for s in answer.steps
+                if s.phase.value == "REMEDIATION"
+                and s.system_id == state.system_id
+                and s.resource_id == state.resource_id
+            ),
+            "RETAIN",
+        )
+        after = payload
+        if operation in {"REDACT_RECORD", "ANONYMIZE_RECORD"}:
+            after = scrub(
+                payload,
+                sensitive_values(sandbox, operation == "ANONYMIZE_RECORD"),
+                operation == "ANONYMIZE_RECORD",
+            )
+        before_fields, after_fields = field_values(payload), field_values(after)
+        previews.append(
+            {
+                "system_id": state.system_id,
+                "resource_id": state.resource_id,
+                "operation": operation,
+                "fields": before_fields,
+                "proposed_fields": after_fields,
+                "changed_fields": sorted(
+                    k for k in before_fields if before_fields[k] != after_fields.get(k)
+                ),
+                "observation_ids": [
+                    o.observation_id
+                    for o in run.bundle.observations
+                    if o.observation_id in context.eligible_observation_ids
+                    and o.system_id == state.system_id
+                    and o.resource_id == state.resource_id
+                ]
+                if run.bundle
+                else [],
+            }
+        )
+    return previews
+
+
 def read_record(sandbox: Sandbox, system: str, resource: str) -> dict[str, Any] | None:
     with sqlite3.connect(sandbox.database) as connection:
         row = connection.execute(
@@ -351,6 +422,15 @@ def perform(sandbox: Sandbox, action: dict[str, Any]) -> dict[str, Any]:
         "state": after["state"] if after else "ABSENT",
         "sha256": hashlib.sha256(content.encode()).hexdigest(),
         "verified": True,
+        "field_changes": [
+            {
+                "path": key,
+                "before": value,
+                "after": field_values(after["payload"] if after else {}).get(key),
+            }
+            for key, value in field_values(before["payload"] if before else {}).items()
+            if value != field_values(after["payload"] if after else {}).get(key)
+        ],
     }
     sandbox.proof[proof_id] = {**proof, "sha256": receipt["sha256"]}
     sandbox.receipts.append(receipt)
@@ -507,6 +587,10 @@ def execute(sandbox: Sandbox) -> Response:
                     receipt = perform(sandbox, action)
                 except Exception as exc:
                     action["status"] = "failed"
+                    action["error"] = (
+                        f"{type(exc).__name__}: mutation or independent read-back failed; "
+                        "dependent actions stopped"
+                    )
                     sandbox.status = "failed"
                     send(
                         "action.failed",

@@ -28,6 +28,7 @@ export interface RunInfo {
   errors: Record<string, string>;
 }
 export interface Receipt {
+  field_changes?: { path: string; before: unknown; after: unknown }[];
   id: string;
   system_id: string;
   resource_id: string;
@@ -39,11 +40,13 @@ export interface Receipt {
   verified: boolean;
 }
 export interface Action extends Step {
+  error?: string;
   id: string;
   status: "pending" | "running" | "verified" | "failed";
   proof_id: string | null;
 }
 export interface WorkingRecord {
+  fields?: Record<string, unknown>;
   system_id: string;
   resource_id: string;
   category: string;

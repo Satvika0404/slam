@@ -94,6 +94,15 @@ export interface Stage {
   description: string;
 }
 export interface AuditCase {
+  record_previews?: {
+    system_id: string;
+    resource_id: string;
+    operation: string;
+    fields: Record<string, unknown>;
+    proposed_fields: Record<string, unknown>;
+    changed_fields: string[];
+    observation_ids: string[];
+  }[];
   execution_export_csv?: string | null;
   mode: Mode;
   case_id: string;

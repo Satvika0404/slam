@@ -581,7 +581,12 @@ export default function SystemGraph({
                         >
                           {n.live_state === "running"
                             ? "ACTION RUNNING"
-                            : `${n.remaining ?? n.resources} / ${n.original_resources ?? n.resources} RECORDS PRESENT`}
+                            : n.live_state === "failed"
+                              ? "FAILED · CHECK READ-BACK"
+                              : n.live_state === "verified" &&
+                                  ["REDACT", "ANONYMIZE"].includes(n.action)
+                                ? `FIELDS ${n.action === "REDACT" ? "REDACTED" : "ANONYMIZED"}`
+                                : `${n.remaining ?? n.resources} / ${n.original_resources ?? n.resources} RECORDS PRESENT`}
                         </text>
                         <circle
                           cx="186"
