@@ -125,4 +125,12 @@ owns = [
   "docs/integration/**",
   "team_handoff/**",
   "docs/REVISED_SLAM_PLAN.md",
+  # Files the integrator added in PR #5, #7 and #8 that no workstream owns: the end-to-end
+  # run, the smoke test, the code.zip builder, the side-by-side sample report and the ignore list.
+  ".gitignore",
+  "code/slam/__init__.py",
+  "code/slam/pipeline.py",
+  "evaluation/side_by_side_samples.md",
+  "scripts/build_submission.py",
+  "scripts/smoke_test.py",
 ]

@@ -4,7 +4,7 @@ workstream: Integration, seam tests, CI, packaging
 status: READY_FOR_INTEGRATION
 contract_version: 1.1.0
 contract_sha256: 95cfa189ae07490fe5b42527dc08990b50779d83fa7a82965caefeeb28275a23
-built_on: c36b6eb0f2c68d1c5c6b72f19088e2322e4ac2cb
+built_on: b4382c964382614776b835243102814f6a92bf1a
 merge_after: none
 last_updated: 2026-11-05
 ---
@@ -15,7 +15,9 @@ last_updated: 2026-11-05
 
 ## Delivers
 
-**This PR (on top of PR #8, already in `dev`):** an optional, measured model path with ordered API-key failover. The decision path is untouched: `output.csv` is byte-identical with and without it, and a normal run still makes 0 model calls.
+**This PR (on top of PR #10, already in `dev`):** makes the `dev` to `main` promotion check pass. PR #11 (`dev` to `main`) fails `Delivery note` with *6 file(s) outside your ownership are not declared (belonging to: nobody)*: `.gitignore`, `code/slam/__init__.py`, `code/slam/pipeline.py`, `evaluation/side_by_side_samples.md`, `scripts/build_submission.py` and `scripts/smoke_test.py`. The integrator added them in PR #5, #7 and #8 and they were never put in `ownership.toml`. This PR assigns exactly those six paths to the `integration` owner and records PR #10 in the merge record. No code, test, contract or dependency changes; `output.csv` is unaffected.
+
+**PR #10 (already in `dev`):** an optional, measured model path with ordered API-key failover. The decision path is untouched: `output.csv` is byte-identical with and without it, and a normal run still makes 0 model calls.
 - `code/slam/runtime/key_pool.py` (`KeyPool`): ordered failover. The first usable key is kept until it is rejected (401/403: retired) or runs out (429: a short `retry-after` cools it down and it returns, a long one retires it); timeouts and 5xx retry, then move on; only `key#N` labels are ever shown, never a value.
 - `code/slam/runtime/groq_provider.py` (`GroqModelProvider`): Groq through the existing `openai` SDK (no new dependency), JSON mode validated against the pydantic model, per-key usage, and `check_keys()` which spends no tokens. 400/404/413/422 and malformed or truncated output are raised, not failed over, because they would fail on every key.
 - `code/slam/runtime/metering.py` (`ModelPrice`, `MeteredProvider`) and `code/slam/runtime/factory.py` (`build_provider`): every call recorded; the call ceiling is exact and counts logical calls (one per `generate()`, failed ones included; the HTTP attempts a call makes while failing over are shown per key); token and priced-budget ceilings; `fatal` is set once no call can succeed. A real provider is never built without a call ceiling.
@@ -45,6 +47,10 @@ Branch `integration/reconstruction`: Manya's reconstruction merged intact (`152b
 - Tests: `tests/reconstruction/test_integration_fixes.py`, `tests/planning/test_engine.py`, `tests/integration/test_pipeline_seam.py`; reports in `evaluation/`.
 
 ## Cross-owner edits
+
+None. `docs/integration/ownership.toml` and this note are the integrator's own paths.
+
+Earlier PR, kept for the record:
 
 Each file below is another owner's or unowned; the owner must confirm.
 
@@ -94,6 +100,10 @@ None. No new dependency: Groq is reached through the `openai` package already in
 
 ## Verification
 
+This PR, 2026-11-05. The failure was reproduced with the exact command CI runs for PR #11, on `dev` (`b4382c9`): `python scripts/delivery_check.py ci --base origin/main --head HEAD --branch dev` printed the six-file error (1 error). With this change applied to `dev` the same command prints 0 errors, 0 warnings. `python scripts/delivery_check.py ci --base origin/dev --head HEAD --branch integration/ownership-map`: 0 errors, 0 warnings. `ownership.toml` parses (12 integrator paths). `tests/integration` on the Windows host, where git runs: 63 passed, 1 failed (`test_public_samples_never_produce_a_false_complete`, status 0.6875 against a 0.85 floor) because the host has no Tesseract and cannot read the 11 screenshots; the same test passes in Docker (`test_pipeline_seam.py` and `test_delivery_check.py`: 27 passed, 18 skipped for lack of git) and in CI, which installs Tesseract. This is an environment limit, not a regression: the PR changes no code.
+
+Earlier verification, still true for the code in `dev` (this PR changes no code):
+
 Docker (`docker compose run --rm -T slam-dev ...`), 2026-11-05, on this branch: `ruff check code tests scripts` clean; `ruff format --check` clean on every new or rewritten file; `mypy code/slam code/main.py code/evaluation/main.py code/evaluation/model_check.py` no issues in 59 files; `pytest -q` **610 passed, 18 skipped** (git-dependent, no git in image; 54 of the passes are new). `python code/main.py --dataset dataset --evaluate`: 518 rows, 0 failures, `output.csv` sha256 `55fabff2a919456c9d33604837338165df0f03b4721ff3ab6a7f0a50bb3edb81`, identical to what `dev` produced before this change, so no answer changed. `python scripts/build_submission.py`: 147 files, self-check OK. Two deliberate breakages (cooling keys treated as usable; call ceiling off by one) were each caught by the tests.
 
 End to end through the real `openai` SDK and HTTP, against a throwaway local server that rejected key 1, daily-limited key 2, ran key 3 dry after 25 calls and left key 4 working: `--check-keys` printed key#1 rejected and the model found on the rest; `--dataset dataset --model-check --model-check-requests 20` made 31 calls (11 screenshots, 20 requests), 0 failed, and the usage report showed key#3 serving 25 calls and key#4 the remaining 6. Those were mock figures and were not committed.
@@ -126,3 +136,4 @@ Merge record (append-only; newest last). One row per unit merged into `dev` or `
 | 2026-11-04 | Reconstruction, evaluation scorer and validator, planner and pipeline, PR #5 (`integration/reconstruction`, head `7f284f1`) | `bf40c39` | Delivery note, Merge gate, Quick gate, Docker platform: all SUCCESS | merged by Satvika0404 at 21:13Z; approved by Satvika0404 | Retroactive entry. Manya's `152b0a2` merged intact; Lalith's scorer and Satvika's validator merged unchanged; `plan_case` is the integrator's stand-in because `plan()` was still a stub |
 | 2026-11-04 | Output-quality pass, PR #7 (`integration/account-linking`, head `58ed664`) | `a722cbc` | Delivery note, Merge gate, Quick gate, Docker platform: all SUCCESS | merged by dglalithchandra at 23:17Z; approved by dglalithchandra | Retroactive entry. Parser fix, learned account linking, retained-record checks, `scripts/build_submission.py`. Measured on the 32 public answers: status 29/32, false COMPLETE 0, step F1 0.701 |
 | 2026-11-05 | Submission package, PR #8 (`integration/submission-reports`, head `634fe18`) | `c36b6eb` | Delivery note, Merge gate, Quick gate, Docker platform: all SUCCESS | merged by dglalithchandra at 01:33Z; approved by dglalithchandra | Reports now in `code/evaluation/`, the `code.zip` self-check requires them, merge-record rows for PR #4, #5 and #7 added, Manya `INTEGRATED`. `output.csv` byte-identical to `dev` before the PR |
+| 2026-11-05 | Groq provider with ordered multi-key failover, metering and measured model cross-check, PR #10 (`integration/model-check`, head `653e51c`) | `b4382c9` | Delivery note, Merge gate, Quick gate, Docker platform: all SUCCESS | merged by dglalithchandra at 02:25Z; approved by dglalithchandra | Retroactive entry. Decision path untouched, `output.csv` byte-identical; real Groq run recorded in the reports. Open PR #9 (Satvika) and PR #6 (Lalith) are not part of it |
