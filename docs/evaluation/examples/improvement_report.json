@@ -1,0 +1,56 @@
+{
+  "example_only": true,
+  "assumptions": [
+    "baseline and candidate used the same frozen held-out fixture set"
+  ],
+  "attempt": 1,
+  "candidate": {
+    "accepted": false,
+    "attempt": 1,
+    "baseline": {
+      "api_calls": 0,
+      "cases": 2,
+      "cost_usd": 0.0,
+      "defect_detection_precision": 0.75,
+      "defect_detection_recall": 0.7,
+      "false_complete_count": 1,
+      "fixture_set_id": "repair-heldout-v1",
+      "label": "synthetic",
+      "latency_ms": 100,
+      "regression_count": 0,
+      "scenario_ids": ["repair-case-1", "repair-case-2"],
+      "status_accuracy": 0.9,
+      "step_accuracy": 0.8
+    },
+    "candidate": {
+      "api_calls": 0,
+      "cases": 2,
+      "cost_usd": 0.0,
+      "defect_detection_precision": 0.75,
+      "defect_detection_recall": 0.7,
+      "false_complete_count": 1,
+      "fixture_set_id": "repair-heldout-v1",
+      "label": "synthetic",
+      "latency_ms": 100,
+      "regression_count": 1,
+      "scenario_ids": ["repair-case-1", "repair-case-2"],
+      "status_accuracy": 0.9,
+      "step_accuracy": 0.8
+    },
+    "check_output": "",
+    "checks_passed": true,
+    "decision": "rejected_or_blocked",
+    "patch_paths": [
+      "code/slam/evaluation/improvement/example.py"
+    ],
+    "reproduced_failure_fixed": true,
+    "within_budget": true
+  },
+  "decision": "rejected_or_blocked",
+  "failure_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "scenario_label": "synthetic",
+  "seed": 123,
+  "unknowns": [
+    "no participant dataset was available for real-data evaluation"
+  ]
+}
