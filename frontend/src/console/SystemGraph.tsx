@@ -153,14 +153,12 @@ export default function SystemGraph({
     );
     if (workflow) {
       const base = Math.max(0, ...groups.keys()) + 1;
-      isolated
-        .sort()
-        .forEach((id, i) =>
-          result.set(id, {
-            x: 38 + (base + Math.floor(i / 3)) * 260,
-            y: 70 + (i % 3) * 128,
-          }),
-        );
+      isolated.sort().forEach((id, i) =>
+        result.set(id, {
+          x: 38 + (base + Math.floor(i / 3)) * 260,
+          y: 70 + (i % 3) * 128,
+        }),
+      );
     }
     return {
       nodes: result,
