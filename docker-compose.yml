@@ -36,6 +36,29 @@ services:
           python -c "import sqlite3, sys; sqlite3.connect(':memory:').execute('create virtual table t using fts5(x)'); print('SLAM Docker foundation ready: Python ' + sys.version.split()[0] + ', SQLite FTS5 ok')";
         fi
 
+  aftertrace-api:
+    profiles: [web]
+    image: slam-dev:py311
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /workspace
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      SLAM_MODEL_PROVIDER: ${SLAM_MODEL_PROVIDER:-fake}
+      SLAM_MODEL: ${SLAM_MODEL:-fake-structured-v1}
+      SLAM_API_BUDGET_USD: ${SLAM_API_BUDGET_USD:-0}
+      SLAM_API_TIMEOUT_SECONDS: ${SLAM_API_TIMEOUT_SECONDS:-60}
+      SLAM_API_MAX_RETRIES: ${SLAM_API_MAX_RETRIES:-2}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - .:/workspace
+      - slam-venv:/opt/venv
+      - uv-cache:/root/.cache/uv
+    command: [uvicorn, slam.web.api:app, --app-dir, code, --host, 0.0.0.0, --port, "8000"]
+
 volumes:
   slam-venv:
   uv-cache:

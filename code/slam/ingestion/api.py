@@ -33,6 +33,7 @@ from slam.contracts import (
     SourceKind,
     SourceRecord,
 )
+from slam.runtime.events import emit
 from slam.runtime.provider import ModelProvider
 
 from . import normalizer, vocab
@@ -397,6 +398,15 @@ def ingest_with_ocr(
             sources.append(record)
             observations.extend(found)
             problems.extend(source_issues)
+            emit(
+                "source.completed",
+                source=record.model_dump(mode="json"),
+                observations=len(found),
+                issues=len(source_issues),
+                cache_hit=stored is not None,
+                completed=position + 1,
+                total=len(manifest.entries),
+            )
     finally:
         ledger.close()
 

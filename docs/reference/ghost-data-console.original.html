@@ -1,0 +1,1080 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Ghost Data Console (Copy)</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..700&family=JetBrains+Mono:wght@400;500;600&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+/* Layout concept: fixed left rail with three section tabs, one scrolling workspace to the right.
+   Type: Schibsted Grotesk for text, JetBrains Mono (tabular) for every figure and identifier, Bricolage Grotesque for titles. */
+:root{
+  --bg:#F7F7F5; --surface:#FFFFFF; --surface-2:#FBFBF9; --line:#EBEBE6; --line-2:#DEDED8;
+  --ink:#15171A; --ink-2:#4A4F55; --ink-3:#666C73;
+  --accent:#0E6E5E; --accent-ink:#0A594C; --accent-tint:#EEF3F1; --on-accent:#FFFFFF;
+  --bad:#B3261E; --bad-tint:#FAE8E6; --ok:#1E7A4C; --ok-tint:#E6F2EA;
+  --warn:#8A6410; --warn-tint:#F7EEDB; --violet:#5A3E7A; --violet-tint:#EFE9F5;
+  --heat-max:70%;
+  --f-text:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-display:"Bricolage Grotesque","Schibsted Grotesk",system-ui,sans-serif;
+  --f-num:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#111314; --surface:#181B1D; --surface-2:#1D2124; --line:#262A2D; --line-2:#33383C;
+    --ink:#ECECE8; --ink-2:#B4B9BE; --ink-3:#8D939A;
+    --accent:#3FB9A3; --accent-ink:#6FD3C0; --accent-tint:#14302B; --on-accent:#0B1F1B;
+    --bad:#F08A82; --bad-tint:#3A1E1C; --ok:#6FCB94; --ok-tint:#16301F;
+    --warn:#E3B661; --warn-tint:#352B14; --violet:#B99DE3; --violet-tint:#2A2036; --heat-max:52%;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#111314; --surface:#181B1D; --surface-2:#1D2124; --line:#262A2D; --line-2:#33383C;
+  --ink:#ECECE8; --ink-2:#B4B9BE; --ink-3:#8D939A;
+  --accent:#3FB9A3; --accent-ink:#6FD3C0; --accent-tint:#14302B; --on-accent:#0B1F1B;
+  --bad:#F08A82; --bad-tint:#3A1E1C; --ok:#6FCB94; --ok-tint:#16301F;
+  --warn:#E3B661; --warn-tint:#352B14; --violet:#B99DE3; --violet-tint:#2A2036; --heat-max:52%;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 14px/1.5 var(--f-text);-webkit-font-smoothing:antialiased}
+h1,h2,h3,p,dl,dd,figure{margin:0}
+button,input,select{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num,.id{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.id{font-size:12px;color:var(--ink-2)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.muted{color:var(--ink-3)}
+
+/* shell */
+.app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;overflow:auto;display:flex;flex-direction:column;gap:22px;background:var(--surface);border-right:1px solid var(--line);
+  padding-block:18px 16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:16px}
+.brand{display:flex;align-items:center;gap:10px}
+.mark{width:30px;height:30px;border-radius:8px;background:var(--ink);display:inline-flex;align-items:center;justify-content:center;flex:none}
+.mark svg{display:block}
+.brand-n{font:700 15px/1.2 var(--f-text);letter-spacing:-.02em}
+.brand-s{font-size:12px;color:var(--ink-3)}
+.tabs{display:flex;flex-direction:column;gap:2px}
+.tab{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 8px;text-align:left;min-height:52px;padding:8px 10px;border:1px solid transparent;border-radius:8px;background:none}
+.tab:hover{background:var(--surface-2)}
+.tab[aria-selected="true"]{background:var(--accent-tint);border-color:color-mix(in srgb,var(--accent) 28%,var(--line))}
+.tab-t{font-weight:600;font-size:14px}
+.tab[aria-selected="true"] .tab-t{color:var(--accent-ink)}
+.tab-s{grid-column:1;font-size:12px;color:var(--ink-3)}
+.tab-c{grid-row:1/3;grid-column:2;font:500 12px var(--f-num);color:var(--ink-3);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+.side-meta{display:flex;flex-direction:column;gap:10px;padding-top:16px;border-top:1px solid var(--line)}
+.side-meta h2{font:600 11px var(--f-text);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.side-meta dl{display:grid;grid-template-columns:1fr auto;gap:6px 10px;font-size:12px}
+.side-meta dt{color:var(--ink-2)}
+.side-meta dd{font:500 12px var(--f-num);text-align:right}
+.side-foot{margin-top:auto;font-size:11.5px;line-height:1.5;color:var(--ink-3)}
+.main{min-width:0;padding-block:28px 56px;padding-left:max(32px,env(safe-area-inset-left,0px));padding-right:max(32px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.ph{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.ph h1{font:600 30px/1.1 var(--f-display);letter-spacing:-.025em;text-wrap:balance}
+.ph p{margin-top:8px;max-width:68ch;color:var(--ink-2);font-size:14.5px}
+.asof{font:500 12px var(--f-num);color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 10px;white-space:nowrap}
+
+/* tiles, panels */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.tile-l{font:600 11px var(--f-text);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.tile-v{font:500 28px/1.15 var(--f-num);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.tile-s{font-size:12.5px;color:var(--ink-2)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.panel-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 18px 12px}
+.panel-h h2{font:600 17px/1.25 var(--f-display);letter-spacing:-.015em}
+.panel-h p{margin-top:3px;font-size:13px;color:var(--ink-2);max-width:74ch}
+.panel-b{padding:0 18px 18px}
+.panel-b.flush{padding:0}
+.grid2{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:22px}
+.grid2e{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.note{font-size:12.5px;color:var(--ink-3);margin-top:10px;max-width:90ch}
+
+/* pills, buttons, fields */
+.pill{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font:600 11px var(--f-text);letter-spacing:.02em;white-space:nowrap;border:1px solid transparent}
+.p-bad{background:var(--bad-tint);color:var(--bad)} .p-ok{background:var(--ok-tint);color:var(--ok)}
+.p-warn{background:var(--warn-tint);color:var(--warn)} .p-violet{background:var(--violet-tint);color:var(--violet)}
+.p-accent{background:var(--accent-tint);color:var(--accent-ink)} .p-neutral{background:var(--bg);color:var(--ink-2);border-color:var(--line)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 12px;border-radius:7px;border:1px solid var(--line-2);background:var(--surface);font-weight:500;font-size:13px;white-space:nowrap}
+.btn:hover:not(:disabled){background:var(--surface-2);border-color:var(--ink-3)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover:not(:disabled){background:var(--accent-ink);border-color:var(--accent-ink)}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+:root[data-theme="dark"] .btn.danger{color:#1b0c0b}
+.btn.sm{min-height:28px;padding:0 9px;font-size:12px}
+.field{min-height:34px;border:1px solid var(--line-2);border-radius:7px;background:var(--surface);padding:0 10px}
+select.field{padding-right:6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{min-height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--line-2);background:var(--surface);font-size:12.5px;font-weight:500;color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.seg label{position:relative;display:flex;align-items:center;min-height:32px;padding:0 12px;font-size:12.5px;font-weight:500;cursor:pointer;color:var(--ink-2);background:var(--surface)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg input:checked+span{color:var(--accent-ink)}
+.seg label:has(input:checked){background:var(--accent-tint);color:var(--accent-ink)}
+.seg label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-2px}
+.seg label+label{border-left:1px solid var(--line-2)}
+
+/* tables */
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th{font:600 11px var(--f-text);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);background:var(--surface-2);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:13px}
+tr:last-child>td{border-bottom:0}
+td.r,th.r{text-align:right}
+.tname{font-weight:600;font-size:13.5px}
+.tsub{font:400 11.5px var(--f-num);color:var(--ink-3);margin-top:2px}
+.xbtn{display:flex;align-items:flex-start;gap:8px;background:none;border:0;padding:0;text-align:left}
+.xbtn svg{flex:none;margin-top:3px;transition:transform .15s}
+.xbtn[aria-expanded="true"] svg{transform:rotate(90deg)}
+tr.detail>td{background:var(--surface-2);padding:12px 12px 14px 38px}
+.dgrid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:18px;font-size:13px}
+.dgrid h4{margin:0 0 4px;font:600 11px var(--f-text);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.eids{display:flex;gap:6px;flex-wrap:wrap}
+.eid{font:500 11.5px var(--f-num);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--ink-2)}
+.bar{position:relative;width:132px;height:8px;border-radius:4px;background:var(--bg);border:1px solid var(--line)}
+.bar i{position:absolute;left:0;top:-1px;bottom:-1px;border-radius:4px;background:var(--bad)}
+.bar b{position:absolute;top:50%;height:2px;margin-top:-1px;background:var(--ink)}
+.bar b::before,.bar b::after{content:"";position:absolute;top:-3px;width:1.5px;height:8px;background:var(--ink)}
+.bar b::before{left:0}.bar b::after{right:0}
+.ratecell{display:flex;align-items:center;gap:10px}
+.ratecell .num{min-width:48px;text-align:right;font-weight:500}
+
+/* heatmap */
+.heat{display:grid;grid-template-columns:minmax(190px,1.5fr) repeat(9,minmax(44px,1fr));gap:3px;align-items:stretch;min-width:700px}
+.hh{font:600 11px var(--f-num);color:var(--ink-3);text-align:center;padding-bottom:4px}
+.hl{display:flex;flex-direction:column;justify-content:center;font-size:12.5px;font-weight:600;padding-right:8px;overflow-wrap:anywhere;min-width:0}
+.hc{min-height:42px;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;font:500 12px var(--f-num);color:var(--ink);line-height:1.2;
+  background:color-mix(in srgb,var(--bad) calc(var(--heat-max) * var(--r)),var(--surface))}
+.hc small{font-size:9.5px;color:var(--ink-2)}
+.hc.na{background:transparent;border:1px dashed var(--line-2);color:var(--ink-3)}
+.scale{display:flex;align-items:center;gap:8px;margin-top:10px;font:11.5px var(--f-num);color:var(--ink-3)}
+.scale i{display:block;width:140px;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--surface),color-mix(in srgb,var(--bad) var(--heat-max),var(--surface)));border:1px solid var(--line)}
+
+/* predictor */
+.pred{display:flex;flex-direction:column;gap:12px}
+.pred label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--ink-2)}
+.pred .field{width:100%;font-weight:400;font-size:13px}
+.pout{border:1px solid var(--line);border-radius:9px;background:var(--surface-2);padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.pbig{font:500 34px/1.1 var(--f-num);letter-spacing:-.04em}
+.pdl{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:12.5px;color:var(--ink-2);padding-top:8px;border-top:1px solid var(--line);margin-top:4px}
+.pdl dd{font:500 12.5px var(--f-num);color:var(--ink);text-align:right}
+
+/* register */
+.reg{border-top:1px solid var(--line);padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.reg:first-of-type{border-top:0}
+.reg-h{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.reg-h .tt{flex:1 1 280px;min-width:0}
+.reg-h h3{font:600 15px/1.3 var(--f-text)}
+.reg-h .tsub{font-family:var(--f-text);font-size:12px}
+.reg-n{text-align:right}
+.reg-n b{display:block;font:500 26px/1.1 var(--f-num);letter-spacing:-.03em}
+.reg-n span{font-size:12px;color:var(--ink-3)}
+.reg-b{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.reg-b h4{margin:0 0 3px;font:600 11px var(--f-text);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.reg-b p{font-size:13px;color:var(--ink-2)}
+.reg-b .act{color:var(--ink);font-weight:500}
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.age-row{display:grid;grid-template-columns:150px minmax(0,1fr) 150px;gap:14px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.age-row:first-of-type{border-top:0}
+.age-l{font-weight:600;font-size:13px}
+.age-l small{display:block;font:400 11.5px var(--f-num);color:var(--ink-3)}
+.age-v{text-align:right}
+.age-v b{font:500 20px var(--f-num);letter-spacing:-.03em}
+.age-v span{display:block;font-size:12px;color:var(--ink-3)}
+.slider{display:flex;align-items:center;gap:12px}
+.slider input{width:min(280px,60vw);accent-color:var(--accent)}
+.slider output{font:600 13px var(--f-num);min-width:84px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px}
+
+/* charts */
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text{font-family:var(--f-num);font-size:11px;fill:var(--ink-3)}
+.chart .lbl{font-family:var(--f-text);font-size:11.5px;font-weight:600}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .axis{stroke:var(--line-2);stroke-width:1}
+details.data{margin-top:8px;font-size:12.5px}
+details.data summary{cursor:pointer;color:var(--ink-2);font-weight:500;min-height:28px;display:flex;align-items:center}
+details.data table{margin-top:6px}
+details.data td,details.data th{padding:6px 10px}
+
+/* graph tab */
+.mtiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.mtiles .tile-v{font-size:24px}
+.warnbar{border:1px solid color-mix(in srgb,var(--warn) 40%,var(--line));background:var(--warn-tint);border-radius:9px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.warnbar h3{font:600 14px var(--f-text)}
+.warnbar ul{margin:0;padding-left:18px;font-size:13px;color:var(--ink)}
+.warnbar li+li{margin-top:3px}
+.rowsel td{background:color-mix(in srgb,var(--bad-tint) 55%,var(--surface))}
+.gone td{color:var(--ink-3)}
+.gone .tname{text-decoration:line-through}
+.stbl td,.stbl th{padding:8px 12px}
+.gwrap{overflow-x:auto;border-top:1px solid var(--line);background:var(--surface-2);border-radius:0 0 10px 10px}
+#gsvg{display:block;min-width:900px;width:100%;height:auto}
+#gsvg .nb{fill:var(--surface);stroke-width:1.6}
+#gsvg .nt{font:600 12.5px var(--f-text);fill:var(--ink)}
+#gsvg .ns{font:500 10.5px var(--f-num);fill:var(--ink-3)}
+#gsvg .gn{cursor:pointer}
+#gsvg .gn:hover .nb{fill:var(--surface-2)}
+#gsvg .gn.sel .nb{stroke-width:3}
+#gsvg .gn.pend .nb{fill:var(--bad-tint)}
+#gsvg .gn.orph .nb{stroke-dasharray:5 3}
+#gsvg .tag{font:600 9px var(--f-num);letter-spacing:.06em}
+#gsvg .cap{font:600 10.5px var(--f-num);letter-spacing:.08em;fill:var(--ink-3);text-transform:uppercase}
+#gsvg .colband{fill:var(--bg);opacity:.55}
+#gsvg .ed{fill:none;stroke:var(--ink-3);stroke-width:1.3}
+#gsvg .ed.inf{stroke-dasharray:6 4}
+#gsvg .ed.act{stroke:var(--bad)}
+#gsvg .ed.rst{stroke:var(--warn)}
+#gsvg .el{font:500 9.5px var(--f-num);fill:var(--ink-2);paint-order:stroke;stroke:var(--surface-2);stroke-width:3.5px;stroke-linejoin:round}
+@media (prefers-reduced-motion:no-preference){ #gsvg .ed.act{stroke-dasharray:7 4;animation:flow 1.4s linear infinite} #gsvg .ed.act.inf{stroke-dasharray:7 4} }
+@keyframes flow{to{stroke-dashoffset:-22}}
+.insp{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.2fr) minmax(0,.9fr);gap:20px;padding:16px 18px 18px;border-top:1px solid var(--line)}
+.insp h4{margin:0 0 6px;font:600 11px var(--f-text);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.q{font:400 12px/1.7 var(--f-num);color:var(--ink-2);overflow-wrap:anywhere}
+.q b{font-weight:600;color:var(--ink)}
+.lk{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:12.5px}
+.lk:first-of-type{border-top:0}
+.lk .id{overflow-wrap:anywhere}
+.logbox{max-height:260px;overflow:auto;border-top:1px solid var(--line)}
+.logrow{display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;padding:9px 18px;border-bottom:1px solid var(--line);font-size:12.5px}
+.logrow code{font:500 12px var(--f-num);color:var(--ink);overflow-wrap:anywhere}
+.logrow p{color:var(--ink-3);margin-top:2px}
+pre.snip{margin:0;padding:12px 18px;background:var(--surface-2);border-top:1px solid var(--line);font:400 12px/1.6 var(--f-num);color:var(--ink-2);overflow:auto;max-height:240px;border-radius:0 0 10px 10px}
+.method{border-top:1px solid var(--line);padding-top:18px;font-size:12.5px;color:var(--ink-3);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.method h3{font:600 11px var(--f-text);letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px}
+.method p+p{margin-top:6px}
+
+@media (max-width:1100px){ .tiles{grid-template-columns:repeat(2,minmax(0,1fr))} .mtiles{grid-template-columns:repeat(3,minmax(0,1fr))} .grid2{grid-template-columns:minmax(0,1fr)} .insp{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:920px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding-right:max(16px,env(safe-area-inset-right,0px));gap:12px;padding-block:14px 10px}
+  .tabs{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px}
+  .tab{min-width:178px;flex:none}
+  .side-meta,.side-foot{display:none}
+  .main{padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .ph h1{font-size:25px}
+  .reg-b,.method,.grid2e,.dgrid{grid-template-columns:minmax(0,1fr)}
+  .age-row{grid-template-columns:minmax(0,1fr)} .age-v{text-align:left}
+}
+@media (max-width:560px){ .tiles{grid-template-columns:minmax(0,1fr)} .mtiles{grid-template-columns:repeat(2,minmax(0,1fr))} .panel-h,.panel-b{padding-left:14px;padding-right:14px} .reg{padding-left:14px;padding-right:14px} }
+@media (pointer:coarse){ .btn,.chip,.field,.seg label{min-height:44px} .btn.sm{min-height:40px} }
+</style>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="3.2" cy="8" r="1.7" fill="#FBFBF9"/><circle cx="12.8" cy="3.4" r="1.7" fill="#FBFBF9"/><circle cx="12.8" cy="12.6" r="1.7" fill="#FBFBF9"/><path d="M4.8 7.4L11.2 4M4.8 8.6L11.2 12" stroke="#FBFBF9" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+      <div><div class="brand-n">Ghost Data Console</div><div class="brand-s">Deletion audit workspace</div></div>
+    </div>
+    <nav aria-label="Sections">
+      <div class="tabs" role="tablist" aria-orientation="vertical" id="tabs">
+        <button class="tab" role="tab" id="tab-patterns" aria-controls="panel-patterns" aria-selected="true"><span class="tab-t">Error patterns</span><span class="tab-c" id="cnt-patterns">0</span><span class="tab-s">Pattern prediction</span></button>
+        <button class="tab" role="tab" id="tab-retention" aria-controls="panel-retention" aria-selected="false" tabindex="-1"><span class="tab-t">Retention conflicts</span><span class="tab-c" id="cnt-retention">0</span><span class="tab-s">Data no longer required</span></button>
+        <button class="tab" role="tab" id="tab-graph" aria-controls="panel-graph" aria-selected="false" tabindex="-1"><span class="tab-t">System graph</span><span class="tab-c" id="cnt-graph">0</span><span class="tab-s">NetworkX graph store</span></button>
+      </div>
+    </nav>
+    <div class="side-meta">
+      <h2>Evidence window</h2>
+      <dl id="side-dl"></dl>
+    </div>
+    <p class="side-foot">Text is set in Schibsted Grotesk. Figures and identifiers use JetBrains Mono with tabular numerals. Titles use Bricolage Grotesque.</p>
+  </aside>
+
+  <main class="main">
+    <!-- ============================ TAB 1 ============================ -->
+    <section id="panel-patterns" role="tabpanel" aria-labelledby="tab-patterns" class="wrap">
+      <div class="ph">
+        <div>
+          <h1>Error patterns and forecast</h1>
+          <p>Where deletion, sync and replication results go wrong, how often, and what to expect next month. Every figure is derived from the supplied activity stream and SQL snapshots.</p>
+        </div>
+        <span class="asof" id="asof1"></span>
+      </div>
+      <div class="tiles" id="kpis1"></div>
+
+      <section class="panel" aria-labelledby="h-trend">
+        <div class="panel-h">
+          <div><h2 id="h-trend">Failure rate by month, with projection</h2>
+          <p>Share of results that came back FAILED or PARTIAL. Controlled operations are delete, redact and anonymize calls. The shaded band is an 80% prediction interval for October to December.</p></div>
+        </div>
+        <div class="panel-b">
+          <div id="trend"></div>
+          <div class="legend" id="trend-legend"></div>
+          <p class="note" id="trend-note"></p>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-cat">
+        <div class="panel-h">
+          <div><h2 id="h-cat">Pattern catalogue</h2>
+          <p>Each row is a recurring signature in the data. Rates carry a 95% Wilson interval. The forecast is a linear fit over the nine complete months. Select a row for its rule, trend statistics and example evidence IDs.</p></div>
+          <div class="chips" id="grp-chips" role="group" aria-label="Filter by group"></div>
+        </div>
+        <div class="panel-b flush tscroll">
+          <table id="cat" style="min-width:900px">
+            <thead><tr><th>Pattern</th><th class="r">Occurrences</th><th>Failure rate</th><th>Trend</th><th class="r">Expected next month</th><th>Monthly</th><th>Confidence</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="grid2">
+        <section class="panel" aria-labelledby="h-heat">
+          <div class="panel-h"><div><h2 id="h-heat">Failure rate by system and month</h2><p>Controlled operations only, plus replication checkpoints. Dashed cells have fewer than five operations.</p></div></div>
+          <div class="panel-b tscroll"><div class="heat" id="heat" role="table" aria-label="Failure rate by system and month"></div><div class="scale"><span>0%</span><i></i><span>100%</span></div></div>
+        </section>
+        <section class="panel" aria-labelledby="h-pred">
+          <div class="panel-h"><div><h2 id="h-pred">Failure predictor</h2><p>Pick an operation and a target system. The estimate pulls small samples toward the average for that class of operation.</p></div></div>
+          <div class="panel-b pred">
+            <label for="pr-op">Operation<select class="field" id="pr-op"></select></label>
+            <label for="pr-sys">Target system<select class="field" id="pr-sys"></select></label>
+            <div class="pout" id="pr-out" aria-live="polite"></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="grid2e">
+        <section class="panel" aria-labelledby="h-rank">
+          <div class="panel-h"><div><h2 id="h-rank">System risk ranking</h2><p>All results by target system, ordered by failure rate.</p></div></div>
+          <div class="panel-b flush tscroll"><table id="rank" style="min-width:520px"><thead><tr><th>System</th><th class="r">Events</th><th>Failure rate</th><th class="r">Next month</th></tr></thead><tbody></tbody></table></div>
+        </section>
+        <section class="panel" aria-labelledby="h-drift">
+          <div class="panel-h"><div><h2 id="h-drift">Replica drift in SQL snapshots</h2><p>Rows that exist in a replica table but not in its primary, per snapshot.</p></div></div>
+          <div class="panel-b flush tscroll"><table id="drift" style="min-width:520px"><thead><tr><th>Snapshot</th><th>Replica</th><th class="r">Primary</th><th class="r">Replica</th><th class="r">Ghost</th><th class="r">With IDs</th></tr></thead><tbody></tbody></table></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ============================ TAB 2 ============================ -->
+    <section id="panel-retention" role="tabpanel" aria-labelledby="tab-retention" class="wrap" hidden>
+      <div class="ph">
+        <div>
+          <h1>Retention conflicts</h1>
+          <p>Data that has no remaining purpose, or will stop having one, and the conflict each item can cause later. Counts come from the latest observed state in the SQL snapshots and from the activity stream.</p>
+        </div>
+        <span class="asof" id="asof2"></span>
+      </div>
+      <div class="tiles" id="kpis2"></div>
+
+      <section class="panel" aria-labelledby="h-reg">
+        <div class="panel-h">
+          <div><h2 id="h-reg">Conflict register</h2><p>Each item names the policy rule, why the data is no longer required, the conflict it can cause, and the evidence that supports it.</p></div>
+          <div class="toolbar">
+            <div class="chips" id="sev-chips" role="group" aria-label="Filter by severity"></div>
+            <label class="sr" for="cat-sel">Category</label><select class="field" id="cat-sel"></select>
+          </div>
+        </div>
+        <div id="reg"></div>
+      </section>
+
+      <div class="grid2e">
+        <section class="panel" aria-labelledby="h-age">
+          <div class="panel-h"><div><h2 id="h-age">Ageing explorer</h2><p>Entries with no confirmed delete, grouped by age at the end of the evidence window. The threshold is an adjustable assumption. It is not a rule from deletion_rules.csv.</p></div></div>
+          <div class="panel-b">
+            <div class="slider"><label for="age-th" class="sr">Age threshold in days</label><input type="range" id="age-th" min="30" max="240" step="30" value="90"><output for="age-th" id="age-out"></output></div>
+            <div id="age" style="margin-top:12px"></div>
+          </div>
+        </section>
+        <section class="panel" aria-labelledby="h-ret">
+          <div class="panel-h"><div><h2 id="h-ret">When retention ends</h2><p>Records kept under policy, by the year their retain-until date falls. Nothing becomes releasable before 2027.</p></div></div>
+          <div class="panel-b"><div id="ret"></div><div class="legend" id="ret-legend"></div></div>
+        </section>
+      </div>
+
+      <section class="panel" aria-labelledby="h-id">
+        <div class="panel-h"><div><h2 id="h-id">Superseded identifiers</h2><p>Values replaced in user_audit_log.csv. Older systems can still be keyed to them, so they must stay in the identity map even after the live copy is gone.</p></div></div>
+        <div class="panel-b flush tscroll"><table id="idt" style="min-width:420px"><thead><tr><th>Field</th><th class="r">Changes</th><th class="r">Users</th><th class="r">Older than 12 months</th></tr></thead><tbody></tbody></table></div>
+      </section>
+    </section>
+
+    <!-- ============================ TAB 3 ============================ -->
+    <section id="panel-graph" role="tabpanel" aria-labelledby="tab-graph" class="wrap" hidden>
+      <div class="ph">
+        <div>
+          <h1>System graph</h1>
+          <p>Select the databases to remove. The NetworkX graph below relinks as you delete, flags what is left behind and recounts the open conflicts. This is a simulation. No data is changed.</p>
+        </div>
+        <span class="asof" id="nxv"></span>
+      </div>
+      <div class="mtiles" id="mtiles"></div>
+
+      <section class="panel" aria-labelledby="h-db">
+        <div class="panel-h">
+          <div><h2 id="h-db">Databases</h2><p>All systems in the graph, with the policy action from deletion_rules.csv. Downstream copies are removed before their sources.</p></div>
+          <div class="toolbar">
+            <label class="sr" for="db-q">Search systems</label><input class="field" id="db-q" type="search" placeholder="Search systems" autocomplete="off" style="width:170px">
+            <label class="sr" for="db-act">Policy action</label>
+            <select class="field" id="db-act"><option value="ALL">All actions</option><option value="DELETE">Delete</option><option value="REDACT">Redact</option><option value="ANONYMIZE">Anonymize</option><option value="RETAIN">Retain</option><option value="DISABLE">Disable flow</option><option value="NONE">No rule</option></select>
+          </div>
+        </div>
+        <div class="panel-b" style="padding-bottom:12px">
+          <div class="toolbar">
+            <button class="btn" id="b-delstores" type="button">Select delete-policy stores</button>
+            <button class="btn" id="b-clear" type="button">Clear selection</button>
+            <span class="seg" role="radiogroup" aria-label="When a system is removed">
+              <label><input type="radio" name="mode" value="detach" checked><span>Detach links</span></label>
+              <label><input type="radio" name="mode" value="cascade"><span>Cascade copies</span></label>
+            </span>
+            <span style="flex:1"></span>
+            <button class="btn" id="b-undo" type="button">Undo</button>
+            <button class="btn" id="b-reset" type="button">Reset graph</button>
+            <button class="btn danger" id="b-delete" type="button">Delete selected (0)</button>
+          </div>
+          <p class="note" style="margin-top:8px">Detach links removes the selected systems and their links, and flags any system left without a source. Cascade copies also removes orphaned copies whose policy action is Delete. Copies that must be redacted, anonymized, retained or disabled are flagged instead.</p>
+        </div>
+        <div id="confirm" aria-live="polite" style="padding:0 18px"></div>
+        <div class="panel-b flush tscroll" style="margin-top:6px"><table id="dbt" class="stbl" style="min-width:860px">
+          <thead><tr><th style="width:44px"><span class="sr">Select</span></th><th>System</th><th>Data category</th><th>Policy</th><th class="r">Resources</th><th class="r">Failure rate</th><th class="r">In / out</th><th>Status</th></tr></thead>
+          <tbody></tbody></table></div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-g">
+        <div class="panel-h">
+          <div><h2 id="h-g">Link map</h2><p>Columns show distance from the origin systems in data hops. Select a system to query it.</p></div>
+          <div class="legend" style="margin:0">
+            <span><svg width="26" height="8" aria-hidden="true"><path d="M0 4H26" stroke="var(--ink-3)" stroke-width="1.5"/></svg>Observed</span>
+            <span><svg width="26" height="8" aria-hidden="true"><path d="M0 4H26" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="5 3"/></svg>Inferred</span>
+            <span><svg width="26" height="8" aria-hidden="true"><path d="M0 4H26" stroke="var(--bad)" stroke-width="1.5"/></svg>Active flow</span>
+            <span><svg width="26" height="8" aria-hidden="true"><path d="M0 4H26" stroke="var(--warn)" stroke-width="1.5"/></svg>Restore path</span>
+          </div>
+        </div>
+        <div class="gwrap"><svg id="gsvg" role="group" aria-label="System link map. The database table above lists the same systems."><defs>
+          <marker id="ar-n" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" style="fill:var(--ink-3)"/></marker>
+          <marker id="ar-a" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" style="fill:var(--bad)"/></marker>
+          <marker id="ar-r" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" style="fill:var(--warn)"/></marker>
+        </defs><g id="gdraw"></g></svg></div>
+        <div id="insp"></div>
+      </section>
+
+      <div class="grid2e">
+        <section class="panel" aria-labelledby="h-conf">
+          <div class="panel-h"><div><h2 id="h-conf">Open conflicts</h2><p>Recomputed from the current graph after every change.</p></div></div>
+          <div class="panel-b" id="conf"></div>
+        </section>
+        <section class="panel" aria-labelledby="h-log">
+          <div class="panel-h"><div><h2 id="h-log">Graph store log</h2><p>Each action as the equivalent NetworkX call.</p></div><button class="btn sm" id="b-copy" type="button">Copy NetworkX snippet</button></div>
+          <div class="logbox" id="log"></div>
+        </section>
+      </div>
+      <section class="panel" aria-labelledby="h-snip">
+        <div class="panel-h"><div><h2 id="h-snip">Rebuild this graph in Python</h2><p>The current graph as NetworkX code. It reflects every deletion made above.</p></div></div>
+        <pre class="snip" id="snip" tabindex="0"></pre>
+      </section>
+    </section>
+
+    <footer class="method wrap" style="margin-top:22px">
+      <div><h3>Sources</h3><p>dataset/system_activity.csv, deletion_rules.csv, user_audit_log.csv, evidence_files.csv and the 24 SQL snapshots under dataset/evidence/databases. Organizer-only files are not used.</p></div>
+      <div><h3>How to read the numbers</h3><p>Activity results are claims. Rates describe what systems reported, and replica and retention figures come from snapshots. Forecasts are a straight-line fit on nine complete months and carry wide intervals.</p></div>
+      <div><h3>Graph</h3><p>The graph is built with NetworkX in dashboard/build_data.py and exported as node-link JSON. This page mirrors the NetworkX calls it needs, so the browser never changes the source data.</p></div>
+    </footer>
+  </main>
+</div>
+
+<script type="application/json" id="data">{"meta":{"as_of":"2026-10-01T12:00:00Z","activity_from":"2026-01-04","activity_to":"2026-10-01","events":4011,"requests":518,"evidence_files":94,"sql_snapshots":24,"rules":15,"months":["2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"month_labels":{"2026-01":"Jan","2026-02":"Feb","2026-03":"Mar","2026-04":"Apr","2026-05":"May","2026-06":"Jun","2026-07":"Jul","2026-08":"Aug","2026-09":"Sep"},"oct_partial_events":3,"networkx":"3.6.1"},"kpis":{"events":4011,"non_success":1097,"non_success_rate":0.2735,"destructive_n":1267,"destructive_bad":786,"destructive_rate":0.6204,"reborn":30,"flows_checked":89,"flows_open_act":89,"restore_checked":28,"restore_open_act":28,"ghost_rows":12,"replica_tables":14},"rate_series":[{"m":"2026-01","n":387,"bad":93,"rate":0.2403},{"m":"2026-02","n":395,"bad":119,"rate":0.3013},{"m":"2026-03","n":450,"bad":124,"rate":0.2756},{"m":"2026-04","n":432,"bad":131,"rate":0.3032},{"m":"2026-05","n":503,"bad":128,"rate":0.2545},{"m":"2026-06","n":452,"bad":126,"rate":0.2788},{"m":"2026-07","n":434,"bad":139,"rate":0.3203},{"m":"2026-08","n":516,"bad":134,"rate":0.2597},{"m":"2026-09","n":439,"bad":102,"rate":0.2323}],"rate_fc":{"slope":-0.0015,"p":0.7206,"fc":[{"h":1,"y":0.266,"lo":0.211,"hi":0.322},{"h":2,"y":0.265,"lo":0.206,"hi":0.324},{"h":3,"y":0.263,"lo":0.201,"hi":0.326}],"fit":[0.28,0.279,0.277,0.276,0.274,0.272,0.271,0.269,0.268]},"count_fc":{"slope":1.7667,"p":0.3999,"fc":[{"h":1,"y":130.611,"lo":103.905,"hi":157.317},{"h":2,"y":132.378,"lo":104.115,"hi":160.641},{"h":3,"y":134.144,"lo":104.145,"hi":164.144}],"fit":[114.711,116.478,118.244,120.011,121.778,123.544,125.311,127.078,128.844]},"ctrl_series":[{"m":"2026-01","n":105,"bad":67,"rate":0.6381},{"m":"2026-02","n":129,"bad":86,"rate":0.6667},{"m":"2026-03","n":145,"bad":89,"rate":0.6138},{"m":"2026-04","n":151,"bad":98,"rate":0.649},{"m":"2026-05","n":153,"bad":84,"rate":0.549},{"m":"2026-06","n":148,"bad":89,"rate":0.6014},{"m":"2026-07","n":142,"bad":100,"rate":0.7042},{"m":"2026-08","n":174,"bad":106,"rate":0.6092},{"m":"2026-09","n":120,"bad":67,"rate":0.5583}],"ctrl_fc":{"slope":-0.006,"p":0.3872,"fc":[{"h":1,"y":0.591,"lo":0.503,"hi":0.679},{"h":2,"y":0.585,"lo":0.492,"hi":0.678},{"h":3,"y":0.579,"lo":0.481,"hi":0.678}],"fit":[0.645,0.639,0.633,0.627,0.621,0.615,0.609,0.603,0.597]},"patterns":[{"id":"P01","name":"Primary profile deletion not confirmed","group":"Deletion outcome","signature":"DELETE_RECORD → account_service","rule":"rule_01","kind":"failure","note":"Half of the deletion calls against the account store return FAILED or PARTIAL, so the profile and its secondary identifiers can survive.","n":539,"count":269,"rate":0.4991,"ci":[0.457,0.5411],"series":[{"m":"2026-01","n":47,"c":25},{"m":"2026-02","n":55,"c":29},{"m":"2026-03","n":60,"c":26},{"m":"2026-04","n":60,"c":32},{"m":"2026-05","n":65,"c":28},{"m":"2026-06","n":60,"c":29},{"m":"2026-07","n":60,"c":35},{"m":"2026-08","n":79,"c":41},{"m":"2026-09","n":53,"c":24}],"slope":0.7833,"p":0.2893,"trend":"Stable","forecast":[{"h":1,"y":33.806,"lo":24.55,"hi":43.062},{"h":2,"y":34.589,"lo":24.793,"hi":44.384},{"h":3,"y":35.372,"lo":24.975,"hi":45.77}],"fit":[26.756,27.539,28.322,29.106,29.889,30.672,31.456,32.239,33.022],"confidence":"High","examples":["activity_3796","activity_3798","activity_3849"]},{"id":"P02","name":"Search-index deletion not confirmed","group":"Deletion outcome","signature":"DELETE_RECORD → search_service","rule":"rule_03","kind":"failure","note":"Nine in ten index deletions fail. Index entries are rebuilt from the account store, so they persist and re-appear.","n":289,"count":261,"rate":0.9031,"ci":[0.8635,0.9321],"series":[{"m":"2026-01","n":22,"c":19},{"m":"2026-02","n":34,"c":31},{"m":"2026-03","n":36,"c":33},{"m":"2026-04","n":35,"c":34},{"m":"2026-05","n":35,"c":29},{"m":"2026-06","n":35,"c":31},{"m":"2026-07","n":36,"c":33},{"m":"2026-08","n":35,"c":32},{"m":"2026-09","n":21,"c":19}],"slope":0.0,"p":1.0,"trend":"Stable","forecast":[{"h":1,"y":29.0,"lo":18.058,"hi":39.942},{"h":2,"y":29.0,"lo":17.42,"hi":40.58},{"h":3,"y":29.0,"lo":16.709,"hi":41.291}],"fit":[29.0,29.0,29.0,29.0,29.0,29.0,29.0,29.0,29.0],"confidence":"High","examples":["activity_3812","activity_3814","activity_3934"]},{"id":"P03","name":"Support redaction and attachment deletion failing","group":"Deletion outcome","signature":"REDACT / DELETE → support_platform","rule":"rule_05, rule_06","kind":"failure","note":"Messages that must be redacted and attachments that must be deleted stay in place for roughly three in four requests.","n":192,"count":147,"rate":0.7656,"ci":[0.7009,0.82],"series":[{"m":"2026-01","n":18,"c":14},{"m":"2026-02","n":18,"c":15},{"m":"2026-03","n":18,"c":16},{"m":"2026-04","n":25,"c":19},{"m":"2026-05","n":24,"c":17},{"m":"2026-06","n":24,"c":18},{"m":"2026-07","n":21,"c":18},{"m":"2026-08","n":27,"c":20},{"m":"2026-09","n":17,"c":10}],"slope":0.0333,"p":0.9389,"trend":"Stable","forecast":[{"h":1,"y":16.5,"lo":10.816,"hi":22.184},{"h":2,"y":16.533,"lo":10.518,"hi":22.548},{"h":3,"y":16.567,"lo":10.182,"hi":22.951}],"fit":[16.2,16.233,16.267,16.3,16.333,16.367,16.4,16.433,16.467],"confidence":"High","examples":["activity_3809","activity_3815","activity_3933"]},{"id":"P04","name":"Export deletion failing","group":"Deletion outcome","signature":"DELETE_RECORD → export_service","rule":"rule_09","kind":"failure","note":"Almost every export deletion fails, leaving downloadable archives of personal data.","n":32,"count":31,"rate":0.9688,"ci":[0.8426,0.9945],"series":[{"m":"2026-01","n":3,"c":3},{"m":"2026-02","n":3,"c":3},{"m":"2026-03","n":4,"c":4},{"m":"2026-04","n":3,"c":3},{"m":"2026-05","n":4,"c":4},{"m":"2026-06","n":4,"c":4},{"m":"2026-07","n":5,"c":4},{"m":"2026-08","n":4,"c":4},{"m":"2026-09","n":2,"c":2}],"slope":0.0,"p":1.0,"trend":"Stable","forecast":[{"h":1,"y":3.444,"lo":2.086,"hi":4.803},{"h":2,"y":3.444,"lo":2.007,"hi":4.882},{"h":3,"y":3.444,"lo":1.919,"hi":4.97}],"fit":[3.444,3.444,3.444,3.444,3.444,3.444,3.444,3.444,3.444],"confidence":"Medium","examples":["activity_3555","activity_3667","activity_3754"]},{"id":"P05","name":"Analytics anonymization incomplete","group":"Deletion outcome","signature":"ANONYMIZE_RECORD → analytics_platform","rule":"rule_07, rule_08","kind":"failure","note":"Profiles and telemetry remain attributable to a user in about one case in three.","n":204,"count":72,"rate":0.3529,"ci":[0.2906,0.4207],"series":[{"m":"2026-01","n":15,"c":6},{"m":"2026-02","n":19,"c":8},{"m":"2026-03","n":27,"c":10},{"m":"2026-04","n":28,"c":10},{"m":"2026-05","n":25,"c":6},{"m":"2026-06","n":25,"c":7},{"m":"2026-07","n":20,"c":10},{"m":"2026-08","n":28,"c":8},{"m":"2026-09","n":17,"c":7}],"slope":0.0167,"p":0.944,"trend":"Stable","forecast":[{"h":1,"y":8.083,"lo":4.984,"hi":11.183},{"h":2,"y":8.1,"lo":4.82,"hi":11.38},{"h":3,"y":8.117,"lo":4.635,"hi":11.598}],"fit":[7.933,7.95,7.967,7.983,8.0,8.017,8.033,8.05,8.067],"confidence":"High","examples":["activity_3751","activity_3807","activity_3816"]},{"id":"P06","name":"Replication checkpoint failures","group":"Replication","signature":"SYNC_RECORD → account_replication_cluster","rule":"rule_01","kind":"failure","note":"Replica checkpoints fail or stall, which is where rows that no longer exist in the primary come from.","n":55,"count":25,"rate":0.4545,"ci":[0.3303,0.5848],"series":[{"m":"2026-01","n":7,"c":3},{"m":"2026-02","n":7,"c":4},{"m":"2026-03","n":7,"c":4},{"m":"2026-04","n":4,"c":2},{"m":"2026-05","n":7,"c":3},{"m":"2026-06","n":7,"c":3},{"m":"2026-07","n":7,"c":4},{"m":"2026-08","n":5,"c":2},{"m":"2026-09","n":4,"c":0}],"slope":-0.2833,"p":0.0903,"trend":"Falling","forecast":[{"h":1,"y":1.361,"lo":0.0,"hi":3.315},{"h":2,"y":1.078,"lo":0.0,"hi":3.146},{"h":3,"y":0.794,"lo":0.0,"hi":2.989}],"fit":[3.911,3.628,3.344,3.061,2.778,2.494,2.211,1.928,1.644],"confidence":"Medium","examples":["activity_2851","activity_3231","activity_3276"]},{"id":"P07","name":"Tombstone redaction failing","group":"Deletion outcome","signature":"REDACT_RECORD → identity_service","rule":"rule_15","kind":"failure","note":"Account tombstones keep direct identifiers when the redaction does not finish.","n":10,"count":5,"rate":0.5,"ci":[0.2366,0.7634],"series":[{"m":"2026-01","n":0,"c":0},{"m":"2026-02","n":0,"c":0},{"m":"2026-03","n":0,"c":0},{"m":"2026-04","n":0,"c":0},{"m":"2026-05","n":0,"c":0},{"m":"2026-06","n":0,"c":0},{"m":"2026-07","n":0,"c":0},{"m":"2026-08","n":0,"c":0},{"m":"2026-09","n":10,"c":5}],"slope":0.3333,"p":0.1269,"trend":"Stable","forecast":[{"h":1,"y":2.222,"lo":0.0,"hi":4.829},{"h":2,"y":2.556,"lo":0.0,"hi":5.315},{"h":3,"y":2.889,"lo":0.0,"hi":5.817}],"fit":[-0.778,-0.444,-0.111,0.222,0.556,0.889,1.222,1.556,1.889],"confidence":"Low","examples":["activity_3670","activity_3692","activity_3724"]},{"id":"P08","name":"Upstream write failures","group":"Upstream writes","signature":"UPDATE / INDEX / SYNC / REFRESH / EMAIL / EXPORT / RETAIN","rule":"—","kind":"failure","note":"Partial or failed writes leave copies that disagree with the source, the root cause of most later drift.","n":2445,"count":286,"rate":0.117,"ci":[0.1048,0.1303],"series":[{"m":"2026-01","n":258,"c":23},{"m":"2026-02","n":235,"c":29},{"m":"2026-03","n":280,"c":31},{"m":"2026-04","n":245,"c":31},{"m":"2026-05","n":315,"c":41},{"m":"2026-06","n":269,"c":34},{"m":"2026-07","n":263,"c":35},{"m":"2026-08","n":297,"c":26},{"m":"2026-09","n":280,"c":35}],"slope":0.8333,"p":0.2534,"trend":"Stable","forecast":[{"h":1,"y":35.833,"lo":26.762,"hi":44.905},{"h":2,"y":36.667,"lo":27.066,"hi":46.267},{"h":3,"y":37.5,"lo":27.31,"hi":47.69}],"fit":[28.333,29.167,30.0,30.833,31.667,32.5,33.333,34.167,35.0],"confidence":"High","examples":["activity_3990","activity_3992","activity_3997"]},{"id":"P09","name":"Data flow confirmed still enabled","group":"Recreation risk","signature":"CHECK_DATA_FLOW → integration_service","rule":"allowed op: DISABLE_DATA_FLOW","kind":"occurrence","note":"Connector checks that found the flow running. Each one is a path that can copy deleted data back.","n":89,"count":89,"rate":null,"ci":null,"series":[{"m":"2026-01","n":5,"c":5},{"m":"2026-02","n":10,"c":10},{"m":"2026-03","n":9,"c":9},{"m":"2026-04","n":15,"c":15},{"m":"2026-05","n":11,"c":11},{"m":"2026-06","n":10,"c":10},{"m":"2026-07","n":8,"c":8},{"m":"2026-08","n":13,"c":13},{"m":"2026-09","n":8,"c":8}],"slope":0.2333,"p":0.5735,"trend":"Stable","forecast":[{"h":1,"y":11.056,"lo":5.701,"hi":16.41},{"h":2,"y":11.289,"lo":5.622,"hi":16.956},{"h":3,"y":11.522,"lo":5.507,"hi":17.537}],"fit":[8.956,9.189,9.422,9.656,9.889,10.122,10.356,10.589,10.822],"confidence":"Medium","examples":["activity_3799","activity_3806","activity_3817"]},{"id":"P10","name":"Connector repopulated a downstream index","group":"Recreation risk","signature":"SYNC_RECORD integration_service → search_service","rule":"allowed op: DISABLE_DATA_FLOW","kind":"occurrence","note":"An active connector wrote search entries after the source was handled.","n":31,"count":31,"rate":null,"ci":null,"series":[{"m":"2026-01","n":4,"c":4},{"m":"2026-02","n":4,"c":4},{"m":"2026-03","n":4,"c":4},{"m":"2026-04","n":4,"c":4},{"m":"2026-05","n":2,"c":2},{"m":"2026-06","n":4,"c":4},{"m":"2026-07","n":3,"c":3},{"m":"2026-08","n":4,"c":4},{"m":"2026-09","n":2,"c":2}],"slope":-0.1667,"p":0.1536,"trend":"Stable","forecast":[{"h":1,"y":2.611,"lo":1.2,"hi":4.022},{"h":2,"y":2.444,"lo":0.951,"hi":3.938},{"h":3,"y":2.278,"lo":0.693,"hi":3.863}],"fit":[4.111,3.944,3.778,3.611,3.444,3.278,3.111,2.944,2.778],"confidence":"Medium","examples":["activity_3461","activity_3755","activity_3808"]},{"id":"P11","name":"Archive confirmed restorable","group":"Recreation risk","signature":"CHECK_RESTORE_ACCESS → backup_service","rule":"rule_14","kind":"occurrence","note":"Backups that can still be restored. Rule 14 only allows retention when restore access can be blocked.","n":28,"count":28,"rate":null,"ci":null,"series":[{"m":"2026-01","n":4,"c":4},{"m":"2026-02","n":5,"c":5},{"m":"2026-03","n":2,"c":2},{"m":"2026-04","n":2,"c":2},{"m":"2026-05","n":4,"c":4},{"m":"2026-06","n":1,"c":1},{"m":"2026-07","n":3,"c":3},{"m":"2026-08","n":5,"c":5},{"m":"2026-09","n":2,"c":2}],"slope":-0.1167,"p":0.5697,"trend":"Stable","forecast":[{"h":1,"y":2.528,"lo":0.0,"hi":5.178},{"h":2,"y":2.411,"lo":0.0,"hi":5.216},{"h":3,"y":2.294,"lo":0.0,"hi":5.271}],"fit":[3.578,3.461,3.344,3.228,3.111,2.994,2.878,2.761,2.644],"confidence":"Low","examples":["activity_3422","activity_3690","activity_3709"]},{"id":"P12","name":"Completion claimed without a confirmed state","group":"Claim integrity","signature":"worker reports completed / stopped / unconfirmed","rule":"—","kind":"occurrence","note":"The worker reports completion, or stops on an error, without a final state from the target system. Treat as a claim.","n":11,"count":11,"rate":null,"ci":null,"series":[{"m":"2026-01","n":0,"c":0},{"m":"2026-02","n":0,"c":0},{"m":"2026-03","n":0,"c":0},{"m":"2026-04","n":0,"c":0},{"m":"2026-05","n":0,"c":0},{"m":"2026-06","n":0,"c":0},{"m":"2026-07","n":0,"c":0},{"m":"2026-08","n":8,"c":8},{"m":"2026-09","n":3,"c":3}],"slope":0.6,"p":0.0861,"trend":"Rising","forecast":[{"h":1,"y":4.222,"lo":0.15,"hi":8.295},{"h":2,"y":4.822,"lo":0.512,"hi":9.132},{"h":3,"y":5.422,"lo":0.848,"hi":9.997}],"fit":[-1.178,-0.578,0.022,0.622,1.222,1.822,2.422,3.022,3.622],"confidence":"Low","examples":["activity_3590","activity_3595","activity_3596"]},{"id":"P13","name":"Record written again after a successful delete","group":"Recreation risk","signature":"DELETE_RECORD SUCCESS, then a write to the same resource_id","rule":"§6.5 recreation paths","kind":"occurrence","note":"Replication or sync wrote the resource again a median 106 minutes after the delete was reported as done.","n":30,"count":30,"rate":null,"ci":null,"series":[{"m":"2026-01","n":5,"c":5},{"m":"2026-02","n":4,"c":4},{"m":"2026-03","n":2,"c":2},{"m":"2026-04","n":1,"c":1},{"m":"2026-05","n":4,"c":4},{"m":"2026-06","n":2,"c":2},{"m":"2026-07","n":4,"c":4},{"m":"2026-08","n":5,"c":5},{"m":"2026-09","n":3,"c":3}],"slope":-0.0,"p":1.0,"trend":"Stable","forecast":[{"h":1,"y":3.333,"lo":0.689,"hi":5.977},{"h":2,"y":3.333,"lo":0.535,"hi":6.132},{"h":3,"y":3.333,"lo":0.363,"hi":6.303}],"fit":[3.333,3.333,3.333,3.333,3.333,3.333,3.333,3.333,3.333],"confidence":"Medium","examples":["activity_3608","activity_3646","activity_3886"]},{"id":"P14","name":"Replica holds rows the primary no longer has","group":"Replication","signature":"replica table minus primary table, same snapshot","rule":"§6.6 replication drift","kind":"snapshot","note":"10 of 14 replica tables in the SQL evidence hold at least one row that is absent from their primary.","n":14,"count":12,"rate":0.7143,"ci":[0.4535,0.8828],"series":[{"m":"2026-01","n":0,"c":0},{"m":"2026-02","n":1,"c":1},{"m":"2026-03","n":3,"c":2},{"m":"2026-04","n":2,"c":2},{"m":"2026-05","n":2,"c":1},{"m":"2026-06","n":1,"c":2},{"m":"2026-07","n":1,"c":1},{"m":"2026-08","n":2,"c":2},{"m":"2026-09","n":2,"c":1}],"slope":-0.004,"p":0.9619,"trend":"Stable","forecast":[{"h":1,"y":0.94,"lo":0.0,"hi":1.882},{"h":2,"y":0.937,"lo":0.0,"hi":1.945},{"h":3,"y":0.933,"lo":0.0,"hi":2.017}],"fit":null,"confidence":"Medium","examples":["evidence_15","evidence_10","evidence_05"]}],"heatmap":{"systems":["account_service","search_service","support_platform","analytics_platform","export_service","account_replication_cluster","identity_service"],"rows":[{"system":"account_service","cells":[[47,25],[55,29],[60,26],[60,32],[65,28],[60,29],[60,35],[79,41],[53,24]]},{"system":"search_service","cells":[[22,19],[34,31],[36,33],[35,34],[35,29],[35,31],[36,33],[35,32],[21,19]]},{"system":"support_platform","cells":[[18,14],[18,15],[18,16],[25,19],[24,17],[24,18],[21,18],[27,20],[17,10]]},{"system":"analytics_platform","cells":[[15,6],[19,8],[27,10],[28,10],[25,6],[25,7],[20,10],[29,9],[17,7]]},{"system":"export_service","cells":[[3,3],[3,3],[4,4],[3,3],[4,4],[4,4],[5,4],[4,4],[2,2]]},{"system":"account_replication_cluster","cells":[[7,3],[7,4],[7,4],[4,2],[7,3],[7,3],[7,4],[5,2],[4,0]]},{"system":"identity_service","cells":[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[0,0],[10,5]]}]},"systems_rank":[{"system":"export_service","n":34,"bad":31,"rate":0.9118,"ci":[0.7704,0.9695],"recent_avg_bad":3.33,"next_bad":3.444,"next_lo":2.086,"next_hi":4.803},{"system":"support_platform","n":193,"bad":147,"rate":0.7617,"ci":[0.6968,0.8163],"recent_avg_bad":16.0,"next_bad":16.5,"next_lo":10.816,"next_hi":22.184},{"system":"account_replication_cluster","n":55,"bad":25,"rate":0.4545,"ci":[0.3303,0.5848],"recent_avg_bad":2.0,"next_bad":1.361,"next_lo":0.0,"next_hi":3.315},{"system":"identity_service","n":11,"bad":5,"rate":0.4545,"ci":[0.2127,0.7199],"recent_avg_bad":1.67,"next_bad":2.222,"next_lo":0.0,"next_hi":4.829},{"system":"search_service","n":954,"bad":340,"rate":0.3564,"ci":[0.3266,0.3873],"recent_avg_bad":37.0,"next_bad":38.694,"next_lo":28.336,"next_hi":49.052},{"system":"account_service","n":980,"bad":327,"rate":0.3337,"ci":[0.3049,0.3638],"recent_avg_bad":38.67,"next_bad":40.5,"next_lo":29.512,"next_hi":51.488},{"system":"analytics_platform","n":566,"bad":114,"rate":0.2014,"ci":[0.1704,0.2364],"recent_avg_bad":13.33,"next_bad":13.806,"next_lo":10.965,"next_hi":16.647},{"system":"cache_service","n":284,"bad":38,"rate":0.1338,"ci":[0.0991,0.1783],"recent_avg_bad":4.0,"next_bad":3.556,"next_lo":0.0,"next_hi":7.323},{"system":"archive_service","n":196,"bad":21,"rate":0.1071,"ci":[0.0712,0.1582],"recent_avg_bad":2.67,"next_bad":2.583,"next_lo":0.0,"next_hi":5.528},{"system":"email_delivery_service","n":368,"bad":35,"rate":0.0951,"ci":[0.0692,0.1294],"recent_avg_bad":4.67,"next_bad":6.139,"next_lo":3.277,"next_hi":9.0},{"system":"object_store","n":155,"bad":14,"rate":0.0903,"ci":[0.0546,0.1459],"recent_avg_bad":1.67,"next_bad":1.806,"next_lo":0.472,"next_hi":3.139},{"system":"integration_service","n":126,"bad":0,"rate":0.0,"ci":[0.0,0.0296],"recent_avg_bad":0.0,"next_bad":0.0,"next_lo":0.0,"next_hi":0.0},{"system":"backup_service","n":65,"bad":0,"rate":0.0,"ci":[0.0,0.0558],"recent_avg_bad":0.0,"next_bad":0.0,"next_lo":0.0,"next_hi":0.0},{"system":"legal_service","n":10,"bad":0,"rate":0.0,"ci":[0.0,0.2775],"recent_avg_bad":0.0,"next_bad":0.0,"next_lo":0.0,"next_hi":0.0},{"system":"privacy_case_management","n":10,"bad":0,"rate":0.0,"ci":[0.0,0.2775],"recent_avg_bad":0.0,"next_bad":0.0,"next_lo":0.0,"next_hi":0.0},{"system":"account_failover_replica","n":1,"bad":0,"rate":0.0,"ci":[0.0,0.7935],"recent_avg_bad":0.0,"next_bad":0.0,"next_lo":0.0,"next_hi":0.0},{"system":"marketing_platform","n":1,"bad":0,"rate":0.0,"ci":[0.0,0.7935],"recent_avg_bad":0.0,"next_bad":0.0,"next_lo":0.0,"next_hi":0.0},{"system":"object_storage","n":1,"bad":0,"rate":0.0,"ci":[0.0,0.7935],"recent_avg_bad":0.0,"next_bad":0.0,"next_lo":0.0,"next_hi":0.0},{"system":"security_service","n":1,"bad":0,"rate":0.0,"ci":[0.0,0.7935],"recent_avg_bad":0.0,"next_bad":0.0,"next_lo":0.0,"next_hi":0.0}],"predictor":{"table":[{"op":"DELETE_RECORD","system":"account_service","n":539,"bad":269,"n3":192,"bad3":100,"cls":"destructive"},{"op":"UPDATE_RECORD","system":"account_service","n":440,"bad":58,"n3":154,"bad3":16,"cls":"other"},{"op":"INDEX_RECORD","system":"search_service","n":400,"bad":52,"n3":137,"bad3":20,"cls":"other"},{"op":"SEND_EMAIL","system":"email_delivery_service","n":368,"bad":35,"n3":124,"bad3":14,"cls":"other"},{"op":"SYNC_RECORD","system":"analytics_platform","n":360,"bad":41,"n3":128,"bad3":14,"cls":"other"},{"op":"DELETE_RECORD","system":"search_service","n":289,"bad":261,"n3":92,"bad3":84,"cls":"destructive"},{"op":"REFRESH_CACHE","system":"cache_service","n":284,"bad":38,"n3":92,"bad3":12,"cls":"other"},{"op":"UPDATE_RECORD","system":"search_service","n":232,"bad":27,"n3":83,"bad3":7,"cls":"other"},{"op":"ANONYMIZE_RECORD","system":"analytics_platform","n":204,"bad":72,"n3":65,"bad3":25,"cls":"destructive"},{"op":"RETAIN_RECORD","system":"archive_service","n":196,"bad":21,"n3":72,"bad3":8,"cls":"other"},{"op":"REDACT_RECORD","system":"support_platform","n":163,"bad":121,"n3":56,"bad3":40,"cls":"destructive"},{"op":"CREATE_EXPORT","system":"object_store","n":155,"bad":14,"n3":49,"bad3":5,"cls":"other"},{"op":"CHECK_DATA_FLOW","system":"integration_service","n":89,"bad":0,"n3":29,"bad3":0,"cls":"other"},{"op":"SYNC_RECORD","system":"account_replication_cluster","n":55,"bad":25,"n3":16,"bad3":6,"cls":"other"},{"op":"BLOCK_RESTORE","system":"backup_service","n":36,"bad":0,"n3":15,"bad3":0,"cls":"other"},{"op":"DISABLE_DATA_FLOW","system":"integration_service","n":36,"bad":0,"n3":15,"bad3":0,"cls":"other"},{"op":"DELETE_RECORD","system":"export_service","n":32,"bad":31,"n3":11,"bad3":10,"cls":"destructive"},{"op":"SYNC_RECORD","system":"search_service","n":31,"bad":0,"n3":9,"bad3":0,"cls":"other"},{"op":"DELETE_RECORD","system":"support_platform","n":29,"bad":26,"n3":9,"bad3":8,"cls":"destructive"},{"op":"CHECK_RESTORE_ACCESS","system":"backup_service","n":28,"bad":0,"n3":10,"bad3":0,"cls":"other"},{"op":"CLASSIFY_REQUEST","system":"privacy_case_management","n":10,"bad":0,"n3":10,"bad3":0,"cls":"other"},{"op":"REDACT_RECORD","system":"identity_service","n":10,"bad":5,"n3":10,"bad3":5,"cls":"destructive"},{"op":"RETAIN_RECORD","system":"legal_service","n":10,"bad":0,"n3":1,"bad3":0,"cls":"other"}],"class_rate":{"destructive":0.6203630623520127,"other":0.11333819241982507}},"drift":[{"file_id":"evidence_47","captured_at":"2026-02-08T07:00:00Z","topology":"reporting_replica","primary_rows":24,"replica_rows":25,"ghost_rows":1,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":1},{"file_id":"evidence_43","captured_at":"2026-03-05T12:00:00Z","topology":"reporting_replica","primary_rows":25,"replica_rows":26,"ghost_rows":1,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":1},{"file_id":"evidence_38","captured_at":"2026-03-30T10:00:00Z","topology":"replica_ap_south","primary_rows":28,"replica_rows":29,"ghost_rows":1,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":1},{"file_id":"evidence_38","captured_at":"2026-03-30T10:00:00Z","topology":"replica_eu_west","primary_rows":28,"replica_rows":28,"ghost_rows":0,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":0},{"file_id":"evidence_33","captured_at":"2026-04-24T08:00:00Z","topology":"replica_ap_south","primary_rows":29,"replica_rows":29,"ghost_rows":0,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":0},{"file_id":"evidence_33","captured_at":"2026-04-24T08:00:00Z","topology":"replica_eu_west","primary_rows":29,"replica_rows":31,"ghost_rows":2,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":2},{"file_id":"evidence_29","captured_at":"2026-05-19T06:00:00Z","topology":"replica_ap_south","primary_rows":28,"replica_rows":29,"ghost_rows":1,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":1},{"file_id":"evidence_29","captured_at":"2026-05-19T06:00:00Z","topology":"replica_eu_west","primary_rows":28,"replica_rows":28,"ghost_rows":0,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":0},{"file_id":"evidence_24","captured_at":"2026-06-13T11:00:00Z","topology":"read_replica","primary_rows":24,"replica_rows":26,"ghost_rows":2,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":2},{"file_id":"evidence_20","captured_at":"2026-07-08T09:00:00Z","topology":"read_replica","primary_rows":31,"replica_rows":32,"ghost_rows":1,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":1},{"file_id":"evidence_15","captured_at":"2026-08-02T07:00:00Z","topology":"read_replica","primary_rows":24,"replica_rows":25,"ghost_rows":1,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":1},{"file_id":"evidence_10","captured_at":"2026-08-27T12:00:00Z","topology":"read_replica","primary_rows":29,"replica_rows":30,"ghost_rows":1,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":1},{"file_id":"evidence_52","captured_at":"2026-09-20T12:00:00Z","topology":"failover_replica","primary_rows":16,"replica_rows":16,"ghost_rows":0,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":0},{"file_id":"evidence_05","captured_at":"2026-09-21T10:00:00Z","topology":"read_replica","primary_rows":30,"replica_rows":31,"ghost_rows":1,"missing_rows":0,"diverged_rows":0,"ghost_with_identifiers":1}],"register":[{"id":"C01","cat":"Exports","title":"Exports past expiry, last seen downloadable","n":4,"unit":"export jobs","sev":"High","rule":"rule_09","why":"The export window has closed (expires_at is before the end of the evidence window), so nothing needs the archive.","conflict":"Each was still marked download_available at its last snapshot. A link that outlives its expiry keeps a full copy outside any deletion run.","action":"DELETE_RECORD on the export job and its object","ev":["evidence_15","evidence_29","evidence_33","evidence_47"]},{"id":"C02","cat":"Backups","title":"Archives that can still be restored","n":11,"unit":"backup entries","sev":"High","rule":"rule_14","why":"Backups are kept only if restore access can be blocked, and these allow restore.","conflict":"A restore would bring back profile, search and analytics rows that were already deleted.","action":"BLOCK_RESTORE, then VERIFY_RESTORE_BLOCKED","ev":["evidence_15","evidence_20","evidence_24","evidence_29"]},{"id":"C03","cat":"Data flows","title":"Continuous-sync connectors still enabled","n":39,"unit":"connectors","sev":"High","rule":"allowed op","why":"Once the source record is deleted the connector has no legitimate reason to run.","conflict":"An enabled connector copies customer events to the warehouse and search again after cleanup.","action":"DISABLE_DATA_FLOW before any record is changed","ev":["evidence_05","evidence_10","evidence_15","evidence_20"]},{"id":"C04","cat":"Replicas","title":"Rows present only in a replica","n":12,"unit":"replica rows","sev":"High","rule":"rule_01","why":"The primary no longer holds these rows, so the replica is the only copy left.","conflict":"12 of these carry direct identifiers and will be served to readers and reports.","action":"DELETE_RECORD on the replica row, then re-check drift","ev":["evidence_05","evidence_10","evidence_15","evidence_20"]},{"id":"C05","cat":"Deletion runs","title":"Destructive operations that never reached SUCCESS","n":786,"unit":"resources","sev":"High","rule":"rules 01–09","why":"The run was reported as FAILED or PARTIAL and no later attempt on the same resource succeeded.","conflict":"These stay in scope for every later audit and for any restore or sync that touches the same source.","action":"Re-run the policy action, then verify the resulting state","ev":["activity_3849","activity_3933","activity_3934"]},{"id":"C06","cat":"Tombstones","title":"Tombstones that still carry direct identifiers","n":4,"unit":"tombstones","sev":"Medium","rule":"rule_15","why":"A tombstone only needs the stable user reference.","conflict":"Names, emails or phones left on a tombstone are directly identifying data with no purpose.","action":"REDACT_RECORD, keep the user reference","ev":["evidence_52"]},{"id":"C07","cat":"Identifiers","title":"Superseded email, hash and phone values","n":306,"unit":"old values","sev":"Medium","rule":"matching","why":"The person replaced these values; 57 phone numbers were replaced over 12 months before the evidence window closed.","conflict":"Older systems keyed to an old email or phone are missed when a request arrives under the current one.","action":"Keep in the identity map for lookup, remove from live stores","ev":["audit_01","audit_02","audit_03"]},{"id":"C08","cat":"Retention","title":"Audit records with a defined retention end","n":30,"unit":"audit records","sev":"Low","rule":"rule_12","why":"Retention runs to 2031–2034; after that date the record is no longer required.","conflict":"Keeping a record past its date turns a lawful retention into unnecessary storage of personal data.","action":"Schedule release at retention_until","ev":["evidence_63","evidence_66","evidence_69","evidence_72"]},{"id":"C09","cat":"Retention","title":"Order records held for disputes and tax","n":10,"unit":"order records","sev":"Low","rule":"rule_13","why":"Held under an active legal hold or tax rule; the register states a retain-until date.","conflict":"The hold date has to be tracked: deleting early breaches the hold, keeping late breaches minimization.","action":"RETAIN, review at the retain-until date","ev":["evidence_27","evidence_24","evidence_43","evidence_47"]}],"aging":{"bins":[[0,30],[30,60],[60,90],[90,120],[120,150],[150,180],[180,210],[210,240],[240,270]],"series":[{"label":"User exports","system":"object_store","total":155,"bins":[14,18,16,13,28,16,13,19,18]},{"label":"Cache entries","system":"cache_service","total":284,"bins":[32,28,28,29,34,30,38,28,37]},{"label":"Search-index entries","system":"search_service","total":400,"bins":[47,45,42,50,53,41,35,48,39]}]},"retention":{"audit_by_year":[[2031,10],[2032,7],[2033,9],[2034,4]],"legal_by_year":[[2033,4]],"legal_register":[{"order":"ORD-20264118","user":"user_08","kind":"Card dispute","retain_until":"04 May 2033"},{"order":"ORD-20264207","user":"user_12","kind":"Tax correction","retain_until":"09 May 2033"},{"order":"ORD-20264319","user":"user_17","kind":"Chargeback","retain_until":"14 May 2033"},{"order":"ORD-20264402","user":"user_21","kind":"Invoice inquiry","retain_until":"18 May 2033"},{"order":"ORD-20264511","user":"user_24","kind":"Card dispute","retain_until":"23 May 2033"},{"order":"ORD-20264600","user":"user_29","kind":"Tax record","retain_until":"28 May 2033"}],"legal_file":"evidence_27","security_extract":"evidence_55","security_extract_note":"audit_record_003, retain until 25 Aug 2027"},"identifier_fields":[{"field":"email","changes":107,"over_365":0,"users":105},{"field":"email_hash","changes":107,"over_365":0,"users":105},{"field":"phone","changes":92,"over_365":57,"users":92}],"unresolved_by_system":[["account_service",269],["search_service",261],["support_platform",147],["analytics_platform",73],["export_service",31],["identity_service",5]],"graph":{"directed":true,"multigraph":false,"graph":{},"nodes":[{"label":"Profile service","tier":"source","category":"Profile preferences","rules":"—","action":"NONE","events":440,"failures":58,"fail_rate":0.1318,"next_bad":null,"resources":440,"snap_resources":0,"snap_identifiers":0,"blast_radius":9,"betweenness":0.0,"id":"profile_service"},{"label":"Account service","tier":"store","category":"USER_PROFILE, SECONDARY_IDENTIFIER","rules":"rule_01, rule_02","action":"DELETE","events":980,"failures":327,"fail_rate":0.3337,"next_bad":40.5,"resources":979,"snap_resources":11,"snap_identifiers":11,"blast_radius":8,"betweenness":0.019,"id":"account_service"},{"label":"Account replication cluster","tier":"replica","category":"USER_PROFILE (replica)","rules":"rule_01","action":"DELETE","events":55,"failures":25,"fail_rate":0.4545,"next_bad":1.361,"resources":55,"snap_resources":0,"snap_identifiers":0,"blast_radius":0,"betweenness":0.0,"id":"account_replication_cluster"},{"label":"Account failover replica","tier":"replica","category":"USER_PROFILE (replica)","rules":"rule_01","action":"DELETE","events":1,"failures":0,"fail_rate":0.0,"next_bad":0.0,"resources":1,"snap_resources":0,"snap_identifiers":0,"blast_radius":0,"betweenness":0.0,"id":"account_failover_replica"},{"label":"Search service","tier":"copy","category":"SEARCH_INDEX_ENTRY","rules":"rule_03","action":"DELETE","events":954,"failures":340,"fail_rate":0.3564,"next_bad":38.694,"resources":953,"snap_resources":113,"snap_identifiers":56,"blast_radius":0,"betweenness":0.0,"id":"search_service"},{"label":"Cache service","tier":"copy","category":"CACHE_ENTRY","rules":"rule_04","action":"DELETE","events":284,"failures":38,"fail_rate":0.1338,"next_bad":3.556,"resources":284,"snap_resources":0,"snap_identifiers":0,"blast_radius":0,"betweenness":0.0,"id":"cache_service"},{"label":"Analytics platform","tier":"copy","category":"ANALYTICS_PROFILE, PRODUCT_TELEMETRY","rules":"rule_07, rule_08","action":"ANONYMIZE","events":566,"failures":114,"fail_rate":0.2014,"next_bad":13.806,"resources":565,"snap_resources":81,"snap_identifiers":30,"blast_radius":0,"betweenness":0.0,"id":"analytics_platform"},{"label":"Notification service","tier":"source","category":"Outbound notifications","rules":"—","action":"NONE","events":368,"failures":35,"fail_rate":0.0951,"next_bad":null,"resources":368,"snap_resources":0,"snap_identifiers":0,"blast_radius":1,"betweenness":0.0,"id":"notification_service"},{"label":"Email delivery service","tier":"copy","category":"EMAIL_DELIVERY_LOG","rules":"rule_11","action":"REDACT","events":368,"failures":35,"fail_rate":0.0951,"next_bad":6.139,"resources":368,"snap_resources":0,"snap_identifiers":0,"blast_radius":0,"betweenness":0.0,"id":"email_delivery_service"},{"label":"Support platform","tier":"store","category":"SUPPORT_MESSAGE, SUPPORT_ATTACHMENT","rules":"rule_05, rule_06","action":"REDACT","events":193,"failures":147,"fail_rate":0.7617,"next_bad":16.5,"resources":192,"snap_resources":65,"snap_identifiers":55,"blast_radius":2,"betweenness":0.0,"id":"support_platform"},{"label":"Attachment object storage","tier":"copy","category":"SUPPORT_ATTACHMENT (files)","rules":"rule_06","action":"DELETE","events":1,"failures":0,"fail_rate":0.0,"next_bad":0.0,"resources":1,"snap_resources":0,"snap_identifiers":0,"blast_radius":0,"betweenness":0.0,"id":"object_storage"},{"label":"Export service","tier":"store","category":"USER_EXPORT","rules":"rule_09","action":"DELETE","events":34,"failures":31,"fail_rate":0.9118,"next_bad":3.444,"resources":33,"snap_resources":12,"snap_identifiers":12,"blast_radius":1,"betweenness":0.0,"id":"export_service"},{"label":"Export object store","tier":"copy","category":"USER_EXPORT (files)","rules":"rule_09","action":"DELETE","events":155,"failures":14,"fail_rate":0.0903,"next_bad":1.806,"resources":155,"snap_resources":0,"snap_identifiers":0,"blast_radius":0,"betweenness":0.0,"id":"object_store"},{"label":"Marketing platform","tier":"store","category":"MARKETING_PROFILE","rules":"rule_10","action":"DELETE","events":1,"failures":0,"fail_rate":0.0,"next_bad":0.0,"resources":1,"snap_resources":0,"snap_identifiers":0,"blast_radius":0,"betweenness":0.0,"id":"marketing_platform"},{"label":"Security service","tier":"source","category":"SECURITY_AUDIT_LOG (source)","rules":"rule_12","action":"RETAIN","events":1,"failures":0,"fail_rate":0.0,"next_bad":0.0,"resources":1,"snap_resources":138,"snap_identifiers":0,"blast_radius":1,"betweenness":0.0,"id":"security_service"},{"label":"Archive service","tier":"retained","category":"SECURITY_AUDIT_LOG","rules":"rule_12","action":"RETAIN","events":196,"failures":21,"fail_rate":0.1071,"next_bad":2.583,"resources":196,"snap_resources":0,"snap_identifiers":0,"blast_radius":0,"betweenness":0.0,"id":"archive_service"},{"label":"Legal service","tier":"retained","category":"LEGAL_HOLD_RECORD","rules":"rule_13","action":"RETAIN","events":10,"failures":0,"fail_rate":0.0,"next_bad":0.0,"resources":10,"snap_resources":4,"snap_identifiers":0,"blast_radius":0,"betweenness":0.0,"id":"legal_service"},{"label":"Backup service","tier":"retained","category":"BACKUP_ARCHIVE","rules":"rule_14","action":"RETAIN","events":65,"failures":0,"fail_rate":0.0,"next_bad":0.0,"resources":65,"snap_resources":21,"snap_identifiers":11,"blast_radius":1,"betweenness":0.0,"id":"backup_service"},{"label":"Identity service","tier":"store","category":"ACCOUNT_TOMBSTONE","rules":"rule_15","action":"REDACT","events":11,"failures":5,"fail_rate":0.4545,"next_bad":2.222,"resources":11,"snap_resources":8,"snap_identifiers":4,"blast_radius":0,"betweenness":0.0,"id":"identity_service"},{"label":"Integration service","tier":"flow","category":"Data flows (connectors)","rules":"allowed op","action":"DISABLE","events":126,"failures":0,"fail_rate":0.0,"next_bad":0.0,"resources":126,"snap_resources":49,"snap_identifiers":44,"blast_radius":2,"betweenness":0.0,"id":"integration_service"},{"label":"Privacy intake","tier":"source","category":"Request intake","rules":"—","action":"NONE","events":10,"failures":0,"fail_rate":0.0,"next_bad":null,"resources":10,"snap_resources":0,"snap_identifiers":0,"blast_radius":1,"betweenness":0.0,"id":"privacy_intake"},{"label":"Privacy case management","tier":"store","category":"Request cases","rules":"—","action":"NONE","events":10,"failures":0,"fail_rate":0.0,"next_bad":0.0,"resources":10,"snap_resources":0,"snap_identifiers":0,"blast_radius":0,"betweenness":0.0,"id":"privacy_case_management"}],"edges":[{"kind":"observed","op":"UPDATE_RECORD","events":440,"fail_rate":0.1318,"active":false,"restore":false,"first":"2026-01-04T18:36:36Z","last":"2026-10-01T10:18:34Z","source":"profile_service","target":"account_service"},{"kind":"observed","op":"INDEX_RECORD","events":400,"fail_rate":0.13,"active":false,"restore":false,"first":"2026-01-04T14:56:29Z","last":"2026-09-29T20:13:01Z","source":"account_service","target":"search_service"},{"kind":"observed","op":"SYNC_RECORD","events":360,"fail_rate":0.1139,"active":false,"restore":false,"first":"2026-01-05T13:51:19Z","last":"2026-10-01T09:10:28Z","source":"account_service","target":"analytics_platform"},{"kind":"observed","op":"REFRESH_CACHE","events":284,"fail_rate":0.1338,"active":false,"restore":false,"first":"2026-01-07T03:27:10Z","last":"2026-09-30T03:24:11Z","source":"account_service","target":"cache_service"},{"kind":"observed","op":"SYNC_RECORD","events":55,"fail_rate":0.4545,"active":true,"restore":false,"first":"2026-01-15T06:50:47Z","last":"2026-09-18T11:49:26Z","source":"account_service","target":"account_replication_cluster"},{"kind":"observed","op":"SYNC_RECORD","events":1,"fail_rate":0.0,"active":true,"restore":false,"first":"2026-08-28T09:11:09Z","last":"2026-08-28T09:11:09Z","source":"account_service","target":"account_failover_replica"},{"kind":"inferred","op":"","events":0,"fail_rate":0.0,"active":false,"restore":false,"why":"tombstone derived from the account (rule_15)","source":"account_service","target":"identity_service"},{"kind":"inferred","op":"","events":0,"fail_rate":0.0,"active":false,"restore":false,"why":"backup entries carry customer references","source":"account_service","target":"backup_service"},{"kind":"inferred","op":"","events":0,"fail_rate":0.0,"active":true,"restore":false,"why":"connectors select a subject and stream customer events","source":"account_service","target":"integration_service"},{"kind":"observed","op":"SEND_EMAIL","events":368,"fail_rate":0.0951,"active":false,"restore":false,"first":"2026-01-05T02:52:52Z","last":"2026-09-29T01:11:48Z","source":"notification_service","target":"email_delivery_service"},{"kind":"observed","op":"UPDATE_RECORD","events":232,"fail_rate":0.1164,"active":false,"restore":false,"first":"2026-01-04T18:36:21Z","last":"2026-09-29T14:58:37Z","source":"support_platform","target":"search_service"},{"kind":"inferred","op":"","events":0,"fail_rate":0.0,"active":false,"restore":false,"why":"attachment catalog places ticket attachments here","source":"support_platform","target":"object_storage"},{"kind":"observed","op":"CREATE_EXPORT","events":155,"fail_rate":0.0903,"active":false,"restore":false,"first":"2026-01-07T04:05:15Z","last":"2026-09-28T22:54:19Z","source":"export_service","target":"object_store"},{"kind":"observed","op":"RETAIN_RECORD","events":196,"fail_rate":0.1071,"active":false,"restore":false,"first":"2026-01-04T19:32:42Z","last":"2026-09-29T06:26:20Z","source":"security_service","target":"archive_service"},{"kind":"observed","op":"RESTORE_BACKUP","events":1,"fail_rate":0.0,"active":true,"restore":true,"first":"2026-08-22T12:58:26Z","last":"2026-08-22T12:58:26Z","source":"backup_service","target":"search_service"},{"kind":"observed","op":"SYNC_RECORD","events":31,"fail_rate":0.0,"active":true,"restore":false,"first":"2026-01-12T06:55:20Z","last":"2026-09-12T11:45:02Z","source":"integration_service","target":"search_service"},{"kind":"inferred","op":"","events":0,"fail_rate":0.0,"active":true,"restore":false,"why":"connector destination is customer_analytics_warehouse","source":"integration_service","target":"analytics_platform"},{"kind":"observed","op":"CLASSIFY_REQUEST","events":10,"fail_rate":0.0,"active":false,"restore":false,"first":"2026-08-28T11:07:25Z","last":"2026-09-13T10:56:12Z","source":"privacy_intake","target":"privacy_case_management"}]},"rules":[{"id":"rule_01","category":"USER_PROFILE","condition":"Always","action":"DELETE"},{"id":"rule_02","category":"SECONDARY_IDENTIFIER","condition":"Always","action":"DELETE"},{"id":"rule_03","category":"SEARCH_INDEX_ENTRY","condition":"Always","action":"DELETE"},{"id":"rule_04","category":"CACHE_ENTRY","condition":"Always","action":"DELETE"},{"id":"rule_05","category":"SUPPORT_MESSAGE","condition":"Conversation contains shared customer, agent, or order context that must be retained","action":"REDACT"},{"id":"rule_06","category":"SUPPORT_ATTACHMENT","condition":"Attachment belongs only to the deletion subject","action":"DELETE"},{"id":"rule_07","category":"ANALYTICS_PROFILE","condition":"Record is still attributable to a user","action":"ANONYMIZE"},{"id":"rule_08","category":"PRODUCT_TELEMETRY","condition":"Record is still attributable to a user","action":"ANONYMIZE"},{"id":"rule_09","category":"USER_EXPORT","condition":"Always","action":"DELETE"},{"id":"rule_10","category":"MARKETING_PROFILE","condition":"Always","action":"DELETE"},{"id":"rule_11","category":"EMAIL_DELIVERY_LOG","condition":"Log contains a user email address","action":"REDACT"},{"id":"rule_12","category":"SECURITY_AUDIT_LOG","condition":"Record is within the supplied retention period","action":"RETAIN"},{"id":"rule_13","category":"LEGAL_HOLD_RECORD","condition":"A supplied legal hold is active","action":"RETAIN"},{"id":"rule_14","category":"BACKUP_ARCHIVE","condition":"Restore access can be blocked","action":"RETAIN"},{"id":"rule_15","category":"ACCOUNT_TOMBSTONE","condition":"Account is deleted and only a stable internal user_id is needed to preserve references to retained records","action":"REDACT"}]}</script>
+<script>
+(function(){
+'use strict';
+var D = JSON.parse(document.getElementById('data').textContent);
+var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- helpers ---------- */
+function $(s, r){ return (r||document).querySelector(s); }
+function $$(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function fmt(n){ return Number(n).toLocaleString('en-US'); }
+function pct(x, d){ return (x*100).toFixed(d==null?1:d)+'%'; }
+function fdate(iso){ return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}); }
+function sdate(iso){ return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'}); }
+function trunc(s,n){ return s.length>n ? s.slice(0,n-1)+'…' : s; }
+function eids(list){ return list && list.length ? '<div class="eids">'+list.map(function(e){return '<span class="eid">'+esc(e)+'</span>';}).join('')+'</div>' : '<span class="muted">No single file; see the activity stream</span>'; }
+var CHEV = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M3 1.5L7 5L3 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var ASOF = fdate(D.meta.as_of) + ' ' + new Date(D.meta.as_of).toISOString().slice(11,16) + ' UTC';
+
+/* ---------- tabs ---------- */
+var TABS = ['patterns','retention','graph'];
+function showTab(id){
+  if (TABS.indexOf(id) < 0) id = 'patterns';
+  TABS.forEach(function(t){
+    var on = t === id;
+    var b = $('#tab-'+t); b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1;
+    $('#panel-'+t).hidden = !on;
+  });
+  if (id === 'graph') { retarget(true); }
+}
+$('#tabs').addEventListener('click', function(e){
+  var b = e.target.closest('[role="tab"]'); if (!b) return;
+  var id = b.id.replace('tab-','');
+  if (location.hash !== '#'+id) location.hash = id; else showTab(id);
+});
+$('#tabs').addEventListener('keydown', function(e){
+  var i = TABS.findIndex(function(t){ return $('#tab-'+t).getAttribute('aria-selected') === 'true'; });
+  var d = (e.key==='ArrowDown'||e.key==='ArrowRight') ? 1 : (e.key==='ArrowUp'||e.key==='ArrowLeft') ? -1 : 0;
+  if (e.key==='Home') { i = 0; d = 0; } else if (e.key==='End') { i = TABS.length-1; d = 0; } else if (!d) return;
+  e.preventDefault();
+  var n = TABS[(i + d + TABS.length) % TABS.length];
+  location.hash = n; $('#tab-'+n).focus();
+});
+window.addEventListener('hashchange', function(){ showTab(location.hash.slice(1)); });
+
+/* ---------- sidebar ---------- */
+(function(){
+  var M = D.meta;
+  $('#side-dl').innerHTML = [
+    ['Activity events', fmt(M.events)], ['Period', sdate(M.activity_from)+' – '+sdate(M.activity_to)], ['Evidence files', fmt(M.evidence_files)],
+    ['SQL snapshots', fmt(M.sql_snapshots)], ['Policy rules', fmt(M.rules)], ['Requests', fmt(M.requests)]
+  ].map(function(r){ return '<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>'; }).join('');
+  ['asof1','asof2'].forEach(function(id){ $('#'+id).textContent = 'Evidence to '+ASOF; });
+  $('#nxv').textContent = 'NetworkX '+M.networkx;
+  $('#cnt-patterns').textContent = D.patterns.length;
+  $('#cnt-retention').textContent = D.register.length;
+  $('#cnt-graph').textContent = D.graph.nodes.length;
+})();
+
+/* ======================================================================
+   TAB 1
+   ====================================================================== */
+function tile(l, v, s, color){ return '<div class="tile"><div class="tile-l">'+l+'</div><div class="tile-v"'+(color?' style="color:var('+color+')"':'')+'>'+v+'</div><div class="tile-s">'+s+'</div></div>'; }
+
+(function kpis1(){
+  var K = D.kpis, cf = D.count_fc.fc[0];
+  $('#kpis1').innerHTML =
+    tile('Non-success results', pct(K.non_success_rate), fmt(K.non_success)+' of '+fmt(K.events)+' events') +
+    tile('Controlled operations failing', pct(K.destructive_rate), fmt(K.destructive_bad)+' of '+fmt(K.destructive_n)+' delete, redact, anonymize', '--bad') +
+    tile('Expected in October', '~'+Math.round(cf.y), 'non-success results, 80% range '+Math.round(cf.lo)+'–'+Math.round(cf.hi)) +
+    tile('Written again after delete', fmt(K.reborn), 'resources changed after a reported successful delete');
+})();
+
+function trendChart(){
+  var W=880,H=316,M={l:48,r:96,t:22,b:38}, iw=W-M.l-M.r, ih=H-M.t-M.b, N=12;
+  var S = [
+    {name:'All events', col:'var(--accent)', a:D.rate_series.map(function(r){return r.rate;}), f:D.rate_fc.fc},
+    {name:'Controlled ops', col:'var(--bad)', a:D.ctrl_series.map(function(r){return r.rate;}), f:D.ctrl_fc.fc}
+  ];
+  var mx = 0; S.forEach(function(s){ s.a.concat(s.f.map(function(p){return p.hi;})).forEach(function(v){ if(v>mx) mx=v; }); });
+  var ymax = Math.min(1, Math.ceil(mx*10)/10); if (ymax < 0.4) ymax = 0.4;
+  var step = ymax > 0.5 ? 0.2 : 0.1;
+  function X(i){ return M.l + iw*i/(N-1); } function Y(v){ return M.t + ih*(1-v/ymax); }
+  var g = '';
+  g += '<rect x="'+X(8)+'" y="'+M.t+'" width="'+(X(11)-X(8))+'" height="'+ih+'" fill="var(--surface-2)"/>';
+  g += '<text x="'+(X(8)+8)+'" y="'+(M.t+13)+'" style="letter-spacing:.08em">PROJECTION</text>';
+  for (var v=0; v<=ymax+1e-9; v+=step) {
+    g += '<line class="grid" x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+Y(v)+'" y2="'+Y(v)+'"/><text x="'+(M.l-8)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+Math.round(v*100)+'%</text>';
+  }
+  MON.forEach(function(m,i){ g += '<text x="'+X(i)+'" y="'+(H-14)+'" text-anchor="middle" '+(i>8?'style="font-style:italic"':'')+'>'+m+'</text>'; });
+  S.forEach(function(s){
+    var up = [[8, s.a[8]]].concat(s.f.map(function(p,i){ return [9+i, Math.min(ymax,p.hi)]; }));
+    var lo = [[8, s.a[8]]].concat(s.f.map(function(p,i){ return [9+i, p.lo]; })).reverse();
+    var pts = up.concat(lo).map(function(p){ return X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1); }).join(' ');
+    g += '<polygon points="'+pts+'" fill="'+s.col+'" opacity=".16"/>';
+    var line = s.a.map(function(v,i){ return X(i).toFixed(1)+','+Y(v).toFixed(1); }).join(' ');
+    g += '<polyline points="'+line+'" fill="none" stroke="'+s.col+'" stroke-width="2" stroke-linejoin="round"/>';
+    var fl = [[8, s.a[8]]].concat(s.f.map(function(p,i){ return [9+i, p.y]; })).map(function(p){ return X(p[0]).toFixed(1)+','+Y(p[1]).toFixed(1); }).join(' ');
+    g += '<polyline points="'+fl+'" fill="none" stroke="'+s.col+'" stroke-width="2" stroke-dasharray="5 4"/>';
+    s.a.forEach(function(v,i){ g += '<circle cx="'+X(i)+'" cy="'+Y(v)+'" r="3" fill="'+s.col+'"><title>'+MON[i]+': '+pct(v)+'</title></circle>'; });
+    s.f.forEach(function(p,i){ g += '<circle cx="'+X(9+i)+'" cy="'+Y(p.y)+'" r="3.4" fill="var(--surface)" stroke="'+s.col+'" stroke-width="1.8"><title>'+MON[9+i]+' projected: '+pct(p.y)+' ('+pct(p.lo)+' to '+pct(p.hi)+')</title></circle>'; });
+    var last = s.f[2];
+    g += '<text class="lbl" x="'+(X(11)+12)+'" y="'+(Y(last.y)-2)+'" style="fill:'+s.col+'">'+s.name+'</text><text x="'+(X(11)+12)+'" y="'+(Y(last.y)+13)+'" style="fill:var(--ink-2)">'+pct(last.y)+'</text>';
+  });
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Monthly failure rate from January to September with a projection to December. All events stay near '+pct(D.rate_fc.fc[0].y,0)+'. Controlled operations stay near '+pct(D.ctrl_fc.fc[0].y,0)+'."><title>Monthly failure rate with projection</title>'+g+'</svg>';
+}
+(function trend(){
+  $('#trend').innerHTML = trendChart();
+  $('#trend-legend').innerHTML = '<span><i class="sw" style="background:var(--accent)"></i>All events</span><span><i class="sw" style="background:var(--bad)"></i>Controlled operations: delete, redact, anonymize</span><span><svg width="24" height="8" aria-hidden="true"><path d="M0 4H24" stroke="var(--ink-3)" stroke-width="2" stroke-dasharray="5 4"/></svg>Projection</span>';
+  var rf = D.rate_fc, cf = D.ctrl_fc;
+  $('#trend-note').textContent = 'No trend is detectable. The all-events slope is '+(rf.slope*100).toFixed(2)+' percentage points per month (p = '+rf.p.toFixed(2)+') and the controlled-operations slope is '+(cf.slope*100).toFixed(2)+' (p = '+cf.p.toFixed(2)+'). The failure rate is stable rather than improving, so it will not fall without a fix. October holds only '+D.meta.oct_partial_events+' events and is left out of the fit.';
+  var rows = D.rate_series.map(function(r,i){ var c = D.ctrl_series[i]; return '<tr><td>'+MON[i]+'</td><td class="r num">'+fmt(r.n)+'</td><td class="r num">'+pct(r.rate)+'</td><td class="r num">'+fmt(c.n)+'</td><td class="r num">'+pct(c.rate)+'</td></tr>'; }).join('');
+  var fr = D.rate_fc.fc.map(function(p,i){ var c = D.ctrl_fc.fc[i]; return '<tr><td><i>'+MON[9+i]+' (projected)</i></td><td class="r muted">–</td><td class="r num">'+pct(p.y)+' <span class="muted">('+pct(p.lo,0)+'–'+pct(p.hi,0)+')</span></td><td class="r muted">–</td><td class="r num">'+pct(c.y)+' <span class="muted">('+pct(c.lo,0)+'–'+pct(c.hi,0)+')</span></td></tr>'; }).join('');
+  $('#trend').insertAdjacentHTML('afterend','<details class="data"><summary>View chart data</summary><div class="tscroll"><table style="min-width:520px"><thead><tr><th>Month</th><th class="r">Events</th><th class="r">All events</th><th class="r">Controlled ops</th><th class="r">Controlled rate</th></tr></thead><tbody>'+rows+fr+'</tbody></table></div></details>');
+})();
+
+/* pattern catalogue */
+var grpFilter = 'All';
+function spark(p){
+  var w=92,h=26,pad=3, vals=p.series.map(function(s){return s.c;}), f=p.forecast[0]||{y:vals[vals.length-1],hi:vals[vals.length-1]};
+  var mx=Math.max.apply(null, vals.concat([f.hi]))||1, n=vals.length+1;
+  function X(i){ return pad+(w-2*pad)*i/(n-1); } function Y(v){ return h-pad-(h-2*pad)*v/mx; }
+  var pts=vals.map(function(v,i){ return X(i).toFixed(1)+','+Y(v).toFixed(1); }).join(' ');
+  return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Monthly counts January to September, next month projected '+f.y.toFixed(1)+'"><polyline points="'+pts+'" fill="none" stroke="var(--ink-2)" stroke-width="1.5" stroke-linejoin="round"/><line x1="'+X(vals.length-1)+'" y1="'+Y(vals[vals.length-1])+'" x2="'+X(vals.length)+'" y2="'+Y(f.y)+'" stroke="var(--ink-3)" stroke-dasharray="3 2"/><circle cx="'+X(vals.length)+'" cy="'+Y(f.y)+'" r="2.6" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.6"/></svg>';
+}
+function renderCat(){
+  var rows = D.patterns.filter(function(p){ return grpFilter==='All' || p.group===grpFilter; }).map(function(p){
+    var f = p.forecast[0] || {y:0,lo:0,hi:0};
+    var unit = p.kind==='failure' ? 'failed' : p.kind==='snapshot' ? 'rows per snapshot' : 'events';
+    var dec = p.kind==='snapshot' ? 1 : 0;
+    var rate = p.rate==null ? '<span class="muted">Not a rate</span>' :
+      '<div class="ratecell"><div class="bar" role="img" aria-label="'+pct(p.rate)+', 95% interval '+pct(p.ci[0],0)+' to '+pct(p.ci[1],0)+'"><i style="width:'+(p.rate*100)+'%"></i><b style="left:'+(p.ci[0]*100)+'%;width:'+((p.ci[1]-p.ci[0])*100)+'%"></b></div><span class="num">'+pct(p.rate,p.kind==='snapshot'?0:1)+'</span></div>';
+    var tp = p.trend==='Rising' ? 'p-bad' : p.trend==='Falling' ? 'p-ok' : 'p-neutral';
+    var cp = p.confidence==='High' ? 'p-accent' : p.confidence==='Medium' ? 'p-neutral' : 'p-warn';
+    var occ = p.kind==='failure' ? '<span class="num">'+fmt(p.count)+'</span> <span class="muted">of</span> <span class="num">'+fmt(p.n)+'</span>' : p.kind==='snapshot' ? '<span class="num">'+fmt(p.count)+'</span> <span class="muted">rows in</span> <span class="num">'+p.n+'</span> <span class="muted">tables</span>' : '<span class="num">'+fmt(p.count)+'</span>';
+    var ex = p.examples && p.examples.length ? eids(p.examples) : '<span class="muted">None</span>';
+    return '<tr data-pid="'+p.id+'"><td><button class="xbtn" type="button" aria-expanded="false" aria-controls="d-'+p.id+'">'+CHEV+'<span><span class="tname">'+esc(p.name)+'</span><div class="tsub">'+esc(p.id)+' · '+esc(p.signature)+'</div></span></button></td>'+
+      '<td class="r">'+occ+'</td><td>'+rate+'</td><td><span class="pill '+tp+'" title="slope '+p.slope+' per month, p = '+p.p+'">'+p.trend+'</span></td>'+
+      '<td class="r"><span class="num">~'+f.y.toFixed(dec)+'</span> <span class="muted">'+unit+'</span><div class="tsub">'+f.lo.toFixed(dec)+'–'+f.hi.toFixed(dec)+'</div></td><td>'+spark(p)+'</td><td><span class="pill '+cp+'">'+p.confidence+'</span></td></tr>'+
+      '<tr class="detail" id="d-'+p.id+'" hidden><td colspan="7"><div class="dgrid"><div><h4>What it means</h4><p>'+esc(p.note)+'</p></div><div><h4>Policy rule</h4><p class="id">'+esc(p.rule)+'</p><h4 style="margin-top:10px">Trend statistics</h4><p class="id">slope '+(p.slope>=0?'+':'')+p.slope+' per month, p = '+p.p+'</p><h4 style="margin-top:10px">Example evidence</h4>'+ex+'</div></div></td></tr>';
+  }).join('');
+  $('#cat tbody').innerHTML = rows;
+}
+(function(){
+  var groups = ['All'].concat(D.patterns.map(function(p){return p.group;}).filter(function(g,i,a){return a.indexOf(g)===i;}));
+  $('#grp-chips').innerHTML = groups.map(function(g){ return '<button class="chip" type="button" aria-pressed="'+(g===grpFilter)+'" data-g="'+esc(g)+'">'+esc(g)+'</button>'; }).join('');
+  $('#grp-chips').addEventListener('click', function(e){ var b=e.target.closest('[data-g]'); if(!b) return; grpFilter=b.dataset.g; $$('#grp-chips .chip').forEach(function(c){ c.setAttribute('aria-pressed', c===b); }); renderCat(); });
+  $('#cat tbody').addEventListener('click', function(e){
+    var b = e.target.closest('.xbtn'); if (!b) return;
+    var open = b.getAttribute('aria-expanded') === 'true';
+    b.setAttribute('aria-expanded', !open); $('#'+b.getAttribute('aria-controls')).hidden = open;
+  });
+  renderCat();
+})();
+
+/* heatmap */
+(function(){
+  var h = '<div></div>' + D.meta.months.map(function(m){ return '<div class="hh">'+MON[+m.slice(5)-1]+'</div>'; }).join('');
+  D.heatmap.rows.forEach(function(r){
+    h += '<div class="hl"><span>'+esc(r.system)+'</span></div>';
+    r.cells.forEach(function(c,i){
+      var n=c[0], b=c[1];
+      if (n < 5) h += '<div class="hc na" title="'+MON[i]+', '+esc(r.system)+': '+n+' operations">'+(n?'n='+n:'–')+'</div>';
+      else { var rt=b/n; h += '<div class="hc" style="--r:'+rt.toFixed(3)+'" title="'+MON[i]+', '+esc(r.system)+': '+b+' of '+n+' failed or partial">'+Math.round(rt*100)+'%<small>n='+n+'</small></div>'; }
+    });
+  });
+  $('#heat').innerHTML = h;
+})();
+
+/* predictor */
+(function(){
+  var T = D.predictor.table, CR = D.predictor.class_rate, A = 10;
+  var ops = T.map(function(r){return r.op;}).filter(function(o,i,a){return a.indexOf(o)===i;});
+  $('#pr-op').innerHTML = ops.map(function(o){ return '<option value="'+o+'">'+o+'</option>'; }).join('');
+  $('#pr-op').value = 'DELETE_RECORD';
+  function wil(p, n){ var z=1.96, d=1+z*z/n, c=(p+z*z/(2*n))/d, h=z*Math.sqrt(p*(1-p)/n+z*z/(4*n*n))/d; return [Math.max(0,c-h), Math.min(1,c+h)]; }
+  function fillSys(){
+    var op=$('#pr-op').value, list=T.filter(function(r){return r.op===op;});
+    var cur=$('#pr-sys').value;
+    $('#pr-sys').innerHTML = list.map(function(r){ return '<option value="'+r.system+'">'+r.system+'</option>'; }).join('');
+    if (list.some(function(r){return r.system===cur;})) $('#pr-sys').value = cur; else if (op==='DELETE_RECORD') $('#pr-sys').value='search_service';
+  }
+  function calc(){
+    var op=$('#pr-op').value, sy=$('#pr-sys').value;
+    var r = T.filter(function(x){return x.op===op && x.system===sy;})[0]; if(!r) return;
+    var p0 = CR[r.cls], post=(r.bad+A*p0)/(r.n+A), ci=wil(post, r.n+A), rec=(r.bad3+A*p0)/(r.n3+A);
+    var tone = post>=0.6?'--bad':post>=0.3?'--warn':'--ok';
+    $('#pr-out').innerHTML = '<div class="tile-l">Predicted failure probability</div><div class="pbig" style="color:var('+tone+')">'+pct(post)+'</div><div class="tile-s">95% interval '+pct(ci[0])+' to '+pct(ci[1])+'. About '+Math.round(post*100)+' in 100 calls return FAILED or PARTIAL.</div>'+
+      '<dl class="pdl"><dt>Observed, all months</dt><dd>'+r.bad+' of '+r.n+'</dd><dt>Last three months</dt><dd>'+pct(rec)+' <span class="muted">('+r.bad3+' of '+r.n3+')</span></dd><dt>Class average ('+r.cls+')</dt><dd>'+pct(p0)+'</dd></dl>';
+  }
+  $('#pr-op').addEventListener('change', function(){ fillSys(); calc(); }); $('#pr-sys').addEventListener('change', calc);
+  fillSys(); calc();
+})();
+
+/* ranking + drift */
+(function(){
+  var rows = D.systems_rank.filter(function(r){return r.n>=10;}).map(function(r){
+    return '<tr><td><span class="id" style="color:var(--ink)">'+esc(r.system)+'</span></td><td class="r num">'+fmt(r.n)+'</td><td><div class="ratecell"><div class="bar" role="img" aria-label="'+pct(r.rate)+'"><i style="width:'+(r.rate*100)+'%"></i><b style="left:'+(r.ci[0]*100)+'%;width:'+((r.ci[1]-r.ci[0])*100)+'%"></b></div><span class="num">'+pct(r.rate)+'</span></div></td><td class="r"><span class="num">~'+Math.round(r.next_bad)+'</span><div class="tsub">'+Math.round(r.next_lo)+'–'+Math.round(r.next_hi)+'</div></td></tr>';
+  }).join('');
+  $('#rank tbody').innerHTML = rows;
+  $('#drift tbody').innerHTML = D.drift.map(function(r){
+    return '<tr><td><span class="eid">'+r.file_id+'</span><div class="tsub">'+sdate(r.captured_at)+'</div></td><td class="id">'+esc(r.topology.replace(/_/g,' '))+'</td><td class="r num">'+r.primary_rows+'</td><td class="r num">'+r.replica_rows+'</td><td class="r num" style="'+(r.ghost_rows?'color:var(--bad);font-weight:600':'')+'">'+r.ghost_rows+'</td><td class="r num">'+r.ghost_with_identifiers+'</td></tr>';
+  }).join('');
+})();
+
+/* ======================================================================
+   TAB 2
+   ====================================================================== */
+(function kpis2(){
+  var R = D.register, hi = R.filter(function(r){return r.sev==='High';}).length, K = D.kpis;
+  $('#kpis2').innerHTML =
+    tile('Conflict classes', R.length, 'on the register') +
+    tile('High severity', hi, 'recreation paths or deletions that did not finish', '--bad') +
+    tile('Unresolved operations', fmt(R.filter(function(r){return r.id==='C05';})[0].n), pct(K.destructive_rate,0)+' of controlled operations never reached SUCCESS') +
+    tile('Earliest retention end', (D.retention.security_extract_note.match(/retain until (.*)$/)||[0,'n/a'])[1], D.retention.security_extract_note.replace(/, retain until.*/, '')+' ('+D.retention.security_extract+')');
+})();
+
+var sevFilter = 'All', catFilter = 'All';
+function renderReg(){
+  var out = D.register.filter(function(r){ return (sevFilter==='All'||r.sev===sevFilter) && (catFilter==='All'||r.cat===catFilter); }).map(function(r){
+    var sp = r.sev==='High'?'p-bad':r.sev==='Medium'?'p-warn':'p-neutral';
+    return '<article class="reg"><div class="reg-h"><span class="pill '+sp+'">'+r.sev+'</span><div class="tt"><h3>'+esc(r.title)+'</h3><div class="tsub">'+esc(r.cat)+' · '+esc(r.id)+' · policy: '+esc(r.rule)+'</div></div><div class="reg-n"><b>'+fmt(r.n)+'</b><span>'+esc(r.unit)+'</span></div></div>'+
+      '<div class="reg-b"><div><h4>Why it is not required</h4><p>'+esc(r.why)+'</p></div><div><h4>Conflict it can cause</h4><p>'+esc(r.conflict)+'</p></div><div><h4>Suggested action</h4><p class="act">'+esc(r.action)+'</p><div style="margin-top:8px">'+eids(r.ev)+'</div></div></div></article>';
+  }).join('');
+  $('#reg').innerHTML = out || '<p class="note" style="padding:0 18px 18px">No items match the filters.</p>';
+}
+(function(){
+  var sevs = ['All','High','Medium','Low'];
+  $('#sev-chips').innerHTML = sevs.map(function(s){ return '<button class="chip" type="button" aria-pressed="'+(s===sevFilter)+'" data-s="'+s+'">'+s+'</button>'; }).join('');
+  $('#sev-chips').addEventListener('click', function(e){ var b=e.target.closest('[data-s]'); if(!b) return; sevFilter=b.dataset.s; $$('#sev-chips .chip').forEach(function(c){ c.setAttribute('aria-pressed', c===b); }); renderReg(); });
+  var cats = ['All'].concat(D.register.map(function(r){return r.cat;}).filter(function(c,i,a){return a.indexOf(c)===i;}));
+  $('#cat-sel').innerHTML = cats.map(function(c){ return '<option>'+esc(c)+'</option>'; }).join('');
+  $('#cat-sel').addEventListener('change', function(){ catFilter=this.value; renderReg(); });
+  renderReg();
+})();
+
+/* ageing explorer */
+function renderAge(){
+  var th = +$('#age-th').value, bins = D.aging.bins;
+  $('#age-out').textContent = 'older than '+th+' d';
+  $('#age').innerHTML = D.aging.series.map(function(s){
+    var over = 0; s.bins.forEach(function(c,i){ if (bins[i][0] >= th) over += c; });
+    var mx = Math.max.apply(null, s.bins), W=300,H=44,bw=W/s.bins.length;
+    var bars = s.bins.map(function(c,i){ var h=Math.max(2,(H-4)*c/mx), on=bins[i][0]>=th; return '<rect x="'+(i*bw+2)+'" y="'+(H-h)+'" width="'+(bw-4)+'" height="'+h+'" rx="2" fill="'+(on?'var(--bad)':'var(--line-2)')+'"><title>'+bins[i][0]+'–'+bins[i][1]+' days: '+c+'</title></rect>'; }).join('');
+    return '<div class="age-row"><div class="age-l">'+esc(s.label)+'<small>'+esc(s.system)+'</small></div><svg viewBox="0 0 '+W+' '+(H+2)+'" class="chart" role="img" aria-label="'+esc(s.label)+' by age in 30-day bins; '+over+' older than '+th+' days"><line class="axis" x1="0" x2="'+W+'" y1="'+H+'" y2="'+H+'"/>'+bars+'</svg><div class="age-v"><b>'+fmt(over)+'</b><span>of '+fmt(s.total)+' without a confirmed delete</span></div></div>';
+  }).join('') + '<p class="note">Each bar is a 30-day age band, oldest on the right. Red bands are above the threshold.</p>';
+}
+$('#age-th').addEventListener('input', renderAge); renderAge();
+
+/* retention by year */
+(function(){
+  var R = D.retention, years = [2026,2027,2028,2029,2030,2031,2032,2033,2034];
+  var series = [
+    {k:'Security audit records', col:'var(--accent)', v:{}},
+    {k:'Legal-hold records', col:'var(--violet)', v:{}},
+    {k:'Finance order register', col:'var(--warn)', v:{}}
+  ];
+  R.audit_by_year.forEach(function(p){ series[0].v[p[0]] = (series[0].v[p[0]]||0)+p[1]; });
+  series[0].v[2027] = (series[0].v[2027]||0)+1;
+  R.legal_by_year.forEach(function(p){ series[1].v[p[0]] = p[1]; });
+  R.legal_register.forEach(function(r){ var y = +r.retain_until.slice(-4); series[2].v[y] = (series[2].v[y]||0)+1; });
+  var tot = years.map(function(y){ return series.reduce(function(a,s){ return a+(s.v[y]||0); }, 0); });
+  var mx = Math.max.apply(null, tot), top = Math.ceil(mx/5)*5;
+  var W=420,H=230,M={l:34,r:8,t:12,b:30}, iw=W-M.l-M.r, ih=H-M.t-M.b, bw=iw/years.length;
+  function Y(v){ return M.t+ih*(1-v/top); }
+  var g=''; for (var t=0;t<=top;t+=5) g += '<line class="grid" x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+Y(t)+'" y2="'+Y(t)+'"/><text x="'+(M.l-6)+'" y="'+(Y(t)+4)+'" text-anchor="end">'+t+'</text>';
+  years.forEach(function(y,i){
+    var acc=0, x=M.l+i*bw+bw*0.18, w=bw*0.64;
+    series.forEach(function(s){ var c=s.v[y]||0; if(!c) return; var y0=Y(acc+c), h=Y(acc)-y0; g += '<rect x="'+x+'" y="'+y0+'" width="'+w+'" height="'+h+'" fill="'+s.col+'" rx="2"><title>'+y+', '+s.k+': '+c+'</title></rect>'; acc+=c; });
+    if (tot[i]) g += '<text x="'+(x+w/2)+'" y="'+(Y(tot[i])-5)+'" text-anchor="middle" style="fill:var(--ink)">'+tot[i]+'</text>';
+    g += '<text x="'+(x+w/2)+'" y="'+(H-10)+'" text-anchor="middle">'+y+'</text>';
+  });
+  g += '<line class="axis" x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+Y(0)+'" y2="'+Y(0)+'"/>';
+  $('#ret').innerHTML = '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Records by retain-until year: '+years.filter(function(y,i){return tot[i];}).map(function(y){return tot[years.indexOf(y)]+' in '+y;}).join(', ')+'">'+g+'</svg>';
+  $('#ret-legend').innerHTML = series.map(function(s){ return '<span><i class="sw" style="background:'+s.col+'"></i>'+s.k+'</span>'; }).join('');
+})();
+
+/* identifiers */
+$('#idt tbody').innerHTML = D.identifier_fields.map(function(f){ return '<tr><td class="id" style="color:var(--ink)">'+esc(f.field)+'</td><td class="r num">'+f.changes+'</td><td class="r num">'+f.users+'</td><td class="r num">'+f.over_365+'</td></tr>'; }).join('');
+
+/* ======================================================================
+   TAB 3  NetworkX-style graph store
+   ====================================================================== */
+function DiGraph(){ this.N = new Map(); this.E = new Map(); }
+DiGraph.key = function(s,t){ return s+'→'+t; };
+DiGraph.prototype = {
+  add_node: function(id, a){ this.N.set(id, a); },
+  add_edge: function(s, t, a){ var o = {s:s, t:t}; for (var k in a) o[k]=a[k]; this.E.set(DiGraph.key(s,t), o); },
+  has_node: function(id){ return this.N.has(id); },
+  nodes: function(){ return Array.from(this.N.keys()); },
+  edges: function(){ return Array.from(this.E.values()); },
+  predecessors: function(id){ return this.edges().filter(function(e){return e.t===id;}).map(function(e){return e.s;}); },
+  successors: function(id){ return this.edges().filter(function(e){return e.s===id;}).map(function(e){return e.t;}); },
+  in_degree: function(id){ return this.predecessors(id).length; },
+  out_degree: function(id){ return this.successors(id).length; },
+  _walk: function(id, fwd){ var seen = new Set(), q = [id], self = this; while (q.length) { var n = q.shift(); (fwd ? self.successors(n) : self.predecessors(n)).forEach(function(m){ if (!seen.has(m)) { seen.add(m); q.push(m); } }); } return Array.from(seen); },
+  descendants: function(id){ return this._walk(id, true); },
+  ancestors: function(id){ return this._walk(id, false); },
+  remove_edge: function(s, t){ return this.E.delete(DiGraph.key(s,t)); },
+  remove_node: function(id){ var self = this, gone = this.edges().filter(function(e){ return e.s===id || e.t===id; }); gone.forEach(function(e){ self.E.delete(DiGraph.key(e.s,e.t)); }); this.N.delete(id); return gone; },
+  copy: function(){ var g = new DiGraph(); this.N.forEach(function(v,k){ g.N.set(k,v); }); this.E.forEach(function(v,k){ var o={}; for (var p in v) o[p]=v[p]; g.E.set(k,o); }); return g; }
+};
+function buildGraph(){
+  var g = new DiGraph();
+  D.graph.nodes.forEach(function(n){ g.add_node(n.id, n); });
+  D.graph.edges.forEach(function(e){ g.add_edge(e.source, e.target, e); });
+  return g;
+}
+var G = buildGraph();
+var ORIG_IN = {}; G.nodes().forEach(function(id){ ORIG_IN[id] = G.in_degree(id); });
+var ACT = {
+  DELETE:   {label:'Delete',       c:'--bad',    t:'p-bad'},
+  REDACT:   {label:'Redact',       c:'--warn',   t:'p-warn'},
+  ANONYMIZE:{label:'Anonymize',    c:'--violet', t:'p-violet'},
+  RETAIN:   {label:'Retain',       c:'--ok',     t:'p-ok'},
+  DISABLE:  {label:'Disable flow', c:'--accent', t:'p-accent'},
+  NONE:     {label:'No rule',      c:'--ink-3',  t:'p-neutral'}
+};
+var TIER = {source:0, store:1, replica:2, copy:2, flow:2, retained:3};
+var S = { sel:new Set(), mode:'detach', inspect:null, removed:new Set(), hist:[], log:[], confirm:false, q:'', act:'ALL' };
+
+function isOrphan(g, id){ return ORIG_IN[id] > 0 && g.in_degree(id) === 0; }
+function layers(g){
+  var ids = g.nodes(), rem = new Map(), layer = new Map(), q = [];
+  ids.forEach(function(i){ rem.set(i, g.in_degree(i)); });
+  ids.forEach(function(i){ if (!rem.get(i)) { layer.set(i,0); q.push(i); } });
+  while (q.length) { var n = q.shift(); g.successors(n).forEach(function(s){ layer.set(s, Math.max(layer.get(s)||0, layer.get(n)+1)); rem.set(s, rem.get(s)-1); if (!rem.get(s)) q.push(s); }); }
+  return layer;
+}
+function downstreamFirst(g, ids){ var L = layers(g); return ids.slice().sort(function(a,b){ return (L.get(b)||0)-(L.get(a)||0) || (a<b?-1:1); }); }
+
+/* delete engine: mutates g, returns a summary */
+function runDelete(g, ids, mode){
+  var sum = {order:[], edges:[], cascaded:[], breaches:[], active:0, restore:0};
+  function rm(id, why){
+    if (!g.has_node(id)) return;
+    var n = g.N.get(id), gone = g.remove_node(id);
+    sum.order.push({id:id, why:why, links:gone.length});
+    gone.forEach(function(e){ sum.edges.push(e); if (e.restore) sum.restore++; else if (e.active) sum.active++; });
+    if (n.action === 'RETAIN') sum.breaches.push(id);
+  }
+  downstreamFirst(g, ids.filter(function(i){ return g.has_node(i); })).forEach(function(id){ rm(id, 'selected'); });
+  if (mode === 'cascade') {
+    var again = true;
+    while (again) { again = false;
+      g.nodes().forEach(function(id){ if (g.has_node(id) && isOrphan(g, id) && g.N.get(id).action === 'DELETE') { rm(id, 'cascade'); sum.cascaded.push(id); again = true; } });
+    }
+  }
+  return sum;
+}
+function orphans(g){ return g.nodes().filter(function(id){ return isOrphan(g, id); }); }
+function conflicts(g){
+  var out = {breach:[], orphan:[], recreate:[]};
+  S.removed.forEach(function(id){ var n = nodeAttr(id); if (n && n.action==='RETAIN') out.breach.push(n); });
+  orphans(g).forEach(function(id){ var n = g.N.get(id); if (n.action==='DELETE'||n.action==='REDACT'||n.action==='ANONYMIZE') out.orphan.push(n); });
+  g.edges().forEach(function(e){ var t = g.N.get(e.t); if ((e.active||e.restore) && t && (t.action==='DELETE'||t.action==='REDACT'||t.action==='ANONYMIZE')) out.recreate.push(e); });
+  return out;
+}
+var ALLNODES = {}; D.graph.nodes.forEach(function(n){ ALLNODES[n.id]=n; });
+function nodeAttr(id){ return ALLNODES[id]; }
+function label(id){ var n = nodeAttr(id); return n ? n.label : id; }
+
+/* layout */
+var NW=188, NH=48, CW=246, RH=66, PX=18, PT=40, PB=18;
+function layout(g){
+  var layer = layers(g), ids = g.nodes();
+  var iso = ids.filter(function(i){ return g.in_degree(i)+g.out_degree(i)===0; });
+  var conn = ids.filter(function(i){ return iso.indexOf(i) < 0; });
+  var byName = function(a,b){ return label(a) < label(b) ? -1 : 1; };
+  var maxL = conn.length ? Math.max.apply(null, conn.map(function(i){return layer.get(i);})) : -1;
+  var cols = []; for (var c=0;c<=maxL;c++) cols.push(conn.filter(function(i){return layer.get(i)===c;}).sort(function(a,b){ return (TIER[g.N.get(a).tier]-TIER[g.N.get(b).tier]) || byName(a,b); }));
+  function rank(n){ for (var c=0;c<cols.length;c++){ var i=cols[c].indexOf(n); if (i>=0) return cols[c].length>1 ? i/(cols[c].length-1) : 0.5; } return 0.5; }
+  for (var it=0; it<3; it++) for (var k=1;k<cols.length;k++) {
+    var key = new Map(); cols[k].forEach(function(n){ var ps = g.predecessors(n); key.set(n, ps.length ? ps.reduce(function(a,p){return a+rank(p);},0)/ps.length : 0.5); });
+    cols[k].sort(function(a,b){ return (key.get(a)-key.get(b)) || byName(a,b); });
+  }
+  var caps = cols.map(function(_,c){ return c===0 ? 'Origin' : 'Hop '+c; });
+  if (iso.length) { cols.push(iso.sort(byName)); caps.push('Unlinked'); }
+  var rows = Math.max(1, Math.max.apply(null, cols.map(function(c){return c.length;}).concat([1])));
+  var pos = {};
+  cols.forEach(function(col, c){ var off = (rows - col.length)*RH/2; col.forEach(function(n,i){ pos[n] = {x: PX + c*CW, y: PT + off + i*RH}; }); });
+  return {pos:pos, caps:caps, n:cols.length, W: PX*2 + Math.max(cols.length,1)*CW - (CW-NW), H: PT + PB + rows*RH - (RH-NH)};
+}
+
+/* drawing + tween */
+var pos = {}, from = {}, to = {}, raf = 0, t0 = 0, DUR = 520, fadeN = [], fadeE = [], LAY = null;
+function edgePath(a, b){ var x0=a.x+NW, y0=a.y+NH/2, x1=b.x, y1=b.y+NH/2, dx=Math.max(26,(x1-x0)/2); return 'M'+x0+','+y0+' C'+(x0+dx)+','+y0+' '+(x1-dx)+','+y1+' '+x1+','+y1; }
+function edgeSvg(e, a, b, op){
+  if (!a || !b) return '';
+  var cls = 'ed'+(e.kind==='inferred'?' inf':'')+(e.restore?' rst':e.active?' act':'');
+  var mk = e.restore ? 'ar-r' : e.active ? 'ar-a' : 'ar-n';
+  var mx = (a.x+NW+b.x)/2, my = (a.y+b.y)/2+NH/2;
+  var lab = e.events ? '<text class="el" x="'+mx+'" y="'+(my+3)+'" text-anchor="middle">'+fmt(e.events)+'</text>' : '';
+  return '<g opacity="'+op+'"><path class="'+cls+'" d="'+edgePath(a,b)+'" marker-end="url(#'+mk+')"><title>'+esc(label(e.s))+' to '+esc(label(e.t))+(e.op?', '+e.op:'')+(e.kind==='inferred'?', inferred: '+(e.why||''):', observed')+'</title></path>'+lab+'</g>';
+}
+function nodeSvg(n, p, op, ghost){
+  var A = ACT[n.action] || ACT.NONE, orph = !ghost && isOrphan(G, n.id), sel = S.inspect===n.id, pend = !ghost && S.sel.has(n.id);
+  var cls = 'gn'+(sel?' sel':'')+(pend?' pend':'')+(orph?' orph':'');
+  var rt = n.fail_rate==null ? '' : '<tspan style="fill:var(--ink-3)"> · '+(n.fail_rate*100).toFixed(0)+'% fail</tspan>';
+  var tag = orph ? '<text class="tag" x="'+(NW-8)+'" y="-5" text-anchor="end" style="fill:var(--warn)">ORPHANED</text>' : pend ? '<text class="tag" x="'+(NW-8)+'" y="-5" text-anchor="end" style="fill:var(--bad)">TO REMOVE</text>' : '';
+  return '<g class="'+cls+'" '+(ghost?'':'data-node="'+n.id+'" tabindex="0" role="button" aria-label="'+esc(n.label)+', policy '+A.label+(orph?', orphaned':'')+(pend?', selected for removal':'')+'"')+' transform="translate('+p.x.toFixed(1)+','+p.y.toFixed(1)+')" opacity="'+op+'">'+
+    '<rect class="nb" width="'+NW+'" height="'+NH+'" rx="8" style="stroke:var('+A.c+')"/>'+
+    '<text class="nt" x="11" y="20">'+esc(trunc(n.label,28))+'</text>'+
+    '<text class="ns" x="11" y="37"><tspan style="fill:var('+A.c+');font-weight:600">'+A.label.toUpperCase()+'</tspan>'+rt+'</text>'+tag+'</g>';
+}
+function draw(e){
+  e = e==null ? 1 : e;
+  var focusId = null, ae = document.activeElement;
+  if (ae && ae.closest) { var f = ae.closest('#gsvg [data-node]'); if (f) focusId = f.getAttribute('data-node'); }
+  var s = '';
+  if (LAY) {
+    var band = ''; LAY.caps.forEach(function(c,i){ band += '<text class="cap" x="'+(PX+i*CW)+'" y="20">'+c+'</text>'; });
+    s += band;
+  }
+  fadeE.forEach(function(f){ s += edgeSvg(f.e, f.a, f.b, (1-e)*0.9); });
+  G.edges().forEach(function(ed){ s += edgeSvg(ed, pos[ed.s], pos[ed.t], 1); });
+  G.nodes().forEach(function(id){ if (pos[id]) s += nodeSvg(G.N.get(id), pos[id], 1, false); });
+  fadeN.forEach(function(f){ s += nodeSvg(f.n, f.p, Math.max(0,1-e*1.4), true); });
+  $('#gdraw').innerHTML = s;
+  if (focusId) { var t = $('#gsvg [data-node="'+focusId+'"]'); if (t) t.focus({preventScroll:true}); }
+}
+function retarget(instant){
+  LAY = layout(G); to = LAY.pos;
+  var svg = $('#gsvg'); svg.setAttribute('viewBox', '0 0 '+LAY.W+' '+LAY.H);
+  from = {}; Object.keys(to).forEach(function(id){ from[id] = pos[id] ? {x:pos[id].x, y:pos[id].y} : {x:to[id].x, y:to[id].y}; });
+  cancelAnimationFrame(raf);
+  if (reduced || instant || !fadeN.length && !Object.keys(pos).length) { pos = {}; Object.keys(to).forEach(function(id){ pos[id] = {x:to[id].x, y:to[id].y}; }); fadeN = []; fadeE = []; draw(1); return; }
+  t0 = performance.now();
+  (function step(now){
+    var k = Math.min(1, (now - t0)/DUR), e = 1 - Math.pow(1-k, 3);
+    Object.keys(to).forEach(function(id){ var a = from[id]||to[id]; pos[id] = {x: a.x+(to[id].x-a.x)*e, y: a.y+(to[id].y-a.y)*e}; });
+    draw(e);
+    if (k < 1) raf = requestAnimationFrame(step); else { fadeN = []; fadeE = []; draw(1); }
+  })(t0);
+}
+
+/* log */
+function logAdd(code, note){ S.log.push({code:code, note:note||''}); }
+function renderLog(){
+  var rows = S.log.map(function(l,i){ return '<div class="logrow"><span class="num muted">'+(i+1)+'</span><div><code>'+esc(l.code)+'</code>'+(l.note?'<p>'+esc(l.note)+'</p>':'')+'</div></div>'; }).reverse().join('');
+  $('#log').innerHTML = rows;
+}
+function snippet(){
+  var nodes = G.nodes(), iso = nodes.filter(function(i){ return G.in_degree(i)+G.out_degree(i)===0; });
+  var L = ['import networkx as nx', '', 'G = nx.DiGraph()'];
+  L.push('G.add_nodes_from([');
+  nodes.forEach(function(id){ var n = G.N.get(id); L.push('    ("'+id+'", {"label": "'+n.label+'", "action": "'+n.action+'", "rules": "'+n.rules+'"}),'); });
+  L.push('])', 'G.add_edges_from([');
+  G.edges().forEach(function(e){ L.push('    ("'+e.s+'", "'+e.t+'", {"kind": "'+e.kind+'", "op": "'+e.op+'", "events": '+e.events+', "active": '+(e.active?'True':'False')+', "restore": '+(e.restore?'True':'False')+'}),'); });
+  L.push('])', '');
+  if (S.removed.size) L.push('# removed in this session (already applied above): '+Array.from(S.removed).sort().join(', '));
+  L.push('print(G.number_of_nodes(), "systems,", G.number_of_edges(), "links")');
+  if (iso.length) L.push('print("unlinked:", list(nx.isolates(G)))');
+  return L.join('\n');
+}
+
+/* tiles, table, conflicts, inspector */
+function renderTiles(){
+  var es = G.edges(), act = es.filter(function(e){return e.active && !e.restore;}).length, rst = es.filter(function(e){return e.restore;}).length;
+  var C = conflicts(G), nc = C.breach.length + C.orphan.length;
+  $('#mtiles').innerHTML =
+    tile('Systems', G.N.size, 'of '+D.graph.nodes.length+' in the dataset') + tile('Links', es.length, es.filter(function(e){return e.kind==='observed';}).length+' observed') +
+    tile('Active flows', act, 'can copy data', act?'--bad':'') + tile('Restore paths', rst, 'can bring data back', rst?'--warn':'') +
+    tile('Orphaned', orphans(G).length, 'lost their source', orphans(G).length?'--warn':'') + tile('Policy conflicts', nc, nc?'retention or leftover copies':'none open', nc?'--bad':'--ok');
+}
+function statusOf(id){
+  if (S.removed.has(id)) return '<span class="pill p-neutral">Removed</span>';
+  var o = G.N.has(id) && isOrphan(G, id) ? '<span class="pill p-warn">Orphaned</span>' : '<span class="pill p-ok">Linked</span>';
+  var iso = G.N.has(id) && G.in_degree(id)+G.out_degree(id)===0 && !isOrphan(G,id) ? '<span class="pill p-neutral">Unlinked</span>' : o;
+  return iso;
+}
+function renderTable(){
+  var q = S.q.trim().toLowerCase();
+  var list = D.graph.nodes.slice().sort(function(a,b){ return (TIER[a.tier]-TIER[b.tier]) || (a.label<b.label?-1:1); }).filter(function(n){
+    return (S.act==='ALL' || n.action===S.act) && (!q || n.label.toLowerCase().indexOf(q)>=0 || n.id.indexOf(q)>=0 || n.category.toLowerCase().indexOf(q)>=0);
+  });
+  $('#dbt tbody').innerHTML = list.map(function(n){
+    var gone = S.removed.has(n.id), A = ACT[n.action]||ACT.NONE, here = !gone;
+    var inn = here ? G.in_degree(n.id) : 0, out = here ? G.out_degree(n.id) : 0;
+    return '<tr data-id="'+n.id+'" class="'+(gone?'gone':S.sel.has(n.id)?'rowsel':'')+'"><td><input type="checkbox" id="c-'+n.id+'" data-chk="'+n.id+'" '+(S.sel.has(n.id)?'checked':'')+(gone?' disabled':'')+' style="width:18px;height:18px;accent-color:var(--bad)"><label class="sr" for="c-'+n.id+'">Select '+esc(n.label)+'</label></td>'+
+      '<td><button class="xbtn" type="button" data-inspect="'+n.id+'" style="font:inherit;color:inherit"'+(gone?' disabled':'')+'><span><span class="tname">'+esc(n.label)+'</span><div class="tsub">'+n.id+'</div></span></button></td>'+
+      '<td>'+esc(n.category)+'</td><td><span class="pill '+A.t+'">'+A.label+'</span><div class="tsub">'+esc(n.rules)+'</div></td>'+
+      '<td class="r num">'+(n.resources?fmt(n.resources):'–')+'</td><td class="r num">'+(n.fail_rate==null?'–':pct(n.fail_rate))+'</td><td class="r num">'+inn+' / '+out+'</td><td>'+statusOf(n.id)+'</td></tr>';
+  }).join('') || '<tr><td colspan="8" class="muted" style="padding:18px">No systems match.</td></tr>';
+  syncSel();
+}
+function syncSel(){
+  var n = Array.from(S.sel).filter(function(i){return G.has_node(i);}).length;
+  var b = $('#b-delete'); b.textContent = 'Delete selected ('+n+')'; b.disabled = !n;
+  $('#b-undo').disabled = !S.hist.length; $('#b-clear').disabled = !n;
+}
+function renderConf(){
+  var C = conflicts(G);
+  function grp(title, items, fn, okText){ return '<h3 style="font:600 13px var(--f-text);margin:0 0 6px">'+title+' <span class="num muted">'+items.length+'</span></h3>'+(items.length ? '<ul style="margin:0 0 14px;padding-left:18px;font-size:13px;color:var(--ink-2)">'+items.map(function(i){ return '<li style="margin:3px 0">'+fn(i)+'</li>'; }).join('')+'</ul>' : '<p class="note" style="margin:0 0 14px">'+okText+'</p>'); }
+  $('#conf').innerHTML =
+    grp('Recreation paths still open', C.recreate, function(e){ return '<b>'+esc(label(e.s))+'</b> to <b>'+esc(label(e.t))+'</b>, '+(e.restore?'a restore path (BLOCK_RESTORE)':'an active flow (DISABLE_DATA_FLOW)'); }, 'No active flow or restore path reaches a store that must be cleaned.') +
+    grp('Copies that outlive their source', C.orphan, function(n){ return '<b>'+esc(n.label)+'</b> still holds '+esc(n.category.toLowerCase())+' and no longer has a source. Policy action: '+ACT[n.action].label.toLowerCase()+'.'; }, 'No copy has lost its source.') +
+    grp('Retention breaches', C.breach, function(n){ return '<b>'+esc(n.label)+'</b> was removed but <span class="id">'+esc(n.rules)+'</span> requires its records to be retained.'; }, 'No retained store has been removed.');
+}
+function renderInspector(){
+  var id = S.inspect, box = $('#insp');
+  if (!id || !G.has_node(id)) { box.innerHTML = '<p class="note" style="padding:14px 18px;margin:0;border-top:1px solid var(--line)">Select a system on the map or in the table to run graph queries on it.</p>'; return; }
+  var n = G.N.get(id), A = ACT[n.action]||ACT.NONE;
+  function L(a){ return a.length ? '['+a.map(function(x){return "'"+x+"'";}).join(', ')+']' : '[]'; }
+  var pre = G.predecessors(id), suc = G.successors(id), anc = G.ancestors(id), des = G.descendants(id);
+  var ins = G.edges().filter(function(e){return e.t===id;}), outs = G.edges().filter(function(e){return e.s===id;});
+  function lk(e, dir){ var other = dir==='in' ? e.s : e.t, cut = e.restore ? 'Block restore' : e.active ? 'Disable flow' : 'Cut link';
+    return '<div class="lk"><div><span class="id" style="color:var(--ink)">'+(dir==='in'?'← ':'→ ')+other+'</span><div class="tsub">'+(e.op||'inferred')+' · '+(e.kind)+(e.events?' · '+fmt(e.events)+' events':'')+'</div></div><button class="btn sm" type="button" data-cut="'+e.s+'|'+e.t+'">'+cut+'</button></div>'; }
+  box.innerHTML = '<div class="insp"><div><h4>Graph queries · '+esc(n.label)+'</h4><div class="q">'+
+    '<b>G.predecessors</b>(\''+id+'\') → '+L(pre)+'<br><b>G.successors</b>(\''+id+'\') → '+L(suc)+'<br><b>nx.ancestors</b>(G, \''+id+'\') → '+L(anc)+'<br><b>nx.descendants</b>(G, \''+id+'\') → '+L(des)+'<br><b>G.in_degree</b>(\''+id+'\') → '+pre.length+' · <b>G.out_degree</b> → '+suc.length+'<br><b>blast radius</b> → '+des.length+' downstream system'+(des.length===1?'':'s')+'</div></div>'+
+    '<div><h4>Links</h4>'+(ins.concat(outs).length ? ins.map(function(e){return lk(e,'in');}).join('')+outs.map(function(e){return lk(e,'out');}).join('') : '<p class="note" style="margin:0">No links. This system is unlinked in the dataset or all of its links were removed.</p>')+'</div>'+
+    '<div><h4>Policy and evidence</h4><p style="margin:0 0 6px"><span class="pill '+A.t+'">'+A.label+'</span> <span class="id">'+esc(n.rules)+'</span></p><p class="muted" style="font-size:12.5px;margin:0 0 10px">'+esc(n.category)+'</p>'+
+    '<dl class="pdl" style="margin:0 0 12px"><dt>Events</dt><dd>'+fmt(n.events)+'</dd><dt>Failed or partial</dt><dd>'+(n.fail_rate==null?'–':pct(n.fail_rate))+'</dd>'+(n.next_bad!=null?'<dt>Expected next month</dt><dd>~'+Math.round(n.next_bad)+' failures</dd>':'')+'<dt>Snapshot records</dt><dd>'+n.snap_resources+' ('+n.snap_identifiers+' with identifiers)</dd></dl>'+
+    '<div class="toolbar"><button class="btn sm" type="button" data-toggle="'+id+'">'+(S.sel.has(id)?'Remove from selection':'Add to selection')+'</button></div></div></div>';
+}
+
+/* actions */
+function snapshot(){ S.hist.push({G:G.copy(), removed:new Set(S.removed), log:S.log.length}); }
+function renderAll(){ renderTiles(); renderTable(); renderConf(); renderInspector(); renderLog(); $('#snip').textContent = snippet(); }
+function confirmUI(){
+  var ids = Array.from(S.sel).filter(function(i){return G.has_node(i);});
+  if (!S.confirm || !ids.length) { $('#confirm').innerHTML = ''; return; }
+  var sim = G.copy(), sum = runDelete(sim, ids, S.mode), orph = orphans(sim);
+  var warn = [];
+  sum.breaches.forEach(function(id){ warn.push('<b>'+esc(label(id))+'</b> is held under <span class="id">'+esc(nodeAttr(id).rules)+'</span>. Removing it breaches the retention rule.'); });
+  orph.forEach(function(id){ var n = nodeAttr(id); if (['DELETE','REDACT','ANONYMIZE'].indexOf(n.action)>=0) warn.push('<b>'+esc(n.label)+'</b> would keep '+esc(n.category.toLowerCase())+' with no source. Treat it before its source goes.'); });
+  $('#confirm').innerHTML = '<div class="warnbar"><h3>Remove '+sum.order.length+' system'+(sum.order.length===1?'':'s')+' from the simulated graph?</h3>'+
+    '<div style="font-size:13px">Order, downstream first: '+sum.order.map(function(o){ return '<span class="id" style="color:var(--ink)">'+o.id+'</span>'+(o.why==='cascade'?' <span class="muted">(cascade)</span>':''); }).join(' → ')+'</div>'+
+    '<div style="font-size:13px">'+sum.edges.length+' link'+(sum.edges.length===1?'':'s')+' removed, '+sum.active+' active flow'+(sum.active===1?'':'s')+' stopped, '+sum.restore+' restore path'+(sum.restore===1?'':'s')+' closed, '+orph.length+' system'+(orph.length===1?'':'s')+' orphaned.</div>'+
+    (warn.length ? '<ul>'+warn.map(function(w){return '<li>'+w+'</li>';}).join('')+'</ul>' : '<div style="font-size:13px;color:var(--ok)">No policy conflict from this change.</div>')+
+    '<div class="toolbar"><button class="btn danger" type="button" id="b-ok">Confirm removal</button><button class="btn" type="button" id="b-no">Cancel</button><span class="note" style="margin:0">Simulation only. No data is deleted.</span></div></div>';
+  $('#b-ok').addEventListener('click', doDelete); $('#b-no').addEventListener('click', function(){ S.confirm=false; confirmUI(); $('#b-delete').focus(); });
+}
+function doDelete(){
+  var ids = Array.from(S.sel).filter(function(i){return G.has_node(i);}); if (!ids.length) return;
+  snapshot();
+  var before = {}; G.nodes().forEach(function(id){ if (pos[id]) before[id] = {x:pos[id].x, y:pos[id].y}; });
+  var sum = runDelete(G, ids, S.mode);
+  fadeN = sum.order.map(function(o){ return {n:nodeAttr(o.id), p: before[o.id] || {x:0,y:0}}; });
+  fadeE = sum.edges.map(function(e){ return {e:e, a:before[e.s]||pos[e.s], b:before[e.t]||pos[e.t]}; });
+  sum.order.forEach(function(o){
+    S.removed.add(o.id);
+    var gone = sum.edges.filter(function(e){return e.s===o.id||e.t===o.id;}).map(function(e){return e.s+'→'+e.t;});
+    logAdd("G.remove_node('"+o.id+"')"+(o.why==='cascade'?'  # cascade: orphaned DELETE-policy copy':''), o.links+' link'+(o.links===1?'':'s')+' removed'+(gone.length?': '+gone.join(', '):'')+(nodeAttr(o.id).action==='RETAIN'?'. Retention breach: '+nodeAttr(o.id).rules+'.':'.'));
+  });
+  var orph = orphans(G);
+  logAdd("[n for n in G if G.in_degree(n) == 0 and ORIG_IN[n] > 0]", orph.length ? '→ '+orph.map(function(i){return "'"+i+"'";}).join(', ') : '→ []');
+  S.sel.clear(); S.confirm = false; if (S.inspect && !G.has_node(S.inspect)) S.inspect = null;
+  $('#confirm').innerHTML = ''; renderAll(); retarget(false);
+}
+function cutEdge(s, t){
+  var e = G.E.get(DiGraph.key(s,t)); if (!e) return;
+  snapshot(); G.remove_edge(s, t);
+  logAdd("G.remove_edge('"+s+"', '"+t+"')  # "+(e.restore?'BLOCK_RESTORE':e.active?'DISABLE_DATA_FLOW':'link removed'), (e.restore?'Restore path closed. ':e.active?'Active flow stopped. ':'')+label(s)+' no longer feeds '+label(t)+'.');
+  renderAll(); retarget(false);
+}
+function undo(){
+  var h = S.hist.pop(); if (!h) return;
+  G = h.G; S.removed = h.removed; S.log.length = h.log; S.sel.clear(); S.confirm = false; fadeN = []; fadeE = [];
+  $('#confirm').innerHTML = ''; renderAll(); retarget(false);
+}
+function reset(){
+  G = buildGraph(); S.removed = new Set(); S.hist = []; S.sel.clear(); S.confirm = false; S.inspect = null; fadeN = []; fadeE = [];
+  S.log = []; logAdd('G = nx.node_link_graph(data)  # NetworkX '+D.meta.networkx, G.N.size+' systems and '+G.E.size+' links loaded from dataset/');
+  $('#confirm').innerHTML = ''; renderAll(); retarget(true);
+}
+
+/* events */
+$('#dbt tbody').addEventListener('change', function(e){
+  var c = e.target.closest('[data-chk]'); if (!c) return;
+  if (c.checked) S.sel.add(c.dataset.chk); else S.sel.delete(c.dataset.chk);
+  c.closest('tr').className = c.checked ? 'rowsel' : ''; S.confirm = false; $('#confirm').innerHTML = ''; syncSel(); draw(1);
+});
+$('#dbt tbody').addEventListener('click', function(e){ var b = e.target.closest('[data-inspect]'); if (!b || b.disabled) return; S.inspect = b.dataset.inspect; renderInspector(); draw(1); $('#insp').scrollIntoView({block:'nearest', behavior: reduced?'auto':'smooth'}); });
+$('#gsvg').addEventListener('click', function(e){ var g = e.target.closest('[data-node]'); if (!g) return; S.inspect = g.dataset.node; renderInspector(); draw(1); });
+$('#gsvg').addEventListener('keydown', function(e){ if (e.key!=='Enter' && e.key!==' ') return; var g = e.target.closest('[data-node]'); if (!g) return; e.preventDefault(); S.inspect = g.dataset.node; renderInspector(); draw(1); });
+$('#insp').addEventListener('click', function(e){
+  var c = e.target.closest('[data-cut]'); if (c) { var p = c.dataset.cut.split('|'); cutEdge(p[0], p[1]); return; }
+  var t = e.target.closest('[data-toggle]'); if (t) { var id = t.dataset.toggle; if (S.sel.has(id)) S.sel.delete(id); else S.sel.add(id); S.confirm=false; $('#confirm').innerHTML=''; renderTable(); renderInspector(); draw(1); }
+});
+$('#b-delete').addEventListener('click', function(){ S.confirm = true; confirmUI(); var b = $('#b-ok'); if (b) b.focus(); });
+$('#b-clear').addEventListener('click', function(){ S.sel.clear(); S.confirm=false; $('#confirm').innerHTML=''; renderTable(); draw(1); });
+$('#b-delstores').addEventListener('click', function(){ G.nodes().forEach(function(id){ if (G.N.get(id).action==='DELETE') S.sel.add(id); }); S.confirm=false; $('#confirm').innerHTML=''; renderTable(); draw(1); });
+$('#b-undo').addEventListener('click', undo); $('#b-reset').addEventListener('click', reset);
+$$('input[name="mode"]').forEach(function(r){ r.addEventListener('change', function(){ S.mode = this.value; if (S.confirm) confirmUI(); }); });
+$('#db-q').addEventListener('input', function(){ S.q = this.value; renderTable(); });
+$('#db-act').addEventListener('change', function(){ S.act = this.value; renderTable(); });
+$('#b-copy').addEventListener('click', function(){
+  var btn = this, txt = snippet();
+  function done(ok){ btn.textContent = ok ? 'Copied' : 'Select the code below'; if (!ok) { var r = document.createRange(); r.selectNodeContents($('#snip')); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } setTimeout(function(){ btn.textContent = 'Copy NetworkX snippet'; }, 1800); }
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function(){ done(true); }, function(){ done(false); }); else done(false);
+});
+
+/* ---------- boot ---------- */
+reset();
+showTab(location.hash.slice(1));
+})();
+</script>
+
+</body></html>

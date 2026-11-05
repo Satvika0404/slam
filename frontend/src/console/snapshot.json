@@ -1,0 +1,3060 @@
+{
+  "meta": {
+    "as_of": "2026-10-01T12:00:00Z",
+    "activity_from": "2026-01-04",
+    "activity_to": "2026-10-01",
+    "events": 4011,
+    "requests": 518,
+    "evidence_files": 94,
+    "sql_snapshots": 24,
+    "rules": 15,
+    "months": [
+      "2026-01",
+      "2026-02",
+      "2026-03",
+      "2026-04",
+      "2026-05",
+      "2026-06",
+      "2026-07",
+      "2026-08",
+      "2026-09"
+    ],
+    "month_labels": {
+      "2026-01": "Jan",
+      "2026-02": "Feb",
+      "2026-03": "Mar",
+      "2026-04": "Apr",
+      "2026-05": "May",
+      "2026-06": "Jun",
+      "2026-07": "Jul",
+      "2026-08": "Aug",
+      "2026-09": "Sep"
+    },
+    "oct_partial_events": 3,
+    "networkx": "3.6.1"
+  },
+  "kpis": {
+    "events": 4011,
+    "non_success": 1097,
+    "non_success_rate": 0.2735,
+    "destructive_n": 1267,
+    "destructive_bad": 786,
+    "destructive_rate": 0.6204,
+    "reborn": 30,
+    "flows_checked": 89,
+    "flows_open_act": 89,
+    "restore_checked": 28,
+    "restore_open_act": 28,
+    "ghost_rows": 12,
+    "replica_tables": 14
+  },
+  "rate_series": [
+    {
+      "m": "2026-01",
+      "n": 387,
+      "bad": 93,
+      "rate": 0.2403
+    },
+    {
+      "m": "2026-02",
+      "n": 395,
+      "bad": 119,
+      "rate": 0.3013
+    },
+    {
+      "m": "2026-03",
+      "n": 450,
+      "bad": 124,
+      "rate": 0.2756
+    },
+    {
+      "m": "2026-04",
+      "n": 432,
+      "bad": 131,
+      "rate": 0.3032
+    },
+    {
+      "m": "2026-05",
+      "n": 503,
+      "bad": 128,
+      "rate": 0.2545
+    },
+    {
+      "m": "2026-06",
+      "n": 452,
+      "bad": 126,
+      "rate": 0.2788
+    },
+    {
+      "m": "2026-07",
+      "n": 434,
+      "bad": 139,
+      "rate": 0.3203
+    },
+    {
+      "m": "2026-08",
+      "n": 516,
+      "bad": 134,
+      "rate": 0.2597
+    },
+    {
+      "m": "2026-09",
+      "n": 439,
+      "bad": 102,
+      "rate": 0.2323
+    }
+  ],
+  "rate_fc": {
+    "slope": -0.0015,
+    "p": 0.7206,
+    "fc": [
+      {
+        "h": 1,
+        "y": 0.266,
+        "lo": 0.211,
+        "hi": 0.322
+      },
+      {
+        "h": 2,
+        "y": 0.265,
+        "lo": 0.206,
+        "hi": 0.324
+      },
+      {
+        "h": 3,
+        "y": 0.263,
+        "lo": 0.201,
+        "hi": 0.326
+      }
+    ],
+    "fit": [0.28, 0.279, 0.277, 0.276, 0.274, 0.272, 0.271, 0.269, 0.268]
+  },
+  "count_fc": {
+    "slope": 1.7667,
+    "p": 0.3999,
+    "fc": [
+      {
+        "h": 1,
+        "y": 130.611,
+        "lo": 103.905,
+        "hi": 157.317
+      },
+      {
+        "h": 2,
+        "y": 132.378,
+        "lo": 104.115,
+        "hi": 160.641
+      },
+      {
+        "h": 3,
+        "y": 134.144,
+        "lo": 104.145,
+        "hi": 164.144
+      }
+    ],
+    "fit": [
+      114.711, 116.478, 118.244, 120.011, 121.778, 123.544, 125.311, 127.078,
+      128.844
+    ]
+  },
+  "ctrl_series": [
+    {
+      "m": "2026-01",
+      "n": 105,
+      "bad": 67,
+      "rate": 0.6381
+    },
+    {
+      "m": "2026-02",
+      "n": 129,
+      "bad": 86,
+      "rate": 0.6667
+    },
+    {
+      "m": "2026-03",
+      "n": 145,
+      "bad": 89,
+      "rate": 0.6138
+    },
+    {
+      "m": "2026-04",
+      "n": 151,
+      "bad": 98,
+      "rate": 0.649
+    },
+    {
+      "m": "2026-05",
+      "n": 153,
+      "bad": 84,
+      "rate": 0.549
+    },
+    {
+      "m": "2026-06",
+      "n": 148,
+      "bad": 89,
+      "rate": 0.6014
+    },
+    {
+      "m": "2026-07",
+      "n": 142,
+      "bad": 100,
+      "rate": 0.7042
+    },
+    {
+      "m": "2026-08",
+      "n": 174,
+      "bad": 106,
+      "rate": 0.6092
+    },
+    {
+      "m": "2026-09",
+      "n": 120,
+      "bad": 67,
+      "rate": 0.5583
+    }
+  ],
+  "ctrl_fc": {
+    "slope": -0.006,
+    "p": 0.3872,
+    "fc": [
+      {
+        "h": 1,
+        "y": 0.591,
+        "lo": 0.503,
+        "hi": 0.679
+      },
+      {
+        "h": 2,
+        "y": 0.585,
+        "lo": 0.492,
+        "hi": 0.678
+      },
+      {
+        "h": 3,
+        "y": 0.579,
+        "lo": 0.481,
+        "hi": 0.678
+      }
+    ],
+    "fit": [0.645, 0.639, 0.633, 0.627, 0.621, 0.615, 0.609, 0.603, 0.597]
+  },
+  "patterns": [
+    {
+      "id": "P01",
+      "name": "Primary profile deletion not confirmed",
+      "group": "Deletion outcome",
+      "signature": "DELETE_RECORD → account_service",
+      "rule": "rule_01",
+      "kind": "failure",
+      "note": "Half of the deletion calls against the account store return FAILED or PARTIAL, so the profile and its secondary identifiers can survive.",
+      "n": 539,
+      "count": 269,
+      "rate": 0.4991,
+      "ci": [0.457, 0.5411],
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 47,
+          "c": 25
+        },
+        {
+          "m": "2026-02",
+          "n": 55,
+          "c": 29
+        },
+        {
+          "m": "2026-03",
+          "n": 60,
+          "c": 26
+        },
+        {
+          "m": "2026-04",
+          "n": 60,
+          "c": 32
+        },
+        {
+          "m": "2026-05",
+          "n": 65,
+          "c": 28
+        },
+        {
+          "m": "2026-06",
+          "n": 60,
+          "c": 29
+        },
+        {
+          "m": "2026-07",
+          "n": 60,
+          "c": 35
+        },
+        {
+          "m": "2026-08",
+          "n": 79,
+          "c": 41
+        },
+        {
+          "m": "2026-09",
+          "n": 53,
+          "c": 24
+        }
+      ],
+      "slope": 0.7833,
+      "p": 0.2893,
+      "trend": "Stable",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 33.806,
+          "lo": 24.55,
+          "hi": 43.062
+        },
+        {
+          "h": 2,
+          "y": 34.589,
+          "lo": 24.793,
+          "hi": 44.384
+        },
+        {
+          "h": 3,
+          "y": 35.372,
+          "lo": 24.975,
+          "hi": 45.77
+        }
+      ],
+      "fit": [
+        26.756, 27.539, 28.322, 29.106, 29.889, 30.672, 31.456, 32.239, 33.022
+      ],
+      "confidence": "High",
+      "examples": ["activity_3796", "activity_3798", "activity_3849"]
+    },
+    {
+      "id": "P02",
+      "name": "Search-index deletion not confirmed",
+      "group": "Deletion outcome",
+      "signature": "DELETE_RECORD → search_service",
+      "rule": "rule_03",
+      "kind": "failure",
+      "note": "Nine in ten index deletions fail. Index entries are rebuilt from the account store, so they persist and re-appear.",
+      "n": 289,
+      "count": 261,
+      "rate": 0.9031,
+      "ci": [0.8635, 0.9321],
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 22,
+          "c": 19
+        },
+        {
+          "m": "2026-02",
+          "n": 34,
+          "c": 31
+        },
+        {
+          "m": "2026-03",
+          "n": 36,
+          "c": 33
+        },
+        {
+          "m": "2026-04",
+          "n": 35,
+          "c": 34
+        },
+        {
+          "m": "2026-05",
+          "n": 35,
+          "c": 29
+        },
+        {
+          "m": "2026-06",
+          "n": 35,
+          "c": 31
+        },
+        {
+          "m": "2026-07",
+          "n": 36,
+          "c": 33
+        },
+        {
+          "m": "2026-08",
+          "n": 35,
+          "c": 32
+        },
+        {
+          "m": "2026-09",
+          "n": 21,
+          "c": 19
+        }
+      ],
+      "slope": 0.0,
+      "p": 1.0,
+      "trend": "Stable",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 29.0,
+          "lo": 18.058,
+          "hi": 39.942
+        },
+        {
+          "h": 2,
+          "y": 29.0,
+          "lo": 17.42,
+          "hi": 40.58
+        },
+        {
+          "h": 3,
+          "y": 29.0,
+          "lo": 16.709,
+          "hi": 41.291
+        }
+      ],
+      "fit": [29.0, 29.0, 29.0, 29.0, 29.0, 29.0, 29.0, 29.0, 29.0],
+      "confidence": "High",
+      "examples": ["activity_3812", "activity_3814", "activity_3934"]
+    },
+    {
+      "id": "P03",
+      "name": "Support redaction and attachment deletion failing",
+      "group": "Deletion outcome",
+      "signature": "REDACT / DELETE → support_platform",
+      "rule": "rule_05, rule_06",
+      "kind": "failure",
+      "note": "Messages that must be redacted and attachments that must be deleted stay in place for roughly three in four requests.",
+      "n": 192,
+      "count": 147,
+      "rate": 0.7656,
+      "ci": [0.7009, 0.82],
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 18,
+          "c": 14
+        },
+        {
+          "m": "2026-02",
+          "n": 18,
+          "c": 15
+        },
+        {
+          "m": "2026-03",
+          "n": 18,
+          "c": 16
+        },
+        {
+          "m": "2026-04",
+          "n": 25,
+          "c": 19
+        },
+        {
+          "m": "2026-05",
+          "n": 24,
+          "c": 17
+        },
+        {
+          "m": "2026-06",
+          "n": 24,
+          "c": 18
+        },
+        {
+          "m": "2026-07",
+          "n": 21,
+          "c": 18
+        },
+        {
+          "m": "2026-08",
+          "n": 27,
+          "c": 20
+        },
+        {
+          "m": "2026-09",
+          "n": 17,
+          "c": 10
+        }
+      ],
+      "slope": 0.0333,
+      "p": 0.9389,
+      "trend": "Stable",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 16.5,
+          "lo": 10.816,
+          "hi": 22.184
+        },
+        {
+          "h": 2,
+          "y": 16.533,
+          "lo": 10.518,
+          "hi": 22.548
+        },
+        {
+          "h": 3,
+          "y": 16.567,
+          "lo": 10.182,
+          "hi": 22.951
+        }
+      ],
+      "fit": [16.2, 16.233, 16.267, 16.3, 16.333, 16.367, 16.4, 16.433, 16.467],
+      "confidence": "High",
+      "examples": ["activity_3809", "activity_3815", "activity_3933"]
+    },
+    {
+      "id": "P04",
+      "name": "Export deletion failing",
+      "group": "Deletion outcome",
+      "signature": "DELETE_RECORD → export_service",
+      "rule": "rule_09",
+      "kind": "failure",
+      "note": "Almost every export deletion fails, leaving downloadable archives of personal data.",
+      "n": 32,
+      "count": 31,
+      "rate": 0.9688,
+      "ci": [0.8426, 0.9945],
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 3,
+          "c": 3
+        },
+        {
+          "m": "2026-02",
+          "n": 3,
+          "c": 3
+        },
+        {
+          "m": "2026-03",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-04",
+          "n": 3,
+          "c": 3
+        },
+        {
+          "m": "2026-05",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-06",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-07",
+          "n": 5,
+          "c": 4
+        },
+        {
+          "m": "2026-08",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-09",
+          "n": 2,
+          "c": 2
+        }
+      ],
+      "slope": 0.0,
+      "p": 1.0,
+      "trend": "Stable",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 3.444,
+          "lo": 2.086,
+          "hi": 4.803
+        },
+        {
+          "h": 2,
+          "y": 3.444,
+          "lo": 2.007,
+          "hi": 4.882
+        },
+        {
+          "h": 3,
+          "y": 3.444,
+          "lo": 1.919,
+          "hi": 4.97
+        }
+      ],
+      "fit": [3.444, 3.444, 3.444, 3.444, 3.444, 3.444, 3.444, 3.444, 3.444],
+      "confidence": "Medium",
+      "examples": ["activity_3555", "activity_3667", "activity_3754"]
+    },
+    {
+      "id": "P05",
+      "name": "Analytics anonymization incomplete",
+      "group": "Deletion outcome",
+      "signature": "ANONYMIZE_RECORD → analytics_platform",
+      "rule": "rule_07, rule_08",
+      "kind": "failure",
+      "note": "Profiles and telemetry remain attributable to a user in about one case in three.",
+      "n": 204,
+      "count": 72,
+      "rate": 0.3529,
+      "ci": [0.2906, 0.4207],
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 15,
+          "c": 6
+        },
+        {
+          "m": "2026-02",
+          "n": 19,
+          "c": 8
+        },
+        {
+          "m": "2026-03",
+          "n": 27,
+          "c": 10
+        },
+        {
+          "m": "2026-04",
+          "n": 28,
+          "c": 10
+        },
+        {
+          "m": "2026-05",
+          "n": 25,
+          "c": 6
+        },
+        {
+          "m": "2026-06",
+          "n": 25,
+          "c": 7
+        },
+        {
+          "m": "2026-07",
+          "n": 20,
+          "c": 10
+        },
+        {
+          "m": "2026-08",
+          "n": 28,
+          "c": 8
+        },
+        {
+          "m": "2026-09",
+          "n": 17,
+          "c": 7
+        }
+      ],
+      "slope": 0.0167,
+      "p": 0.944,
+      "trend": "Stable",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 8.083,
+          "lo": 4.984,
+          "hi": 11.183
+        },
+        {
+          "h": 2,
+          "y": 8.1,
+          "lo": 4.82,
+          "hi": 11.38
+        },
+        {
+          "h": 3,
+          "y": 8.117,
+          "lo": 4.635,
+          "hi": 11.598
+        }
+      ],
+      "fit": [7.933, 7.95, 7.967, 7.983, 8.0, 8.017, 8.033, 8.05, 8.067],
+      "confidence": "High",
+      "examples": ["activity_3751", "activity_3807", "activity_3816"]
+    },
+    {
+      "id": "P06",
+      "name": "Replication checkpoint failures",
+      "group": "Replication",
+      "signature": "SYNC_RECORD → account_replication_cluster",
+      "rule": "rule_01",
+      "kind": "failure",
+      "note": "Replica checkpoints fail or stall, which is where rows that no longer exist in the primary come from.",
+      "n": 55,
+      "count": 25,
+      "rate": 0.4545,
+      "ci": [0.3303, 0.5848],
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 7,
+          "c": 3
+        },
+        {
+          "m": "2026-02",
+          "n": 7,
+          "c": 4
+        },
+        {
+          "m": "2026-03",
+          "n": 7,
+          "c": 4
+        },
+        {
+          "m": "2026-04",
+          "n": 4,
+          "c": 2
+        },
+        {
+          "m": "2026-05",
+          "n": 7,
+          "c": 3
+        },
+        {
+          "m": "2026-06",
+          "n": 7,
+          "c": 3
+        },
+        {
+          "m": "2026-07",
+          "n": 7,
+          "c": 4
+        },
+        {
+          "m": "2026-08",
+          "n": 5,
+          "c": 2
+        },
+        {
+          "m": "2026-09",
+          "n": 4,
+          "c": 0
+        }
+      ],
+      "slope": -0.2833,
+      "p": 0.0903,
+      "trend": "Falling",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 1.361,
+          "lo": 0.0,
+          "hi": 3.315
+        },
+        {
+          "h": 2,
+          "y": 1.078,
+          "lo": 0.0,
+          "hi": 3.146
+        },
+        {
+          "h": 3,
+          "y": 0.794,
+          "lo": 0.0,
+          "hi": 2.989
+        }
+      ],
+      "fit": [3.911, 3.628, 3.344, 3.061, 2.778, 2.494, 2.211, 1.928, 1.644],
+      "confidence": "Medium",
+      "examples": ["activity_2851", "activity_3231", "activity_3276"]
+    },
+    {
+      "id": "P07",
+      "name": "Tombstone redaction failing",
+      "group": "Deletion outcome",
+      "signature": "REDACT_RECORD → identity_service",
+      "rule": "rule_15",
+      "kind": "failure",
+      "note": "Account tombstones keep direct identifiers when the redaction does not finish.",
+      "n": 10,
+      "count": 5,
+      "rate": 0.5,
+      "ci": [0.2366, 0.7634],
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-02",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-03",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-04",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-05",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-06",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-07",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-08",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-09",
+          "n": 10,
+          "c": 5
+        }
+      ],
+      "slope": 0.3333,
+      "p": 0.1269,
+      "trend": "Stable",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 2.222,
+          "lo": 0.0,
+          "hi": 4.829
+        },
+        {
+          "h": 2,
+          "y": 2.556,
+          "lo": 0.0,
+          "hi": 5.315
+        },
+        {
+          "h": 3,
+          "y": 2.889,
+          "lo": 0.0,
+          "hi": 5.817
+        }
+      ],
+      "fit": [-0.778, -0.444, -0.111, 0.222, 0.556, 0.889, 1.222, 1.556, 1.889],
+      "confidence": "Low",
+      "examples": ["activity_3670", "activity_3692", "activity_3724"]
+    },
+    {
+      "id": "P08",
+      "name": "Upstream write failures",
+      "group": "Upstream writes",
+      "signature": "UPDATE / INDEX / SYNC / REFRESH / EMAIL / EXPORT / RETAIN",
+      "rule": "—",
+      "kind": "failure",
+      "note": "Partial or failed writes leave copies that disagree with the source, the root cause of most later drift.",
+      "n": 2445,
+      "count": 286,
+      "rate": 0.117,
+      "ci": [0.1048, 0.1303],
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 258,
+          "c": 23
+        },
+        {
+          "m": "2026-02",
+          "n": 235,
+          "c": 29
+        },
+        {
+          "m": "2026-03",
+          "n": 280,
+          "c": 31
+        },
+        {
+          "m": "2026-04",
+          "n": 245,
+          "c": 31
+        },
+        {
+          "m": "2026-05",
+          "n": 315,
+          "c": 41
+        },
+        {
+          "m": "2026-06",
+          "n": 269,
+          "c": 34
+        },
+        {
+          "m": "2026-07",
+          "n": 263,
+          "c": 35
+        },
+        {
+          "m": "2026-08",
+          "n": 297,
+          "c": 26
+        },
+        {
+          "m": "2026-09",
+          "n": 280,
+          "c": 35
+        }
+      ],
+      "slope": 0.8333,
+      "p": 0.2534,
+      "trend": "Stable",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 35.833,
+          "lo": 26.762,
+          "hi": 44.905
+        },
+        {
+          "h": 2,
+          "y": 36.667,
+          "lo": 27.066,
+          "hi": 46.267
+        },
+        {
+          "h": 3,
+          "y": 37.5,
+          "lo": 27.31,
+          "hi": 47.69
+        }
+      ],
+      "fit": [28.333, 29.167, 30.0, 30.833, 31.667, 32.5, 33.333, 34.167, 35.0],
+      "confidence": "High",
+      "examples": ["activity_3990", "activity_3992", "activity_3997"]
+    },
+    {
+      "id": "P09",
+      "name": "Data flow confirmed still enabled",
+      "group": "Recreation risk",
+      "signature": "CHECK_DATA_FLOW → integration_service",
+      "rule": "allowed op: DISABLE_DATA_FLOW",
+      "kind": "occurrence",
+      "note": "Connector checks that found the flow running. Each one is a path that can copy deleted data back.",
+      "n": 89,
+      "count": 89,
+      "rate": null,
+      "ci": null,
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 5,
+          "c": 5
+        },
+        {
+          "m": "2026-02",
+          "n": 10,
+          "c": 10
+        },
+        {
+          "m": "2026-03",
+          "n": 9,
+          "c": 9
+        },
+        {
+          "m": "2026-04",
+          "n": 15,
+          "c": 15
+        },
+        {
+          "m": "2026-05",
+          "n": 11,
+          "c": 11
+        },
+        {
+          "m": "2026-06",
+          "n": 10,
+          "c": 10
+        },
+        {
+          "m": "2026-07",
+          "n": 8,
+          "c": 8
+        },
+        {
+          "m": "2026-08",
+          "n": 13,
+          "c": 13
+        },
+        {
+          "m": "2026-09",
+          "n": 8,
+          "c": 8
+        }
+      ],
+      "slope": 0.2333,
+      "p": 0.5735,
+      "trend": "Stable",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 11.056,
+          "lo": 5.701,
+          "hi": 16.41
+        },
+        {
+          "h": 2,
+          "y": 11.289,
+          "lo": 5.622,
+          "hi": 16.956
+        },
+        {
+          "h": 3,
+          "y": 11.522,
+          "lo": 5.507,
+          "hi": 17.537
+        }
+      ],
+      "fit": [
+        8.956, 9.189, 9.422, 9.656, 9.889, 10.122, 10.356, 10.589, 10.822
+      ],
+      "confidence": "Medium",
+      "examples": ["activity_3799", "activity_3806", "activity_3817"]
+    },
+    {
+      "id": "P10",
+      "name": "Connector repopulated a downstream index",
+      "group": "Recreation risk",
+      "signature": "SYNC_RECORD integration_service → search_service",
+      "rule": "allowed op: DISABLE_DATA_FLOW",
+      "kind": "occurrence",
+      "note": "An active connector wrote search entries after the source was handled.",
+      "n": 31,
+      "count": 31,
+      "rate": null,
+      "ci": null,
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-02",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-03",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-04",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-05",
+          "n": 2,
+          "c": 2
+        },
+        {
+          "m": "2026-06",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-07",
+          "n": 3,
+          "c": 3
+        },
+        {
+          "m": "2026-08",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-09",
+          "n": 2,
+          "c": 2
+        }
+      ],
+      "slope": -0.1667,
+      "p": 0.1536,
+      "trend": "Stable",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 2.611,
+          "lo": 1.2,
+          "hi": 4.022
+        },
+        {
+          "h": 2,
+          "y": 2.444,
+          "lo": 0.951,
+          "hi": 3.938
+        },
+        {
+          "h": 3,
+          "y": 2.278,
+          "lo": 0.693,
+          "hi": 3.863
+        }
+      ],
+      "fit": [4.111, 3.944, 3.778, 3.611, 3.444, 3.278, 3.111, 2.944, 2.778],
+      "confidence": "Medium",
+      "examples": ["activity_3461", "activity_3755", "activity_3808"]
+    },
+    {
+      "id": "P11",
+      "name": "Archive confirmed restorable",
+      "group": "Recreation risk",
+      "signature": "CHECK_RESTORE_ACCESS → backup_service",
+      "rule": "rule_14",
+      "kind": "occurrence",
+      "note": "Backups that can still be restored. Rule 14 only allows retention when restore access can be blocked.",
+      "n": 28,
+      "count": 28,
+      "rate": null,
+      "ci": null,
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-02",
+          "n": 5,
+          "c": 5
+        },
+        {
+          "m": "2026-03",
+          "n": 2,
+          "c": 2
+        },
+        {
+          "m": "2026-04",
+          "n": 2,
+          "c": 2
+        },
+        {
+          "m": "2026-05",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-06",
+          "n": 1,
+          "c": 1
+        },
+        {
+          "m": "2026-07",
+          "n": 3,
+          "c": 3
+        },
+        {
+          "m": "2026-08",
+          "n": 5,
+          "c": 5
+        },
+        {
+          "m": "2026-09",
+          "n": 2,
+          "c": 2
+        }
+      ],
+      "slope": -0.1167,
+      "p": 0.5697,
+      "trend": "Stable",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 2.528,
+          "lo": 0.0,
+          "hi": 5.178
+        },
+        {
+          "h": 2,
+          "y": 2.411,
+          "lo": 0.0,
+          "hi": 5.216
+        },
+        {
+          "h": 3,
+          "y": 2.294,
+          "lo": 0.0,
+          "hi": 5.271
+        }
+      ],
+      "fit": [3.578, 3.461, 3.344, 3.228, 3.111, 2.994, 2.878, 2.761, 2.644],
+      "confidence": "Low",
+      "examples": ["activity_3422", "activity_3690", "activity_3709"]
+    },
+    {
+      "id": "P12",
+      "name": "Completion claimed without a confirmed state",
+      "group": "Claim integrity",
+      "signature": "worker reports completed / stopped / unconfirmed",
+      "rule": "—",
+      "kind": "occurrence",
+      "note": "The worker reports completion, or stops on an error, without a final state from the target system. Treat as a claim.",
+      "n": 11,
+      "count": 11,
+      "rate": null,
+      "ci": null,
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-02",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-03",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-04",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-05",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-06",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-07",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-08",
+          "n": 8,
+          "c": 8
+        },
+        {
+          "m": "2026-09",
+          "n": 3,
+          "c": 3
+        }
+      ],
+      "slope": 0.6,
+      "p": 0.0861,
+      "trend": "Rising",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 4.222,
+          "lo": 0.15,
+          "hi": 8.295
+        },
+        {
+          "h": 2,
+          "y": 4.822,
+          "lo": 0.512,
+          "hi": 9.132
+        },
+        {
+          "h": 3,
+          "y": 5.422,
+          "lo": 0.848,
+          "hi": 9.997
+        }
+      ],
+      "fit": [-1.178, -0.578, 0.022, 0.622, 1.222, 1.822, 2.422, 3.022, 3.622],
+      "confidence": "Low",
+      "examples": ["activity_3590", "activity_3595", "activity_3596"]
+    },
+    {
+      "id": "P13",
+      "name": "Record written again after a successful delete",
+      "group": "Recreation risk",
+      "signature": "DELETE_RECORD SUCCESS, then a write to the same resource_id",
+      "rule": "§6.5 recreation paths",
+      "kind": "occurrence",
+      "note": "Replication or sync wrote the resource again a median 106 minutes after the delete was reported as done.",
+      "n": 30,
+      "count": 30,
+      "rate": null,
+      "ci": null,
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 5,
+          "c": 5
+        },
+        {
+          "m": "2026-02",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-03",
+          "n": 2,
+          "c": 2
+        },
+        {
+          "m": "2026-04",
+          "n": 1,
+          "c": 1
+        },
+        {
+          "m": "2026-05",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-06",
+          "n": 2,
+          "c": 2
+        },
+        {
+          "m": "2026-07",
+          "n": 4,
+          "c": 4
+        },
+        {
+          "m": "2026-08",
+          "n": 5,
+          "c": 5
+        },
+        {
+          "m": "2026-09",
+          "n": 3,
+          "c": 3
+        }
+      ],
+      "slope": -0.0,
+      "p": 1.0,
+      "trend": "Stable",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 3.333,
+          "lo": 0.689,
+          "hi": 5.977
+        },
+        {
+          "h": 2,
+          "y": 3.333,
+          "lo": 0.535,
+          "hi": 6.132
+        },
+        {
+          "h": 3,
+          "y": 3.333,
+          "lo": 0.363,
+          "hi": 6.303
+        }
+      ],
+      "fit": [3.333, 3.333, 3.333, 3.333, 3.333, 3.333, 3.333, 3.333, 3.333],
+      "confidence": "Medium",
+      "examples": ["activity_3608", "activity_3646", "activity_3886"]
+    },
+    {
+      "id": "P14",
+      "name": "Replica holds rows the primary no longer has",
+      "group": "Replication",
+      "signature": "replica table minus primary table, same snapshot",
+      "rule": "§6.6 replication drift",
+      "kind": "snapshot",
+      "note": "10 of 14 replica tables in the SQL evidence hold at least one row that is absent from their primary.",
+      "n": 14,
+      "count": 12,
+      "rate": 0.7143,
+      "ci": [0.4535, 0.8828],
+      "series": [
+        {
+          "m": "2026-01",
+          "n": 0,
+          "c": 0
+        },
+        {
+          "m": "2026-02",
+          "n": 1,
+          "c": 1
+        },
+        {
+          "m": "2026-03",
+          "n": 3,
+          "c": 2
+        },
+        {
+          "m": "2026-04",
+          "n": 2,
+          "c": 2
+        },
+        {
+          "m": "2026-05",
+          "n": 2,
+          "c": 1
+        },
+        {
+          "m": "2026-06",
+          "n": 1,
+          "c": 2
+        },
+        {
+          "m": "2026-07",
+          "n": 1,
+          "c": 1
+        },
+        {
+          "m": "2026-08",
+          "n": 2,
+          "c": 2
+        },
+        {
+          "m": "2026-09",
+          "n": 2,
+          "c": 1
+        }
+      ],
+      "slope": -0.004,
+      "p": 0.9619,
+      "trend": "Stable",
+      "forecast": [
+        {
+          "h": 1,
+          "y": 0.94,
+          "lo": 0.0,
+          "hi": 1.882
+        },
+        {
+          "h": 2,
+          "y": 0.937,
+          "lo": 0.0,
+          "hi": 1.945
+        },
+        {
+          "h": 3,
+          "y": 0.933,
+          "lo": 0.0,
+          "hi": 2.017
+        }
+      ],
+      "fit": null,
+      "confidence": "Medium",
+      "examples": ["evidence_15", "evidence_10", "evidence_05"]
+    }
+  ],
+  "heatmap": {
+    "systems": [
+      "account_service",
+      "search_service",
+      "support_platform",
+      "analytics_platform",
+      "export_service",
+      "account_replication_cluster",
+      "identity_service"
+    ],
+    "rows": [
+      {
+        "system": "account_service",
+        "cells": [
+          [47, 25],
+          [55, 29],
+          [60, 26],
+          [60, 32],
+          [65, 28],
+          [60, 29],
+          [60, 35],
+          [79, 41],
+          [53, 24]
+        ]
+      },
+      {
+        "system": "search_service",
+        "cells": [
+          [22, 19],
+          [34, 31],
+          [36, 33],
+          [35, 34],
+          [35, 29],
+          [35, 31],
+          [36, 33],
+          [35, 32],
+          [21, 19]
+        ]
+      },
+      {
+        "system": "support_platform",
+        "cells": [
+          [18, 14],
+          [18, 15],
+          [18, 16],
+          [25, 19],
+          [24, 17],
+          [24, 18],
+          [21, 18],
+          [27, 20],
+          [17, 10]
+        ]
+      },
+      {
+        "system": "analytics_platform",
+        "cells": [
+          [15, 6],
+          [19, 8],
+          [27, 10],
+          [28, 10],
+          [25, 6],
+          [25, 7],
+          [20, 10],
+          [29, 9],
+          [17, 7]
+        ]
+      },
+      {
+        "system": "export_service",
+        "cells": [
+          [3, 3],
+          [3, 3],
+          [4, 4],
+          [3, 3],
+          [4, 4],
+          [4, 4],
+          [5, 4],
+          [4, 4],
+          [2, 2]
+        ]
+      },
+      {
+        "system": "account_replication_cluster",
+        "cells": [
+          [7, 3],
+          [7, 4],
+          [7, 4],
+          [4, 2],
+          [7, 3],
+          [7, 3],
+          [7, 4],
+          [5, 2],
+          [4, 0]
+        ]
+      },
+      {
+        "system": "identity_service",
+        "cells": [
+          [0, 0],
+          [0, 0],
+          [0, 0],
+          [0, 0],
+          [0, 0],
+          [0, 0],
+          [0, 0],
+          [0, 0],
+          [10, 5]
+        ]
+      }
+    ]
+  },
+  "systems_rank": [
+    {
+      "system": "export_service",
+      "n": 34,
+      "bad": 31,
+      "rate": 0.9118,
+      "ci": [0.7704, 0.9695],
+      "recent_avg_bad": 3.33,
+      "next_bad": 3.444,
+      "next_lo": 2.086,
+      "next_hi": 4.803
+    },
+    {
+      "system": "support_platform",
+      "n": 193,
+      "bad": 147,
+      "rate": 0.7617,
+      "ci": [0.6968, 0.8163],
+      "recent_avg_bad": 16.0,
+      "next_bad": 16.5,
+      "next_lo": 10.816,
+      "next_hi": 22.184
+    },
+    {
+      "system": "account_replication_cluster",
+      "n": 55,
+      "bad": 25,
+      "rate": 0.4545,
+      "ci": [0.3303, 0.5848],
+      "recent_avg_bad": 2.0,
+      "next_bad": 1.361,
+      "next_lo": 0.0,
+      "next_hi": 3.315
+    },
+    {
+      "system": "identity_service",
+      "n": 11,
+      "bad": 5,
+      "rate": 0.4545,
+      "ci": [0.2127, 0.7199],
+      "recent_avg_bad": 1.67,
+      "next_bad": 2.222,
+      "next_lo": 0.0,
+      "next_hi": 4.829
+    },
+    {
+      "system": "search_service",
+      "n": 954,
+      "bad": 340,
+      "rate": 0.3564,
+      "ci": [0.3266, 0.3873],
+      "recent_avg_bad": 37.0,
+      "next_bad": 38.694,
+      "next_lo": 28.336,
+      "next_hi": 49.052
+    },
+    {
+      "system": "account_service",
+      "n": 980,
+      "bad": 327,
+      "rate": 0.3337,
+      "ci": [0.3049, 0.3638],
+      "recent_avg_bad": 38.67,
+      "next_bad": 40.5,
+      "next_lo": 29.512,
+      "next_hi": 51.488
+    },
+    {
+      "system": "analytics_platform",
+      "n": 566,
+      "bad": 114,
+      "rate": 0.2014,
+      "ci": [0.1704, 0.2364],
+      "recent_avg_bad": 13.33,
+      "next_bad": 13.806,
+      "next_lo": 10.965,
+      "next_hi": 16.647
+    },
+    {
+      "system": "cache_service",
+      "n": 284,
+      "bad": 38,
+      "rate": 0.1338,
+      "ci": [0.0991, 0.1783],
+      "recent_avg_bad": 4.0,
+      "next_bad": 3.556,
+      "next_lo": 0.0,
+      "next_hi": 7.323
+    },
+    {
+      "system": "archive_service",
+      "n": 196,
+      "bad": 21,
+      "rate": 0.1071,
+      "ci": [0.0712, 0.1582],
+      "recent_avg_bad": 2.67,
+      "next_bad": 2.583,
+      "next_lo": 0.0,
+      "next_hi": 5.528
+    },
+    {
+      "system": "email_delivery_service",
+      "n": 368,
+      "bad": 35,
+      "rate": 0.0951,
+      "ci": [0.0692, 0.1294],
+      "recent_avg_bad": 4.67,
+      "next_bad": 6.139,
+      "next_lo": 3.277,
+      "next_hi": 9.0
+    },
+    {
+      "system": "object_store",
+      "n": 155,
+      "bad": 14,
+      "rate": 0.0903,
+      "ci": [0.0546, 0.1459],
+      "recent_avg_bad": 1.67,
+      "next_bad": 1.806,
+      "next_lo": 0.472,
+      "next_hi": 3.139
+    },
+    {
+      "system": "integration_service",
+      "n": 126,
+      "bad": 0,
+      "rate": 0.0,
+      "ci": [0.0, 0.0296],
+      "recent_avg_bad": 0.0,
+      "next_bad": 0.0,
+      "next_lo": 0.0,
+      "next_hi": 0.0
+    },
+    {
+      "system": "backup_service",
+      "n": 65,
+      "bad": 0,
+      "rate": 0.0,
+      "ci": [0.0, 0.0558],
+      "recent_avg_bad": 0.0,
+      "next_bad": 0.0,
+      "next_lo": 0.0,
+      "next_hi": 0.0
+    },
+    {
+      "system": "legal_service",
+      "n": 10,
+      "bad": 0,
+      "rate": 0.0,
+      "ci": [0.0, 0.2775],
+      "recent_avg_bad": 0.0,
+      "next_bad": 0.0,
+      "next_lo": 0.0,
+      "next_hi": 0.0
+    },
+    {
+      "system": "privacy_case_management",
+      "n": 10,
+      "bad": 0,
+      "rate": 0.0,
+      "ci": [0.0, 0.2775],
+      "recent_avg_bad": 0.0,
+      "next_bad": 0.0,
+      "next_lo": 0.0,
+      "next_hi": 0.0
+    },
+    {
+      "system": "account_failover_replica",
+      "n": 1,
+      "bad": 0,
+      "rate": 0.0,
+      "ci": [0.0, 0.7935],
+      "recent_avg_bad": 0.0,
+      "next_bad": 0.0,
+      "next_lo": 0.0,
+      "next_hi": 0.0
+    },
+    {
+      "system": "marketing_platform",
+      "n": 1,
+      "bad": 0,
+      "rate": 0.0,
+      "ci": [0.0, 0.7935],
+      "recent_avg_bad": 0.0,
+      "next_bad": 0.0,
+      "next_lo": 0.0,
+      "next_hi": 0.0
+    },
+    {
+      "system": "object_storage",
+      "n": 1,
+      "bad": 0,
+      "rate": 0.0,
+      "ci": [0.0, 0.7935],
+      "recent_avg_bad": 0.0,
+      "next_bad": 0.0,
+      "next_lo": 0.0,
+      "next_hi": 0.0
+    },
+    {
+      "system": "security_service",
+      "n": 1,
+      "bad": 0,
+      "rate": 0.0,
+      "ci": [0.0, 0.7935],
+      "recent_avg_bad": 0.0,
+      "next_bad": 0.0,
+      "next_lo": 0.0,
+      "next_hi": 0.0
+    }
+  ],
+  "predictor": {
+    "table": [
+      {
+        "op": "DELETE_RECORD",
+        "system": "account_service",
+        "n": 539,
+        "bad": 269,
+        "n3": 192,
+        "bad3": 100,
+        "cls": "destructive"
+      },
+      {
+        "op": "UPDATE_RECORD",
+        "system": "account_service",
+        "n": 440,
+        "bad": 58,
+        "n3": 154,
+        "bad3": 16,
+        "cls": "other"
+      },
+      {
+        "op": "INDEX_RECORD",
+        "system": "search_service",
+        "n": 400,
+        "bad": 52,
+        "n3": 137,
+        "bad3": 20,
+        "cls": "other"
+      },
+      {
+        "op": "SEND_EMAIL",
+        "system": "email_delivery_service",
+        "n": 368,
+        "bad": 35,
+        "n3": 124,
+        "bad3": 14,
+        "cls": "other"
+      },
+      {
+        "op": "SYNC_RECORD",
+        "system": "analytics_platform",
+        "n": 360,
+        "bad": 41,
+        "n3": 128,
+        "bad3": 14,
+        "cls": "other"
+      },
+      {
+        "op": "DELETE_RECORD",
+        "system": "search_service",
+        "n": 289,
+        "bad": 261,
+        "n3": 92,
+        "bad3": 84,
+        "cls": "destructive"
+      },
+      {
+        "op": "REFRESH_CACHE",
+        "system": "cache_service",
+        "n": 284,
+        "bad": 38,
+        "n3": 92,
+        "bad3": 12,
+        "cls": "other"
+      },
+      {
+        "op": "UPDATE_RECORD",
+        "system": "search_service",
+        "n": 232,
+        "bad": 27,
+        "n3": 83,
+        "bad3": 7,
+        "cls": "other"
+      },
+      {
+        "op": "ANONYMIZE_RECORD",
+        "system": "analytics_platform",
+        "n": 204,
+        "bad": 72,
+        "n3": 65,
+        "bad3": 25,
+        "cls": "destructive"
+      },
+      {
+        "op": "RETAIN_RECORD",
+        "system": "archive_service",
+        "n": 196,
+        "bad": 21,
+        "n3": 72,
+        "bad3": 8,
+        "cls": "other"
+      },
+      {
+        "op": "REDACT_RECORD",
+        "system": "support_platform",
+        "n": 163,
+        "bad": 121,
+        "n3": 56,
+        "bad3": 40,
+        "cls": "destructive"
+      },
+      {
+        "op": "CREATE_EXPORT",
+        "system": "object_store",
+        "n": 155,
+        "bad": 14,
+        "n3": 49,
+        "bad3": 5,
+        "cls": "other"
+      },
+      {
+        "op": "CHECK_DATA_FLOW",
+        "system": "integration_service",
+        "n": 89,
+        "bad": 0,
+        "n3": 29,
+        "bad3": 0,
+        "cls": "other"
+      },
+      {
+        "op": "SYNC_RECORD",
+        "system": "account_replication_cluster",
+        "n": 55,
+        "bad": 25,
+        "n3": 16,
+        "bad3": 6,
+        "cls": "other"
+      },
+      {
+        "op": "BLOCK_RESTORE",
+        "system": "backup_service",
+        "n": 36,
+        "bad": 0,
+        "n3": 15,
+        "bad3": 0,
+        "cls": "other"
+      },
+      {
+        "op": "DISABLE_DATA_FLOW",
+        "system": "integration_service",
+        "n": 36,
+        "bad": 0,
+        "n3": 15,
+        "bad3": 0,
+        "cls": "other"
+      },
+      {
+        "op": "DELETE_RECORD",
+        "system": "export_service",
+        "n": 32,
+        "bad": 31,
+        "n3": 11,
+        "bad3": 10,
+        "cls": "destructive"
+      },
+      {
+        "op": "SYNC_RECORD",
+        "system": "search_service",
+        "n": 31,
+        "bad": 0,
+        "n3": 9,
+        "bad3": 0,
+        "cls": "other"
+      },
+      {
+        "op": "DELETE_RECORD",
+        "system": "support_platform",
+        "n": 29,
+        "bad": 26,
+        "n3": 9,
+        "bad3": 8,
+        "cls": "destructive"
+      },
+      {
+        "op": "CHECK_RESTORE_ACCESS",
+        "system": "backup_service",
+        "n": 28,
+        "bad": 0,
+        "n3": 10,
+        "bad3": 0,
+        "cls": "other"
+      },
+      {
+        "op": "CLASSIFY_REQUEST",
+        "system": "privacy_case_management",
+        "n": 10,
+        "bad": 0,
+        "n3": 10,
+        "bad3": 0,
+        "cls": "other"
+      },
+      {
+        "op": "REDACT_RECORD",
+        "system": "identity_service",
+        "n": 10,
+        "bad": 5,
+        "n3": 10,
+        "bad3": 5,
+        "cls": "destructive"
+      },
+      {
+        "op": "RETAIN_RECORD",
+        "system": "legal_service",
+        "n": 10,
+        "bad": 0,
+        "n3": 1,
+        "bad3": 0,
+        "cls": "other"
+      }
+    ],
+    "class_rate": {
+      "destructive": 0.6203630623520127,
+      "other": 0.11333819241982507
+    }
+  },
+  "drift": [
+    {
+      "file_id": "evidence_47",
+      "captured_at": "2026-02-08T07:00:00Z",
+      "topology": "reporting_replica",
+      "primary_rows": 24,
+      "replica_rows": 25,
+      "ghost_rows": 1,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 1
+    },
+    {
+      "file_id": "evidence_43",
+      "captured_at": "2026-03-05T12:00:00Z",
+      "topology": "reporting_replica",
+      "primary_rows": 25,
+      "replica_rows": 26,
+      "ghost_rows": 1,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 1
+    },
+    {
+      "file_id": "evidence_38",
+      "captured_at": "2026-03-30T10:00:00Z",
+      "topology": "replica_ap_south",
+      "primary_rows": 28,
+      "replica_rows": 29,
+      "ghost_rows": 1,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 1
+    },
+    {
+      "file_id": "evidence_38",
+      "captured_at": "2026-03-30T10:00:00Z",
+      "topology": "replica_eu_west",
+      "primary_rows": 28,
+      "replica_rows": 28,
+      "ghost_rows": 0,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 0
+    },
+    {
+      "file_id": "evidence_33",
+      "captured_at": "2026-04-24T08:00:00Z",
+      "topology": "replica_ap_south",
+      "primary_rows": 29,
+      "replica_rows": 29,
+      "ghost_rows": 0,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 0
+    },
+    {
+      "file_id": "evidence_33",
+      "captured_at": "2026-04-24T08:00:00Z",
+      "topology": "replica_eu_west",
+      "primary_rows": 29,
+      "replica_rows": 31,
+      "ghost_rows": 2,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 2
+    },
+    {
+      "file_id": "evidence_29",
+      "captured_at": "2026-05-19T06:00:00Z",
+      "topology": "replica_ap_south",
+      "primary_rows": 28,
+      "replica_rows": 29,
+      "ghost_rows": 1,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 1
+    },
+    {
+      "file_id": "evidence_29",
+      "captured_at": "2026-05-19T06:00:00Z",
+      "topology": "replica_eu_west",
+      "primary_rows": 28,
+      "replica_rows": 28,
+      "ghost_rows": 0,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 0
+    },
+    {
+      "file_id": "evidence_24",
+      "captured_at": "2026-06-13T11:00:00Z",
+      "topology": "read_replica",
+      "primary_rows": 24,
+      "replica_rows": 26,
+      "ghost_rows": 2,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 2
+    },
+    {
+      "file_id": "evidence_20",
+      "captured_at": "2026-07-08T09:00:00Z",
+      "topology": "read_replica",
+      "primary_rows": 31,
+      "replica_rows": 32,
+      "ghost_rows": 1,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 1
+    },
+    {
+      "file_id": "evidence_15",
+      "captured_at": "2026-08-02T07:00:00Z",
+      "topology": "read_replica",
+      "primary_rows": 24,
+      "replica_rows": 25,
+      "ghost_rows": 1,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 1
+    },
+    {
+      "file_id": "evidence_10",
+      "captured_at": "2026-08-27T12:00:00Z",
+      "topology": "read_replica",
+      "primary_rows": 29,
+      "replica_rows": 30,
+      "ghost_rows": 1,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 1
+    },
+    {
+      "file_id": "evidence_52",
+      "captured_at": "2026-09-20T12:00:00Z",
+      "topology": "failover_replica",
+      "primary_rows": 16,
+      "replica_rows": 16,
+      "ghost_rows": 0,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 0
+    },
+    {
+      "file_id": "evidence_05",
+      "captured_at": "2026-09-21T10:00:00Z",
+      "topology": "read_replica",
+      "primary_rows": 30,
+      "replica_rows": 31,
+      "ghost_rows": 1,
+      "missing_rows": 0,
+      "diverged_rows": 0,
+      "ghost_with_identifiers": 1
+    }
+  ],
+  "register": [
+    {
+      "id": "C01",
+      "cat": "Exports",
+      "title": "Exports past expiry, last seen downloadable",
+      "n": 4,
+      "unit": "export jobs",
+      "sev": "High",
+      "rule": "rule_09",
+      "why": "The export window has closed (expires_at is before the end of the evidence window), so nothing needs the archive.",
+      "conflict": "Each was still marked download_available at its last snapshot. A link that outlives its expiry keeps a full copy outside any deletion run.",
+      "action": "DELETE_RECORD on the export job and its object",
+      "ev": ["evidence_15", "evidence_29", "evidence_33", "evidence_47"]
+    },
+    {
+      "id": "C02",
+      "cat": "Backups",
+      "title": "Archives that can still be restored",
+      "n": 11,
+      "unit": "backup entries",
+      "sev": "High",
+      "rule": "rule_14",
+      "why": "Backups are kept only if restore access can be blocked, and these allow restore.",
+      "conflict": "A restore would bring back profile, search and analytics rows that were already deleted.",
+      "action": "BLOCK_RESTORE, then VERIFY_RESTORE_BLOCKED",
+      "ev": ["evidence_15", "evidence_20", "evidence_24", "evidence_29"]
+    },
+    {
+      "id": "C03",
+      "cat": "Data flows",
+      "title": "Continuous-sync connectors still enabled",
+      "n": 39,
+      "unit": "connectors",
+      "sev": "High",
+      "rule": "allowed op",
+      "why": "Once the source record is deleted the connector has no legitimate reason to run.",
+      "conflict": "An enabled connector copies customer events to the warehouse and search again after cleanup.",
+      "action": "DISABLE_DATA_FLOW before any record is changed",
+      "ev": ["evidence_05", "evidence_10", "evidence_15", "evidence_20"]
+    },
+    {
+      "id": "C04",
+      "cat": "Replicas",
+      "title": "Rows present only in a replica",
+      "n": 12,
+      "unit": "replica rows",
+      "sev": "High",
+      "rule": "rule_01",
+      "why": "The primary no longer holds these rows, so the replica is the only copy left.",
+      "conflict": "12 of these carry direct identifiers and will be served to readers and reports.",
+      "action": "DELETE_RECORD on the replica row, then re-check drift",
+      "ev": ["evidence_05", "evidence_10", "evidence_15", "evidence_20"]
+    },
+    {
+      "id": "C05",
+      "cat": "Deletion runs",
+      "title": "Destructive operations that never reached SUCCESS",
+      "n": 786,
+      "unit": "resources",
+      "sev": "High",
+      "rule": "rules 01–09",
+      "why": "The run was reported as FAILED or PARTIAL and no later attempt on the same resource succeeded.",
+      "conflict": "These stay in scope for every later audit and for any restore or sync that touches the same source.",
+      "action": "Re-run the policy action, then verify the resulting state",
+      "ev": ["activity_3849", "activity_3933", "activity_3934"]
+    },
+    {
+      "id": "C06",
+      "cat": "Tombstones",
+      "title": "Tombstones that still carry direct identifiers",
+      "n": 4,
+      "unit": "tombstones",
+      "sev": "Medium",
+      "rule": "rule_15",
+      "why": "A tombstone only needs the stable user reference.",
+      "conflict": "Names, emails or phones left on a tombstone are directly identifying data with no purpose.",
+      "action": "REDACT_RECORD, keep the user reference",
+      "ev": ["evidence_52"]
+    },
+    {
+      "id": "C07",
+      "cat": "Identifiers",
+      "title": "Superseded email, hash and phone values",
+      "n": 306,
+      "unit": "old values",
+      "sev": "Medium",
+      "rule": "matching",
+      "why": "The person replaced these values; 57 phone numbers were replaced over 12 months before the evidence window closed.",
+      "conflict": "Older systems keyed to an old email or phone are missed when a request arrives under the current one.",
+      "action": "Keep in the identity map for lookup, remove from live stores",
+      "ev": ["audit_01", "audit_02", "audit_03"]
+    },
+    {
+      "id": "C08",
+      "cat": "Retention",
+      "title": "Audit records with a defined retention end",
+      "n": 30,
+      "unit": "audit records",
+      "sev": "Low",
+      "rule": "rule_12",
+      "why": "Retention runs to 2031–2034; after that date the record is no longer required.",
+      "conflict": "Keeping a record past its date turns a lawful retention into unnecessary storage of personal data.",
+      "action": "Schedule release at retention_until",
+      "ev": ["evidence_63", "evidence_66", "evidence_69", "evidence_72"]
+    },
+    {
+      "id": "C09",
+      "cat": "Retention",
+      "title": "Order records held for disputes and tax",
+      "n": 10,
+      "unit": "order records",
+      "sev": "Low",
+      "rule": "rule_13",
+      "why": "Held under an active legal hold or tax rule; the register states a retain-until date.",
+      "conflict": "The hold date has to be tracked: deleting early breaches the hold, keeping late breaches minimization.",
+      "action": "RETAIN, review at the retain-until date",
+      "ev": ["evidence_27", "evidence_24", "evidence_43", "evidence_47"]
+    }
+  ],
+  "aging": {
+    "bins": [
+      [0, 30],
+      [30, 60],
+      [60, 90],
+      [90, 120],
+      [120, 150],
+      [150, 180],
+      [180, 210],
+      [210, 240],
+      [240, 270]
+    ],
+    "series": [
+      {
+        "label": "User exports",
+        "system": "object_store",
+        "total": 155,
+        "bins": [14, 18, 16, 13, 28, 16, 13, 19, 18]
+      },
+      {
+        "label": "Cache entries",
+        "system": "cache_service",
+        "total": 284,
+        "bins": [32, 28, 28, 29, 34, 30, 38, 28, 37]
+      },
+      {
+        "label": "Search-index entries",
+        "system": "search_service",
+        "total": 400,
+        "bins": [47, 45, 42, 50, 53, 41, 35, 48, 39]
+      }
+    ]
+  },
+  "retention": {
+    "audit_by_year": [
+      [2031, 10],
+      [2032, 7],
+      [2033, 9],
+      [2034, 4]
+    ],
+    "legal_by_year": [[2033, 4]],
+    "legal_register": [
+      {
+        "order": "ORD-20264118",
+        "user": "user_08",
+        "kind": "Card dispute",
+        "retain_until": "04 May 2033"
+      },
+      {
+        "order": "ORD-20264207",
+        "user": "user_12",
+        "kind": "Tax correction",
+        "retain_until": "09 May 2033"
+      },
+      {
+        "order": "ORD-20264319",
+        "user": "user_17",
+        "kind": "Chargeback",
+        "retain_until": "14 May 2033"
+      },
+      {
+        "order": "ORD-20264402",
+        "user": "user_21",
+        "kind": "Invoice inquiry",
+        "retain_until": "18 May 2033"
+      },
+      {
+        "order": "ORD-20264511",
+        "user": "user_24",
+        "kind": "Card dispute",
+        "retain_until": "23 May 2033"
+      },
+      {
+        "order": "ORD-20264600",
+        "user": "user_29",
+        "kind": "Tax record",
+        "retain_until": "28 May 2033"
+      }
+    ],
+    "legal_file": "evidence_27",
+    "security_extract": "evidence_55",
+    "security_extract_note": "audit_record_003, retain until 25 Aug 2027"
+  },
+  "identifier_fields": [
+    {
+      "field": "email",
+      "changes": 107,
+      "over_365": 0,
+      "users": 105
+    },
+    {
+      "field": "email_hash",
+      "changes": 107,
+      "over_365": 0,
+      "users": 105
+    },
+    {
+      "field": "phone",
+      "changes": 92,
+      "over_365": 57,
+      "users": 92
+    }
+  ],
+  "unresolved_by_system": [
+    ["account_service", 269],
+    ["search_service", 261],
+    ["support_platform", 147],
+    ["analytics_platform", 73],
+    ["export_service", 31],
+    ["identity_service", 5]
+  ],
+  "graph": {
+    "directed": true,
+    "multigraph": false,
+    "graph": {},
+    "nodes": [
+      {
+        "label": "Profile service",
+        "tier": "source",
+        "category": "Profile preferences",
+        "rules": "—",
+        "action": "NONE",
+        "events": 440,
+        "failures": 58,
+        "fail_rate": 0.1318,
+        "next_bad": null,
+        "resources": 440,
+        "snap_resources": 0,
+        "snap_identifiers": 0,
+        "blast_radius": 9,
+        "betweenness": 0.0,
+        "id": "profile_service"
+      },
+      {
+        "label": "Account service",
+        "tier": "store",
+        "category": "USER_PROFILE, SECONDARY_IDENTIFIER",
+        "rules": "rule_01, rule_02",
+        "action": "DELETE",
+        "events": 980,
+        "failures": 327,
+        "fail_rate": 0.3337,
+        "next_bad": 40.5,
+        "resources": 979,
+        "snap_resources": 11,
+        "snap_identifiers": 11,
+        "blast_radius": 8,
+        "betweenness": 0.019,
+        "id": "account_service"
+      },
+      {
+        "label": "Account replication cluster",
+        "tier": "replica",
+        "category": "USER_PROFILE (replica)",
+        "rules": "rule_01",
+        "action": "DELETE",
+        "events": 55,
+        "failures": 25,
+        "fail_rate": 0.4545,
+        "next_bad": 1.361,
+        "resources": 55,
+        "snap_resources": 0,
+        "snap_identifiers": 0,
+        "blast_radius": 0,
+        "betweenness": 0.0,
+        "id": "account_replication_cluster"
+      },
+      {
+        "label": "Account failover replica",
+        "tier": "replica",
+        "category": "USER_PROFILE (replica)",
+        "rules": "rule_01",
+        "action": "DELETE",
+        "events": 1,
+        "failures": 0,
+        "fail_rate": 0.0,
+        "next_bad": 0.0,
+        "resources": 1,
+        "snap_resources": 0,
+        "snap_identifiers": 0,
+        "blast_radius": 0,
+        "betweenness": 0.0,
+        "id": "account_failover_replica"
+      },
+      {
+        "label": "Search service",
+        "tier": "copy",
+        "category": "SEARCH_INDEX_ENTRY",
+        "rules": "rule_03",
+        "action": "DELETE",
+        "events": 954,
+        "failures": 340,
+        "fail_rate": 0.3564,
+        "next_bad": 38.694,
+        "resources": 953,
+        "snap_resources": 113,
+        "snap_identifiers": 56,
+        "blast_radius": 0,
+        "betweenness": 0.0,
+        "id": "search_service"
+      },
+      {
+        "label": "Cache service",
+        "tier": "copy",
+        "category": "CACHE_ENTRY",
+        "rules": "rule_04",
+        "action": "DELETE",
+        "events": 284,
+        "failures": 38,
+        "fail_rate": 0.1338,
+        "next_bad": 3.556,
+        "resources": 284,
+        "snap_resources": 0,
+        "snap_identifiers": 0,
+        "blast_radius": 0,
+        "betweenness": 0.0,
+        "id": "cache_service"
+      },
+      {
+        "label": "Analytics platform",
+        "tier": "copy",
+        "category": "ANALYTICS_PROFILE, PRODUCT_TELEMETRY",
+        "rules": "rule_07, rule_08",
+        "action": "ANONYMIZE",
+        "events": 566,
+        "failures": 114,
+        "fail_rate": 0.2014,
+        "next_bad": 13.806,
+        "resources": 565,
+        "snap_resources": 81,
+        "snap_identifiers": 30,
+        "blast_radius": 0,
+        "betweenness": 0.0,
+        "id": "analytics_platform"
+      },
+      {
+        "label": "Notification service",
+        "tier": "source",
+        "category": "Outbound notifications",
+        "rules": "—",
+        "action": "NONE",
+        "events": 368,
+        "failures": 35,
+        "fail_rate": 0.0951,
+        "next_bad": null,
+        "resources": 368,
+        "snap_resources": 0,
+        "snap_identifiers": 0,
+        "blast_radius": 1,
+        "betweenness": 0.0,
+        "id": "notification_service"
+      },
+      {
+        "label": "Email delivery service",
+        "tier": "copy",
+        "category": "EMAIL_DELIVERY_LOG",
+        "rules": "rule_11",
+        "action": "REDACT",
+        "events": 368,
+        "failures": 35,
+        "fail_rate": 0.0951,
+        "next_bad": 6.139,
+        "resources": 368,
+        "snap_resources": 0,
+        "snap_identifiers": 0,
+        "blast_radius": 0,
+        "betweenness": 0.0,
+        "id": "email_delivery_service"
+      },
+      {
+        "label": "Support platform",
+        "tier": "store",
+        "category": "SUPPORT_MESSAGE, SUPPORT_ATTACHMENT",
+        "rules": "rule_05, rule_06",
+        "action": "REDACT",
+        "events": 193,
+        "failures": 147,
+        "fail_rate": 0.7617,
+        "next_bad": 16.5,
+        "resources": 192,
+        "snap_resources": 65,
+        "snap_identifiers": 55,
+        "blast_radius": 2,
+        "betweenness": 0.0,
+        "id": "support_platform"
+      },
+      {
+        "label": "Attachment object storage",
+        "tier": "copy",
+        "category": "SUPPORT_ATTACHMENT (files)",
+        "rules": "rule_06",
+        "action": "DELETE",
+        "events": 1,
+        "failures": 0,
+        "fail_rate": 0.0,
+        "next_bad": 0.0,
+        "resources": 1,
+        "snap_resources": 0,
+        "snap_identifiers": 0,
+        "blast_radius": 0,
+        "betweenness": 0.0,
+        "id": "object_storage"
+      },
+      {
+        "label": "Export service",
+        "tier": "store",
+        "category": "USER_EXPORT",
+        "rules": "rule_09",
+        "action": "DELETE",
+        "events": 34,
+        "failures": 31,
+        "fail_rate": 0.9118,
+        "next_bad": 3.444,
+        "resources": 33,
+        "snap_resources": 12,
+        "snap_identifiers": 12,
+        "blast_radius": 1,
+        "betweenness": 0.0,
+        "id": "export_service"
+      },
+      {
+        "label": "Export object store",
+        "tier": "copy",
+        "category": "USER_EXPORT (files)",
+        "rules": "rule_09",
+        "action": "DELETE",
+        "events": 155,
+        "failures": 14,
+        "fail_rate": 0.0903,
+        "next_bad": 1.806,
+        "resources": 155,
+        "snap_resources": 0,
+        "snap_identifiers": 0,
+        "blast_radius": 0,
+        "betweenness": 0.0,
+        "id": "object_store"
+      },
+      {
+        "label": "Marketing platform",
+        "tier": "store",
+        "category": "MARKETING_PROFILE",
+        "rules": "rule_10",
+        "action": "DELETE",
+        "events": 1,
+        "failures": 0,
+        "fail_rate": 0.0,
+        "next_bad": 0.0,
+        "resources": 1,
+        "snap_resources": 0,
+        "snap_identifiers": 0,
+        "blast_radius": 0,
+        "betweenness": 0.0,
+        "id": "marketing_platform"
+      },
+      {
+        "label": "Security service",
+        "tier": "source",
+        "category": "SECURITY_AUDIT_LOG (source)",
+        "rules": "rule_12",
+        "action": "RETAIN",
+        "events": 1,
+        "failures": 0,
+        "fail_rate": 0.0,
+        "next_bad": 0.0,
+        "resources": 1,
+        "snap_resources": 138,
+        "snap_identifiers": 0,
+        "blast_radius": 1,
+        "betweenness": 0.0,
+        "id": "security_service"
+      },
+      {
+        "label": "Archive service",
+        "tier": "retained",
+        "category": "SECURITY_AUDIT_LOG",
+        "rules": "rule_12",
+        "action": "RETAIN",
+        "events": 196,
+        "failures": 21,
+        "fail_rate": 0.1071,
+        "next_bad": 2.583,
+        "resources": 196,
+        "snap_resources": 0,
+        "snap_identifiers": 0,
+        "blast_radius": 0,
+        "betweenness": 0.0,
+        "id": "archive_service"
+      },
+      {
+        "label": "Legal service",
+        "tier": "retained",
+        "category": "LEGAL_HOLD_RECORD",
+        "rules": "rule_13",
+        "action": "RETAIN",
+        "events": 10,
+        "failures": 0,
+        "fail_rate": 0.0,
+        "next_bad": 0.0,
+        "resources": 10,
+        "snap_resources": 4,
+        "snap_identifiers": 0,
+        "blast_radius": 0,
+        "betweenness": 0.0,
+        "id": "legal_service"
+      },
+      {
+        "label": "Backup service",
+        "tier": "retained",
+        "category": "BACKUP_ARCHIVE",
+        "rules": "rule_14",
+        "action": "RETAIN",
+        "events": 65,
+        "failures": 0,
+        "fail_rate": 0.0,
+        "next_bad": 0.0,
+        "resources": 65,
+        "snap_resources": 21,
+        "snap_identifiers": 11,
+        "blast_radius": 1,
+        "betweenness": 0.0,
+        "id": "backup_service"
+      },
+      {
+        "label": "Identity service",
+        "tier": "store",
+        "category": "ACCOUNT_TOMBSTONE",
+        "rules": "rule_15",
+        "action": "REDACT",
+        "events": 11,
+        "failures": 5,
+        "fail_rate": 0.4545,
+        "next_bad": 2.222,
+        "resources": 11,
+        "snap_resources": 8,
+        "snap_identifiers": 4,
+        "blast_radius": 0,
+        "betweenness": 0.0,
+        "id": "identity_service"
+      },
+      {
+        "label": "Integration service",
+        "tier": "flow",
+        "category": "Data flows (connectors)",
+        "rules": "allowed op",
+        "action": "DISABLE",
+        "events": 126,
+        "failures": 0,
+        "fail_rate": 0.0,
+        "next_bad": 0.0,
+        "resources": 126,
+        "snap_resources": 49,
+        "snap_identifiers": 44,
+        "blast_radius": 2,
+        "betweenness": 0.0,
+        "id": "integration_service"
+      },
+      {
+        "label": "Privacy intake",
+        "tier": "source",
+        "category": "Request intake",
+        "rules": "—",
+        "action": "NONE",
+        "events": 10,
+        "failures": 0,
+        "fail_rate": 0.0,
+        "next_bad": null,
+        "resources": 10,
+        "snap_resources": 0,
+        "snap_identifiers": 0,
+        "blast_radius": 1,
+        "betweenness": 0.0,
+        "id": "privacy_intake"
+      },
+      {
+        "label": "Privacy case management",
+        "tier": "store",
+        "category": "Request cases",
+        "rules": "—",
+        "action": "NONE",
+        "events": 10,
+        "failures": 0,
+        "fail_rate": 0.0,
+        "next_bad": 0.0,
+        "resources": 10,
+        "snap_resources": 0,
+        "snap_identifiers": 0,
+        "blast_radius": 0,
+        "betweenness": 0.0,
+        "id": "privacy_case_management"
+      }
+    ],
+    "edges": [
+      {
+        "kind": "observed",
+        "op": "UPDATE_RECORD",
+        "events": 440,
+        "fail_rate": 0.1318,
+        "active": false,
+        "restore": false,
+        "first": "2026-01-04T18:36:36Z",
+        "last": "2026-10-01T10:18:34Z",
+        "source": "profile_service",
+        "target": "account_service"
+      },
+      {
+        "kind": "observed",
+        "op": "INDEX_RECORD",
+        "events": 400,
+        "fail_rate": 0.13,
+        "active": false,
+        "restore": false,
+        "first": "2026-01-04T14:56:29Z",
+        "last": "2026-09-29T20:13:01Z",
+        "source": "account_service",
+        "target": "search_service"
+      },
+      {
+        "kind": "observed",
+        "op": "SYNC_RECORD",
+        "events": 360,
+        "fail_rate": 0.1139,
+        "active": false,
+        "restore": false,
+        "first": "2026-01-05T13:51:19Z",
+        "last": "2026-10-01T09:10:28Z",
+        "source": "account_service",
+        "target": "analytics_platform"
+      },
+      {
+        "kind": "observed",
+        "op": "REFRESH_CACHE",
+        "events": 284,
+        "fail_rate": 0.1338,
+        "active": false,
+        "restore": false,
+        "first": "2026-01-07T03:27:10Z",
+        "last": "2026-09-30T03:24:11Z",
+        "source": "account_service",
+        "target": "cache_service"
+      },
+      {
+        "kind": "observed",
+        "op": "SYNC_RECORD",
+        "events": 55,
+        "fail_rate": 0.4545,
+        "active": true,
+        "restore": false,
+        "first": "2026-01-15T06:50:47Z",
+        "last": "2026-09-18T11:49:26Z",
+        "source": "account_service",
+        "target": "account_replication_cluster"
+      },
+      {
+        "kind": "observed",
+        "op": "SYNC_RECORD",
+        "events": 1,
+        "fail_rate": 0.0,
+        "active": true,
+        "restore": false,
+        "first": "2026-08-28T09:11:09Z",
+        "last": "2026-08-28T09:11:09Z",
+        "source": "account_service",
+        "target": "account_failover_replica"
+      },
+      {
+        "kind": "inferred",
+        "op": "",
+        "events": 0,
+        "fail_rate": 0.0,
+        "active": false,
+        "restore": false,
+        "why": "tombstone derived from the account (rule_15)",
+        "source": "account_service",
+        "target": "identity_service"
+      },
+      {
+        "kind": "inferred",
+        "op": "",
+        "events": 0,
+        "fail_rate": 0.0,
+        "active": false,
+        "restore": false,
+        "why": "backup entries carry customer references",
+        "source": "account_service",
+        "target": "backup_service"
+      },
+      {
+        "kind": "inferred",
+        "op": "",
+        "events": 0,
+        "fail_rate": 0.0,
+        "active": true,
+        "restore": false,
+        "why": "connectors select a subject and stream customer events",
+        "source": "account_service",
+        "target": "integration_service"
+      },
+      {
+        "kind": "observed",
+        "op": "SEND_EMAIL",
+        "events": 368,
+        "fail_rate": 0.0951,
+        "active": false,
+        "restore": false,
+        "first": "2026-01-05T02:52:52Z",
+        "last": "2026-09-29T01:11:48Z",
+        "source": "notification_service",
+        "target": "email_delivery_service"
+      },
+      {
+        "kind": "observed",
+        "op": "UPDATE_RECORD",
+        "events": 232,
+        "fail_rate": 0.1164,
+        "active": false,
+        "restore": false,
+        "first": "2026-01-04T18:36:21Z",
+        "last": "2026-09-29T14:58:37Z",
+        "source": "support_platform",
+        "target": "search_service"
+      },
+      {
+        "kind": "inferred",
+        "op": "",
+        "events": 0,
+        "fail_rate": 0.0,
+        "active": false,
+        "restore": false,
+        "why": "attachment catalog places ticket attachments here",
+        "source": "support_platform",
+        "target": "object_storage"
+      },
+      {
+        "kind": "observed",
+        "op": "CREATE_EXPORT",
+        "events": 155,
+        "fail_rate": 0.0903,
+        "active": false,
+        "restore": false,
+        "first": "2026-01-07T04:05:15Z",
+        "last": "2026-09-28T22:54:19Z",
+        "source": "export_service",
+        "target": "object_store"
+      },
+      {
+        "kind": "observed",
+        "op": "RETAIN_RECORD",
+        "events": 196,
+        "fail_rate": 0.1071,
+        "active": false,
+        "restore": false,
+        "first": "2026-01-04T19:32:42Z",
+        "last": "2026-09-29T06:26:20Z",
+        "source": "security_service",
+        "target": "archive_service"
+      },
+      {
+        "kind": "observed",
+        "op": "RESTORE_BACKUP",
+        "events": 1,
+        "fail_rate": 0.0,
+        "active": true,
+        "restore": true,
+        "first": "2026-08-22T12:58:26Z",
+        "last": "2026-08-22T12:58:26Z",
+        "source": "backup_service",
+        "target": "search_service"
+      },
+      {
+        "kind": "observed",
+        "op": "SYNC_RECORD",
+        "events": 31,
+        "fail_rate": 0.0,
+        "active": true,
+        "restore": false,
+        "first": "2026-01-12T06:55:20Z",
+        "last": "2026-09-12T11:45:02Z",
+        "source": "integration_service",
+        "target": "search_service"
+      },
+      {
+        "kind": "inferred",
+        "op": "",
+        "events": 0,
+        "fail_rate": 0.0,
+        "active": true,
+        "restore": false,
+        "why": "connector destination is customer_analytics_warehouse",
+        "source": "integration_service",
+        "target": "analytics_platform"
+      },
+      {
+        "kind": "observed",
+        "op": "CLASSIFY_REQUEST",
+        "events": 10,
+        "fail_rate": 0.0,
+        "active": false,
+        "restore": false,
+        "first": "2026-08-28T11:07:25Z",
+        "last": "2026-09-13T10:56:12Z",
+        "source": "privacy_intake",
+        "target": "privacy_case_management"
+      }
+    ]
+  },
+  "rules": [
+    {
+      "id": "rule_01",
+      "category": "USER_PROFILE",
+      "condition": "Always",
+      "action": "DELETE"
+    },
+    {
+      "id": "rule_02",
+      "category": "SECONDARY_IDENTIFIER",
+      "condition": "Always",
+      "action": "DELETE"
+    },
+    {
+      "id": "rule_03",
+      "category": "SEARCH_INDEX_ENTRY",
+      "condition": "Always",
+      "action": "DELETE"
+    },
+    {
+      "id": "rule_04",
+      "category": "CACHE_ENTRY",
+      "condition": "Always",
+      "action": "DELETE"
+    },
+    {
+      "id": "rule_05",
+      "category": "SUPPORT_MESSAGE",
+      "condition": "Conversation contains shared customer, agent, or order context that must be retained",
+      "action": "REDACT"
+    },
+    {
+      "id": "rule_06",
+      "category": "SUPPORT_ATTACHMENT",
+      "condition": "Attachment belongs only to the deletion subject",
+      "action": "DELETE"
+    },
+    {
+      "id": "rule_07",
+      "category": "ANALYTICS_PROFILE",
+      "condition": "Record is still attributable to a user",
+      "action": "ANONYMIZE"
+    },
+    {
+      "id": "rule_08",
+      "category": "PRODUCT_TELEMETRY",
+      "condition": "Record is still attributable to a user",
+      "action": "ANONYMIZE"
+    },
+    {
+      "id": "rule_09",
+      "category": "USER_EXPORT",
+      "condition": "Always",
+      "action": "DELETE"
+    },
+    {
+      "id": "rule_10",
+      "category": "MARKETING_PROFILE",
+      "condition": "Always",
+      "action": "DELETE"
+    },
+    {
+      "id": "rule_11",
+      "category": "EMAIL_DELIVERY_LOG",
+      "condition": "Log contains a user email address",
+      "action": "REDACT"
+    },
+    {
+      "id": "rule_12",
+      "category": "SECURITY_AUDIT_LOG",
+      "condition": "Record is within the supplied retention period",
+      "action": "RETAIN"
+    },
+    {
+      "id": "rule_13",
+      "category": "LEGAL_HOLD_RECORD",
+      "condition": "A supplied legal hold is active",
+      "action": "RETAIN"
+    },
+    {
+      "id": "rule_14",
+      "category": "BACKUP_ARCHIVE",
+      "condition": "Restore access can be blocked",
+      "action": "RETAIN"
+    },
+    {
+      "id": "rule_15",
+      "category": "ACCOUNT_TOMBSTONE",
+      "condition": "Account is deleted and only a stable internal user_id is needed to preserve references to retained records",
+      "action": "REDACT"
+    }
+  ]
+}

@@ -1,7 +1,6 @@
 import inspect
 from pathlib import Path
 
-import pytest
 from slam.contracts import AuditRequest, EvidenceBundle
 from slam.ingestion import ingest
 from slam.planning import plan
@@ -24,11 +23,12 @@ def test_ingestion_fails_loudly_instead_of_returning_a_silent_empty_bundle(
     assert any(issue.severity.value == "error" for issue in bundle.issues)
 
 
-def test_reconstruction_stub_does_not_fabricate_context() -> None:
+def test_reconstruction_does_not_fabricate_identity_from_an_empty_bundle() -> None:
     request = AuditRequest.model_validate_json(
         '{"case_id":"c","email":"x@y.test","requested_at":"2026-01-01T00:00:00Z",'
         '"reported_status":"COMPLETE","reported_at":"2026-01-01T00:00:00Z",'
         '"audit_at":"2026-01-02T00:00:00Z","request_text":"delete"}'
     )
-    with pytest.raises(NotImplementedError, match="Manya"):
-        reconstruct(request, EvidenceBundle())
+    context = reconstruct(request, EvidenceBundle())
+    assert context.subject_id is None
+    assert context.coverage_issues

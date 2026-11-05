@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Collection
 
 from pydantic import ValidationError
 
 from slam.contracts import CaseAnswer, DeletionStatus, Operation, Phase
 
-_VISIBLE_ID = re.compile(r"^(?:file|activity|audit)[_-].+", re.IGNORECASE)
 _VERIFY_FOR = {
     Operation.DELETE_RECORD: Operation.VERIFY_RECORD_ABSENT,
     Operation.REDACT_RECORD: Operation.VERIFY_RECORD_REDACTED,
@@ -65,7 +63,7 @@ def validate_answer(
             if step.evidence_id:
                 raise PlanningValidationError("future steps must have an empty evidence_id")
             continue
-        if not step.evidence_id or not _VISIBLE_ID.match(step.evidence_id):
+        if not step.evidence_id:
             raise PlanningValidationError(
                 "findings and completed verifications need a visible evidence_id"
             )

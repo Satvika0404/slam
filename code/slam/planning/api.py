@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import heapq
-import re
 from dataclasses import dataclass
 
 from slam.contracts import (
@@ -73,7 +72,6 @@ _STATE_FOR = {
     Operation.VERIFY_DATA_FLOW_DISABLED: StepState.DISABLED,
     Operation.VERIFY_RESTORE_BLOCKED: StepState.BLOCKED,
 }
-_EVIDENCE_ID = re.compile(r"^(?:file|activity|audit)[_-].+", re.IGNORECASE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,7 +86,7 @@ def _eligible_ids(context: CaseContext) -> set[str]:
     return {
         evidence_id
         for evidence_id, captured_at in context.evidence_captured_at.items()
-        if _EVIDENCE_ID.match(evidence_id) and captured_at <= context.request.audit_at
+        if evidence_id and captured_at <= context.request.audit_at
     }
 
 
@@ -236,6 +234,7 @@ def plan(context: CaseContext) -> CaseAnswer:
         blockers.append("no subject resource states are available")
     eligible = _eligible_ids(context)
     treatments: list[_Treatment] = []
+    policy_assessments: list[dict[str, str]] = []
     for resource in context.resource_states:
         rule = _rule_for(resource, context.policy_rules)
         if rule is None:
@@ -256,6 +255,14 @@ def plan(context: CaseContext) -> CaseAnswer:
         if resource.uncertain:
             blockers.append(f"resource state is uncertain for {resource.resource_id}")
         treatments.append(treatment)
+        policy_assessments.append(
+            {
+                "system_id": resource.system_id,
+                "resource_id": resource.resource_id,
+                "rule_id": rule.rule_id,
+                "required_action": rule.required_action,
+            }
+        )
 
     flows: list[tuple[GraphEdge, str, str, str]] = []
     restores: list[tuple[GraphEdge, str, str, str]] = []
@@ -287,7 +294,9 @@ def plan(context: CaseContext) -> CaseAnswer:
             )
 
     if blockers:
-        return _blocked(context, tuple(sorted(set(blockers))))
+        return _blocked(context, tuple(sorted(set(blockers)))).model_copy(
+            update={"trace": {"policy_assessments": policy_assessments}}
+        )
 
     findings: list[Step] = []
     remediations: list[Step] = []
@@ -435,17 +444,20 @@ def plan(context: CaseContext) -> CaseAnswer:
                 s.resource_id,
             )
         )
+    status = DeletionStatus.INCOMPLETE if remediations else DeletionStatus.COMPLETE
+    if status is DeletionStatus.INCOMPLETE:
+        verifications = [step.model_copy(update={"evidence_id": ""}) for step in verifications]
     steps = tuple(
         step.model_copy(update={"step_no": index})
         for index, step in enumerate((*findings, *remediations, *verifications), start=1)
     )
-    status = DeletionStatus.INCOMPLETE if remediations else DeletionStatus.COMPLETE
     answer = CaseAnswer(
         case_id=context.request.case_id,
         deletion_status=status,
         steps=steps,
         ready_for_export=True,
         trace={
+            "policy_assessments": policy_assessments,
             "policy_rules": [rule.rule_id for rule in context.policy_rules],
             "resource_count": len(treatments),
             "active_flow_count": len(flows),

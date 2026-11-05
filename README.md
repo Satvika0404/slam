@@ -50,6 +50,16 @@ verify the baseline without starting teammate-owned work, run:
 docker compose run --rm slam-dev python code/main.py --foundation-status
 ```
 
+## AFTERTRACE frontend
+
+The eight-scene local evidence workspace includes the Identity Constellation, Time Machine and
+Decision Chamber, backed by Python reconstruction and planning. Start its API with
+`docker compose --profile web up -d --build aftertrace-api`, then run `npm ci` and
+`npm run dev -- --port 5173` from `frontend/`. Open http://127.0.0.1:5173.
+
+See [AFTERTRACE setup, design and testing](docs/AFTERTRACE.md). Fictional demo data is labelled;
+the separate dataset mode reads the ignored participant `dataset/` folder.
+
 ## Teammate start point
 
 Each teammate should branch from the published `dev` baseline (currently contract 1.1.0), then edit only their owned module:

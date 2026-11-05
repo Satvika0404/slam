@@ -67,6 +67,16 @@ def test_present_delete_target_gets_finding_action_and_verification():
     assert [step.step_no for step in answer.steps] == [1, 2, 3]
 
 
+def test_manifest_ids_are_validated_against_catalog_not_a_prefix_guess():
+    base = context()
+    record = base.resource_states[0].model_copy(
+        update={"supporting_evidence_ids": ("evidence_01",)}
+    )
+    answer = plan(context(resource_states=(record,), evidence_captured_at={"evidence_01": NOW}))
+    assert answer.ready_for_export
+    assert answer.steps[0].evidence_id == "evidence_01"
+
+
 def test_compliant_redacted_record_is_complete_and_cites_evidence():
     answer = plan(
         context(

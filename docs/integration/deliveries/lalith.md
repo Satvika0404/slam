@@ -42,8 +42,15 @@ Lalith: correct anything that is wrong and keep this current in every PR from br
   remediation, verification, answer validation, and required-case-set export.
 - Planning tests cover non-deletion, delete/redact/retain decisions, eligible evidence, ambiguous rules,
   active-flow and restore ordering, downstream-copy ordering, and exporter row-set/format safeguards.
+- AFTERTRACE now has a React/TypeScript eight-scene workspace and a local FastAPI adapter. The
+  identity, timeline and decision views inspect real engine read models; fictional examples are
+  labelled separately. Setup and limits: `docs/AFTERTRACE.md`.
+- Manya's reconstruction implementation at `152b0a2` is integrated in the working tree and adapted to
+  populate policy rules and timestamped evidence for contract 1.1.0. Later identity records cannot
+  establish earlier identity. Planner fixes cover mixed compliant/noncompliant verification citations
+  and participant manifest IDs without naming-prefix assumptions.
 - Still open: full `main.py --dataset` wiring, run-level usage/evaluation reports, packaging checks,
-  Manya's population of the 1.1.0 context fields, integration review, and final end-to-end evaluation
+  integration review, and final end-to-end evaluation
   against participant data. Conditional policy rules without an upstream `applicable_rule_id` block
   certification because `ResourceState` does not carry the source attributes needed to evaluate them.
 
@@ -54,6 +61,12 @@ Lalith: correct anything that is wrong and keep this current in every PR from br
   `tests/planning/test_policy_plan.py` are Satvika-owned. Lalith implemented the deterministic policy
   planner, validation and CSV export at the user's request because those pieces were still blocking the
   assembled product. Satvika should review/adopt this work before integration.
+- `code/slam/reconstruction/api.py`, `code/slam/reconstruction/identity.py`,
+  `code/slam/reconstruction/timeline.py`, `code/slam/reconstruction/graph.py`,
+  `code/slam/reconstruction/request_intent.py`, `tests/reconstruction/**`, and
+  `tests/fixtures/reconstruction/**`: incorporated Manya's existing branch work, with time-cutoff and
+  1.1.0 read-model adaptations required for the requested live UI interactions. Manya should review.
+- `docs/integration/ownership.toml`: assigns the new frontend/API paths to Lalith for integration review.
 
 ## Requires from others
 

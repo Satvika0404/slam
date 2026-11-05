@@ -84,6 +84,10 @@ name = "Lalith"
 branch = "lalith"
 workstream = "Contracts, runtime, evaluation, Docker"
 owns = [
+  "frontend/**",
+  "code/slam/web/**",
+  "tests/web/**",
+  "docs/AFTERTRACE.md",
   "pyproject.toml",
   "uv.lock",
   "Dockerfile",
