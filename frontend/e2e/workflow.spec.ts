@@ -122,7 +122,15 @@ test("a parser recovered in this audit highlights its real component", async ({
   page,
 }) => {
   await loadRun(page, true);
-  await page.getByRole("button", { name: "self-healing", exact: true }).click();
+  await expect(
+    page.getByText("Self-Healing Agent", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Pattern Recognition Engine", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "self-healing agent", exact: true })
+    .click();
   const recovered = page.getByLabel("Recovery in this audit");
   await expect(recovered).toContainText("user_identities.csv");
   await expect(recovered).toContainText("Recovered this run");

@@ -139,7 +139,9 @@ test("connected database drives full graph, verified removals, recovery and sync
     path: "../artifacts/aftertrace/connected-sync.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "self-healing", exact: true }).click();
+  await page
+    .getByRole("button", { name: "self-healing agent", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Test recovery", exact: true })
     .click();

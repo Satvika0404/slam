@@ -13,6 +13,12 @@ last_updated: 2026-11-05
 
 ## Delivers
 
+- Headline-feature dashboard increment: the Intelligence Console now opens with two explicit,
+  first-class experiences named **Self-Healing Agent** and **Pattern Recognition Engine**. Each
+  card reports current-run measurements and links to inspectable evidence. Recovery shows
+  detect/recover/retry/validate state and never claims a repair without validation. Pattern
+  recognition shows validated model count, grounded training pairs, case links and abstentions;
+  the detailed view retains candidates and supporting activity IDs.
 - Combined-dashboard increment: AFTERTRACE remains the authoritative single-request execution
   surface, while the newer insight console remains available for deep cohort analysis. The
   Intelligence Console now embeds its strongest non-duplicated capabilities: five-fold
@@ -108,6 +114,13 @@ web profile and forwards existing provider/call/token/cost settings. Use uv.lock
 no Ollama, model weights or GPU dependency is introduced.
 
 ## Verification
+
+Headline-feature dashboard increment: the complete browser regression passes all 40 tests after
+an uncontended rerun; the changed workflow/connected slice passes all 9 tests. The web backend
+passes 35 tests, the production TypeScript build passes, and all frontend source and browser tests
+pass Prettier validation. A live 518-request local audit visibly reported 11 validated timing
+models learned from 901 grounded pairs; the normal dataset correctly reported that no parser
+recovery was required.
 
 Combined-dashboard increment: the web/insight Python slice passes 66 tests with one skipped;
 Ruff and strict mypy pass. The frontend production build and Prettier check pass, and the full

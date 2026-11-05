@@ -5,7 +5,9 @@ import {
   Check,
   Network,
   Play,
+  RefreshCw,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import type { Sandbox } from "./types";
 
@@ -92,7 +94,7 @@ export default function Intelligence({
   caseId: string;
   onEvidence: (id: string) => void;
 }) {
-  const [tab, setTab] = useState("attribution"),
+  const [tab, setTab] = useState("overview"),
     [error, setError] = useState("");
   const [csv, setCsv] = useState(
     `Email Address,Record ID\n${JSON.stringify(requestEmail)},${JSON.stringify(resourceId ?? "")}\n`,
@@ -107,6 +109,15 @@ export default function Intelligence({
       (a) => a.operation === "DELETE_RECORD" && a.status === "verified",
     ) ?? [];
   const attribution = data?.attributions?.[caseId];
+  const recoveries = data?.recoveries ?? [];
+  const recoveredCount = recoveries.filter(
+    (item) => item.status === "recovered",
+  ).length;
+  const unresolvedCount = recoveries.filter(
+    (item) => item.status !== "recovered",
+  ).length;
+  const learnedPairs =
+    data?.groups.reduce((total, group) => total + group.pairs, 0) ?? 0;
   async function loadCohort() {
     if (cohort) return;
     setBusy(true);
@@ -144,9 +155,10 @@ export default function Intelligence({
     <section className="wf-intelligence">
       <nav aria-label="Agent intelligence">
         {[
-          "attribution",
-          "cohort insights",
-          "self-healing",
+          "overview",
+          "pattern recognition",
+          "cohort intelligence",
+          "self-healing agent",
           "sync experiment",
         ].map((t) => (
           <button
@@ -154,15 +166,17 @@ export default function Intelligence({
             key={t}
             onClick={() => {
               setTab(t);
-              if (t === "cohort insights") void loadCohort();
+              if (t === "cohort intelligence") void loadCohort();
             }}
           >
-            {t === "attribution" ? (
+            {t === "overview" ? (
+              <Sparkles size={14} />
+            ) : t === "pattern recognition" ? (
               <Network size={14} />
-            ) : t === "cohort insights" ? (
+            ) : t === "cohort intelligence" ? (
               <BrainCircuit size={14} />
-            ) : t === "self-healing" ? (
-              <Activity size={14} />
+            ) : t === "self-healing agent" ? (
+              <RefreshCw size={14} />
             ) : (
               <ShieldCheck size={14} />
             )}{" "}
@@ -171,9 +185,121 @@ export default function Intelligence({
         ))}
       </nav>
       {error && <p role="alert">{error}</p>}
-      {tab === "attribution" ? (
+      {tab === "overview" ? (
         <>
-          <h3>{data?.model ?? "Timing attribution"}</h3>
+          <header className="wf-agent-overview-heading">
+            <div>
+              <span className="wf-kicker">Adaptive audit intelligence</span>
+              <h3>See what the agent learned and repaired in this run</h3>
+            </div>
+            <span className="wf-run-boundary">RUN-SCOPED · EVIDENCE-BOUND</span>
+          </header>
+          <div className="wf-agent-feature-grid">
+            <article
+              className={`wf-agent-feature healing ${unresolvedCount ? "warning" : recoveredCount ? "active" : "quiet"}`}
+              data-feature="self-healing"
+            >
+              <div className="wf-agent-feature-title">
+                <span>
+                  <RefreshCw size={18} />
+                </span>
+                <div>
+                  <small>FEATURE 01</small>
+                  <h4>Self-Healing Agent</h4>
+                </div>
+              </div>
+              <p>
+                Detects an allowlisted parser failure, applies one bounded
+                recovery rule to a copy, retries, and independently validates
+                the result.
+              </p>
+              <div className="wf-agent-flow" aria-label="Self-healing stages">
+                {["Detect", "Recover", "Retry", "Validate"].map(
+                  (step, index) => (
+                    <span
+                      className={recoveries.length ? "complete" : "standby"}
+                      key={step}
+                    >
+                      <b>{index + 1}</b>
+                      {step}
+                    </span>
+                  ),
+                )}
+              </div>
+              <strong className="wf-agent-feature-result">
+                {unresolvedCount
+                  ? `${unresolvedCount} component remains unresolved`
+                  : recoveredCount
+                    ? `${recoveredCount} component recovered and validated`
+                    : "No repair was required in this audit"}
+              </strong>
+              <button
+                className="wf-feature-open"
+                onClick={() => setTab("self-healing agent")}
+              >
+                Inspect healing evidence <span>→</span>
+              </button>
+            </article>
+            <article
+              className={`wf-agent-feature patterns ${data?.groups.length ? "active" : "quiet"}`}
+              data-feature="pattern-recognition"
+            >
+              <div className="wf-agent-feature-title">
+                <span>
+                  <BrainCircuit size={18} />
+                </span>
+                <div>
+                  <small>FEATURE 02</small>
+                  <h4>Pattern Recognition Engine</h4>
+                </div>
+              </div>
+              <p>
+                Learns timing signatures only from known-owner evidence,
+                validates them out of sample, and abstains when a link is not
+                unique.
+              </p>
+              <div className="wf-pattern-summary">
+                <span>
+                  <b>{data?.groups.length ?? 0}</b> validated models
+                </span>
+                <span>
+                  <b>{learnedPairs}</b> grounded pairs
+                </span>
+                <span>
+                  <b>{attribution?.linked.length ?? 0}</b> case links
+                </span>
+                <span>
+                  <b>{attribution?.candidates.length ?? 0}</b> abstained
+                </span>
+              </div>
+              <strong className="wf-agent-feature-result">
+                {data?.groups.length
+                  ? "Validated patterns are active for this run"
+                  : "No pattern passed the validation threshold"}
+              </strong>
+              <button
+                className="wf-feature-open"
+                onClick={() => setTab("pattern recognition")}
+              >
+                Inspect learned patterns <span>→</span>
+              </button>
+            </article>
+          </div>
+          <p className="wf-agent-truth-note">
+            These features never rewrite source evidence or promote their own
+            code. Recovery is allowlisted and validated; learned links remain
+            candidates unless the evidence uniquely supports them.
+          </p>
+        </>
+      ) : tab === "pattern recognition" ? (
+        <>
+          <div className="wf-feature-detail-heading">
+            <div>
+              <span className="wf-kicker">FEATURE 02 · LIVE MODEL</span>
+              <h3>Pattern Recognition Engine</h3>
+            </div>
+            <span className="wf-truth-badge">VALIDATED OR ABSTAINED</span>
+          </div>
           <p>
             {data?.learning ?? "Awaiting run measurements"}. The validated
             windows below come from known-owner pairs.
@@ -273,7 +399,7 @@ export default function Intelligence({
               )}
           </details>
         </>
-      ) : tab === "cohort insights" ? (
+      ) : tab === "cohort intelligence" ? (
         <>
           <div className="wf-cohort-heading">
             <div>
@@ -372,9 +498,15 @@ export default function Intelligence({
             </>
           ) : null}
         </>
-      ) : tab === "self-healing" ? (
+      ) : tab === "self-healing agent" ? (
         <>
-          <h3>Watch a component recover</h3>
+          <div className="wf-feature-detail-heading">
+            <div>
+              <span className="wf-kicker">FEATURE 01 · GUARDED RECOVERY</span>
+              <h3>Self-Healing Agent</h3>
+            </div>
+            <span className="wf-truth-badge">VALIDATION REQUIRED</span>
+          </div>
           {data?.recoveries?.length ? (
             data.recoveries.map((r) => (
               <section

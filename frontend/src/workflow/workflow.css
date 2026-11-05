@@ -2918,6 +2918,158 @@ body[data-workspace="workflow"] {
   margin: 10px 0;
   width: 100%;
 }
+.wf-agent-overview-heading,
+.wf-feature-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 8px 0 18px;
+}
+.wf-run-boundary {
+  flex: 0 0 auto;
+  border: 1px solid #b8d8d4;
+  border-radius: 999px;
+  background: #edf8f6;
+  color: #0f766e;
+  padding: 6px 9px;
+  font:
+    700 0.62rem/1 "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.06em;
+}
+.wf-agent-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.wf-agent-feature {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #dce4ea;
+  border-radius: 16px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.98),
+    rgba(246, 250, 251, 0.94)
+  );
+  box-shadow: 0 16px 42px rgba(25, 50, 74, 0.08);
+  padding: 18px;
+}
+.wf-agent-feature::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: #94a3b8;
+  content: "";
+}
+.wf-agent-feature.healing.active::before,
+.wf-agent-feature.patterns.active::before {
+  background: linear-gradient(90deg, #0f766e, #22a99a);
+}
+.wf-agent-feature.warning::before {
+  background: #c65d4b;
+}
+.wf-agent-feature-title {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+}
+.wf-agent-feature-title > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid #cde4e1;
+  border-radius: 11px;
+  background: #edf8f6;
+  color: #0f766e;
+}
+.wf-agent-feature-title small {
+  display: block;
+  color: #718392;
+  font:
+    700 0.58rem/1.2 "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.09em;
+}
+.wf-agent-feature-title h4 {
+  margin: 3px 0 0;
+  color: #19324a;
+  font:
+    700 1rem/1.2 Manrope,
+    sans-serif;
+}
+.wf-agent-flow,
+.wf-pattern-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 14px 0;
+}
+.wf-agent-flow span,
+.wf-pattern-summary span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  border: 1px solid #e1e8ed;
+  border-radius: 9px;
+  background: #f8fafb;
+  color: #64748b;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 0.6rem;
+}
+.wf-agent-flow span.complete {
+  border-color: #add8d1;
+  background: #edf8f6;
+  color: #0f766e;
+}
+.wf-agent-flow b {
+  display: grid;
+  width: 19px;
+  height: 19px;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  font:
+    700 0.58rem/1 "IBM Plex Mono",
+    monospace;
+}
+.wf-pattern-summary b {
+  color: #19324a;
+  font:
+    700 1rem/1 "IBM Plex Mono",
+    monospace;
+}
+.wf-agent-feature-result {
+  display: block;
+  min-height: 32px;
+  color: #19324a;
+  font-size: 0.72rem;
+}
+.wf-feature-open {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  margin-top: 12px;
+  border-top: 1px solid #e4eaee;
+  color: #0f766e;
+  padding: 12px 0 0;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+.wf-feature-open:hover,
+.wf-feature-open:focus-visible {
+  color: #075f59;
+}
+.wf-agent-truth-note {
+  border-left: 2px solid #94a3b8;
+  padding-left: 10px;
+}
 .wf-cohort-heading {
   display: flex;
   align-items: flex-start;
@@ -3390,6 +3542,17 @@ body[data-workspace="workflow"] {
   }
 }
 @media (max-width: 620px) {
+  .wf-agent-feature-grid {
+    grid-template-columns: 1fr;
+  }
+  .wf-agent-overview-heading,
+  .wf-feature-detail-heading {
+    flex-direction: column;
+  }
+  .wf-run-boundary,
+  .wf-truth-badge {
+    align-self: flex-start;
+  }
   .wf-cohort-metrics {
     grid-template-columns: 1fr 1fr;
   }
