@@ -69,14 +69,15 @@ last_updated: 2026-11-05
 | Ashish | Review source telemetry and exercise real participant sources | Review requested through this reference; no ordinary offline-test blocker |
 | Manya | Review checkpoint placement, actual per-link lifecycle/conflict metadata and attribution UI | Current validity ends are shown honestly; explicit deletion producers remain a data requirement |
 | Satvika | Review context-only/full-bundle API distinction and uncertainty/export semantics | Current engine INCOMPLETE results and uncertainty reasons remain visible |
-| Integrator | Run fresh participant-dataset evaluation, live model measurement and submission checks | Not established here because dataset is absent; earlier reports are not new UI-run measurements |
+| Integrator | Review sample failures, measure optional live provider, and run final submission checks | Fresh keyless 518-case and 32-sample runs are measured; hidden accuracy and live-provider performance remain unverified |
 
 ## Provides to others
 
 | Item | Location / rule |
 | --- | --- |
 | Current implementation map | `docs/AFTERTRACE_CONTRIBUTOR_REFERENCE.md` |
-| Live API | `POST /api/runs/stream`, `GET /api/runtime`; inspect read models, do not manufacture phase events |
+| Current workflow API | `/api/workflow/input`, `/runs`, run-scoped evidence and `/sandboxes`; exact routes in `docs/AFTERTRACE_WORKFLOW.md` |
+| Archived live API | `POST /api/runs/stream`, `GET /api/runtime`; retained for compatibility and regression checks |
 | Graph metadata | Existing IDs and optional web metadata; do not infer deletion from absence or global conflicts |
 | Model integration | Existing provider factory/metering; keys never go to browser/event payloads |
 | Shared contract | 1.1.0 / unchanged hash; use the contract changelog for actual boundary changes |
@@ -93,8 +94,8 @@ no Ollama, model weights or GPU dependency is introduced.
 Full Python suite with participant-data tests enabled: 649 passed, 18 skipped. Final web subset:
 24 passed. Frontend suite: 36 passed, including the real ZIP -> audit -> SQLite execution -> proof ->
 report flow, original graph regressions, stale input protection, refresh restore, recorded replay,
-non-reduced/reduced motion and 390/768/1024/1440 layouts. Final workflow subset rerun is recorded in
-this increment's commit. Production build, frontend formatting, Ruff, mypy (66 Python source files)
+non-reduced/reduced motion and 390/768/1024/1440 layouts. Final workflow subset rerun: five passed.
+Production build, frontend formatting, Ruff, mypy (66 Python source files)
 and whitespace checks pass.
 
 The new workflow API audited all 518 official requests from 94 evidence files with no execution
@@ -106,10 +107,11 @@ is not improved or concealed by these UI/execution changes.
 
 ## Known limits
 
-No live API-provider or hidden-answer accuracy claim is made. Full-dataset predictions and repeatability
-were measured; canonical correctness for the 518 hidden-answer cases is unknown. Imported console statistics/forecasts remain supplied
-analysis; original evidence/build scripts were not attached. Validity ends establish ENDED, not entity
-or relationship DELETED. Explicit deletion producers and per-link conflicts require actual evidence.
+No live API-provider or hidden-answer accuracy claim is made. Full-dataset predictions and
+repeatability were measured; canonical correctness for the 518 hidden-answer cases is unknown.
+Imported statistics/forecasts remain in the development archive; they are not shown as current
+workflow measurements. Identity validity ends establish ENDED, not entity DELETED. Working-copy
+record deletion and ended control links use actual SQLite read-back receipts within that scope.
 The web API is local and unauthenticated, with in-memory one-run-per-process execution. No external
 remediation, autonomous self-healing/promotions or durable multi-user job system is provided.
 

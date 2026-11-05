@@ -153,3 +153,17 @@ graph/identity functionality still has its original browser regression checks.
 The API remains localhost and unauthenticated, with an in-memory run registry and bounded SSE
 transport. Public hosting, external execution connectors, durable distributed jobs, generalized
 policy-condition evaluation and self-healing promotions are outside this increment.
+
+## Verification on 5 November 2026
+
+- Python: 649 passed / 18 skipped with participant-data tests enabled; final web subset: 24 passed.
+- Frontend: 36 checks passed; final changed workflow subset: five passed.
+- Production build, formatting, Ruff, mypy (66 source files), whitespace and delivery checks passed.
+- The new run API processed all 518 requests and 94 evidence sources with no execution failures.
+  Its original audit CSV exactly matched the earlier keyless CLI output.
+- Executed case_33 (two actions) and case_54 (four actions, including a flow control) inside isolated
+  working copies. Both received fresh COMPLETE verification within their materialized scope.
+- Original CSV and all 103 downloaded participant files remained unchanged; zero API calls.
+
+The original sample result remains 29/32 correct statuses and 11/32 exact answers. Successful UI
+execution and sandbox verification do not fix those original audit coverage/policy limitations.

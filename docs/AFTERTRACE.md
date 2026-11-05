@@ -1,5 +1,9 @@
 # AFTERTRACE — investigation workspace
 
+The default interface is now the [one-dataset audit and execution workflow](AFTERTRACE_WORKFLOW.md).
+The earlier visual chapters below remain a development archive; the main product uses one input,
+one recorded audit, scoped SQLite remediation, and a separate final verification report.
+
 For the current merged architecture, live execution, graph semantics and contributor boundaries,
 start with [AFTERTRACE_CONTRIBUTOR_REFERENCE.md](AFTERTRACE_CONTRIBUTOR_REFERENCE.md). The dated visual
 refinement records below describe earlier passes. The current backend may export an `INCOMPLETE`
