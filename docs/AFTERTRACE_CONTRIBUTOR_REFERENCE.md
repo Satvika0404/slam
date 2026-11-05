@@ -243,4 +243,8 @@ runs, not measurements of this UI integration. External remediation, external-sy
 autonomous self-healing/promotions, unrestricted uploads, durable multi-user jobs and public auth are
 not implemented. Explicit relationship/entity deletion producers are still a backend data requirement.
 
-Final merged test counts are recorded in the delivery note and the commit accompanying this file.
+Verification on 5 November 2026: the merged Python suite passed 625 tests with 34 skipped; the final
+changed web subset passed 16 tests. The frontend suite passed 31 checks, including 25 browser flows.
+Production build, frontend formatting, Ruff, mypy (64 Python source files) and whitespace checks
+passed. These checks establish the tested behaviour, not participant-dataset accuracy or live-model
+performance. The delivery note records the scope and cross-owner review requests.

@@ -41,6 +41,10 @@ last_updated: 2026-11-05
   `tests/planning/test_policy_plan.py` (Satvika): retain context-only safety/compatibility checks and
   export rejection guards. Full-bundle plan_case and newer validation stay intact. Review the two
   entry points before any consolidation.
+- `code/slam/planning/__init__.py` (Satvika): re-export the existing validator, validation error and
+  CSV exporter for the web adapter; no implementation or shared-contract change.
+- `.gitignore` (integration): exclude frontend dependencies, builds, test artifacts and local backup
+  archives from commits. Existing dataset and credential exclusions remain in place.
 - `docs/integration/ownership.toml` (integration): assigns new frontend/web paths to Lalith.
 - `tests/contracts/test_owned_boundaries.py`: resolved against the newer shared baseline; frozen
   ingest/reconstruct/plan signatures remain checked.
